@@ -94,28 +94,34 @@ describe('deposit map (step B)', () => {
         expect(d.value).toBeGreaterThanOrEqual(1);
         expect(inClearZone(d.x, d.y)).toBe(false);
       }
-      // Tile-level check: no two deposits within 1 tile of each other.
+      // Tile-level check: no two deposits within 1 tile of each other. Violations are counted
+      // and asserted once (an expect() per pair is far too slow for ~1M pairs).
       const occupied = new Map<string, number>();
       all.forEach((d, i) => {
         for (let y = d.y - 1; y <= d.y + 1; y++) {
           for (let x = d.x - 1; x <= d.x + 1; x++) occupied.set(`${x},${y}`, i);
         }
       });
+      let tileViolations = 0;
       all.forEach((d, i) => {
         for (let y = d.y - 2; y <= d.y + 2; y++) {
           for (let x = d.x - 2; x <= d.x + 2; x++) {
             const owner = occupied.get(`${x},${y}`);
-            if (owner !== undefined) expect(owner).toBe(i);
+            if (owner !== undefined && owner !== i) tileViolations++;
           }
         }
       });
+      expect(tileViolations).toBe(0);
+      let pairConflicts = 0;
       for (let i = 0; i < all.length; i++) {
+        const a = all[i];
+        if (!a) continue;
         for (let j = i + 1; j < all.length; j++) {
-          const a = all[i];
           const b = all[j];
-          if (a && b) expect(depositsConflict(a, b)).toBe(false);
+          if (b && depositsConflict(a, b)) pairConflicts++;
         }
       }
+      expect(pairConflicts).toBe(0);
     }
   });
 
