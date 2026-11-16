@@ -44,7 +44,7 @@ body {
 .debug-panel {
   position: absolute;
   right: 12px;
-  bottom: 48px;
+  bottom: 96px;
   padding: 6px 10px;
   border-radius: 6px;
   background: rgb(10 14 26 / 85%);
@@ -92,7 +92,7 @@ body {
   justify-items: center;
   gap: 2px;
   position: relative;
-  min-width: 72px;
+  min-width: 60px;
   padding: 6px 10px 4px;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -536,4 +536,111 @@ body {
 .chip.current {
   background: #4a3d12;
   color: #ffd866;
+}
+
+.build-group {
+  display: flex;
+  gap: 6px;
+}
+
+.build-group-edit {
+  padding-left: 8px;
+  border-left: 1px solid #2c3754;
+}
+
+.build-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.top-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.top-btn[aria-pressed='true'] {
+  border-color: #7fb2ff;
+  background: #22345a;
+}
+
+.tool-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 24px);
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: rgb(10 14 26 / 88%);
+  border: 1px solid #26304a;
+  color: var(--fg);
+  font: 12px/1.4 var(--font-ui);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.marker-overlay {
+  background: rgb(5 8 15 / 45%);
+}
+
+.marker-card {
+  display: grid;
+  gap: 12px;
+  width: min(360px, calc(100vw - 32px));
+  padding: 18px;
+  border-radius: 12px;
+  background: #121a2c;
+  border: 1px solid #2c3754;
+}
+
+.marker-card h2 {
+  margin: 0;
+  font: 700 16px var(--font-ui);
+}
+
+.marker-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #2c3754;
+  border-radius: 8px;
+  background: #0c111e;
+  color: var(--fg);
+  font: 14px var(--font-ui);
+}
+
+.marker-input:focus-visible,
+.secondary-btn:focus-visible {
+  outline: 2px solid #7fb2ff;
+  outline-offset: 1px;
+}
+
+.marker-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.secondary-btn {
+  padding: 10px 14px;
+  border: 1px solid #2c3754;
+  border-radius: 8px;
+  background: #1a2236;
+  color: var(--fg);
+  font: 600 14px var(--font-ui);
+  cursor: pointer;
+}
+
+.secondary-btn.danger {
+  margin-right: auto;
+  color: #ff9c9c;
+}
+
+/* Editing tools: icon only (name in the tooltip) to keep the bar narrow. */
+.build-group-edit .build-btn {
+  min-width: 46px;
+  align-content: center;
+}
+
+.build-group-edit .build-label {
+  display: none;
 }

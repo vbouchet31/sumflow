@@ -47,3 +47,19 @@ export const GHOST_COLORS = {
   blocked: 'rgba(230, 70, 70, 0.45)',
   demolish: 'rgba(230, 70, 70, 0.35)',
 } as const;
+
+/** Zone selection rectangles (PLAN §8.2). */
+export const AREA_COLORS = {
+  demolish: { fill: 'rgba(230, 70, 70, 0.18)', stroke: 'rgba(240, 100, 100, 0.9)' },
+  clear: { fill: 'rgba(240, 190, 60, 0.15)', stroke: 'rgba(245, 205, 90, 0.9)' },
+  copy: { fill: 'rgba(80, 150, 240, 0.15)', stroke: 'rgba(120, 180, 255, 0.9)' },
+  cut: { fill: 'rgba(237, 150, 54, 0.18)', stroke: 'rgba(245, 170, 80, 0.9)' },
+} as const;
+
+/** Text markers (PLAN §10.2 layer 8). */
+export const MARKER_COLORS = {
+  pin: '#ffd866',
+  pinEdge: '#0a0e1a',
+  labelBg: 'rgba(10, 14, 26, 0.85)',
+  labelText: '#ffe9a8',
+} as const;

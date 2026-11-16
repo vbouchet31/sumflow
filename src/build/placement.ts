@@ -12,6 +12,8 @@ export interface BuildingPlan {
   x: number;
   y: number;
   rot: Rot;
+  /** Mirrored before rotation (paste preview only). */
+  mirror?: boolean;
   ok: boolean;
   /** Extractor only: value of the deposit it covers. */
   value?: number;

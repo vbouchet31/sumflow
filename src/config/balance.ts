@@ -248,3 +248,15 @@ export const UPGRADE_TRACK_FACTOR: Record<Track, number> = {
 export const ITEM_HUES = [210, 0, 120, 45, 280, 170, 25, 320, 85] as const;
 export const ITEM_SATURATION = 65;
 export const ITEM_LIGHTNESS = 55;
+
+/** Editing tools (PLAN §8.2). */
+export const EDIT = {
+  /** Largest selection side, in tiles. */
+  maxSelection: 128,
+  /** Clipboard history length. */
+  clipboardSize: 20,
+  /** Undo stack depth. */
+  historySize: 100,
+  /** Longest marker text, in characters. */
+  markerMaxLength: 40,
+} as const;

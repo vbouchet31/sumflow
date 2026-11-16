@@ -17,6 +17,19 @@ export const ACTION_KEYS = {
   upgrades: 'u',
   delivered: 'n',
   priority: 'p',
+  clear: 'c',
+  marker: 'b',
+  pick: 'e',
+  mirror: 'f',
+} as const;
+
+/** Letters combined with Ctrl (or Cmd), by event.key (PLAN §8.2). */
+export const CTRL_KEYS = {
+  copy: 'c',
+  cut: 'x',
+  paste: 'v',
+  undo: 'z',
+  redo: 'y',
 } as const;
 
 /** Tool digits (event.code, so they work on AZERTY without Shift). PLAN §8.2. */

@@ -1,6 +1,6 @@
 import { BUILDINGS } from '../../config/buildings';
 import { BUILDING_COLORS, COLORS, FONT_NUM } from '../../config/colors';
-import { DX, DY, type Rot, rotateLocal } from '../../core/grid';
+import { DX, DY, type Rot, transformLocal } from '../../core/grid';
 import { buildingSize, type OperatorType, portFaces } from '../../sim/entities';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
@@ -28,6 +28,8 @@ export interface OperatorDrawOptions {
   flash?: number;
   /** Ghost tint instead of the building colour. */
   tint?: string;
+  /** Mirrored building (mirror applied before the rotation). */
+  mirror?: boolean;
 }
 
 /**
@@ -45,6 +47,7 @@ export function drawOperator(
   opts: OperatorDrawOptions = {},
 ): void {
   const s = cam.scale;
+  const mirror = opts.mirror === true;
   const def = BUILDINGS[type];
   const base = BUILDING_COLORS[type];
   const size = buildingSize(type, rot);
@@ -53,7 +56,7 @@ export function drawOperator(
   if (def.tiles.length < def.w * def.h) {
     const o = def.tiles.find((t) => t.role === 'O');
     if (o) {
-      const p = rotateLocal(o.x, o.y, def.w, def.h, rot);
+      const p = transformLocal(o.x, o.y, def.w, def.h, rot, mirror);
       center = cam.worldToScreen(ox + p.x + 0.5, oy + p.y + 0.5);
     }
   }
@@ -61,7 +64,7 @@ export function drawOperator(
   const inset = 0.06 * s;
 
   for (const t of def.tiles) {
-    const p = rotateLocal(t.x, t.y, def.w, def.h, rot);
+    const p = transformLocal(t.x, t.y, def.w, def.h, rot, mirror);
     const sp = cam.worldToScreen(ox + p.x, oy + p.y);
     const isIn = t.role === 'A' || t.role === 'B';
     ctx.fillStyle =
@@ -75,7 +78,7 @@ export function drawOperator(
     // Port face notches.
     const len = 0.4 * s;
     const th = Math.max(1.5, 0.09 * s);
-    for (const f of portFaces(type, ox, oy, rot)) {
+    for (const f of portFaces(type, ox, oy, rot, mirror)) {
       const c = cam.worldToScreen(f.x + 0.5 + DX[f.face] * 0.5, f.y + 0.5 + DY[f.face] * 0.5);
       const isIn = f.kind === 'A' || f.kind === 'B';
       ctx.fillStyle = isIn ? 'rgba(0, 0, 0, 0.55)' : 'rgba(255, 255, 255, 0.75)';
@@ -92,7 +95,7 @@ export function drawOperator(
     ctx.font = `700 ${0.34 * s}px ${FONT_NUM}`;
     for (const t of def.tiles) {
       if (t.role !== 'A' && t.role !== 'B' && t.role !== 'Q' && t.role !== 'R') continue;
-      const p = rotateLocal(t.x, t.y, def.w, def.h, rot);
+      const p = transformLocal(t.x, t.y, def.w, def.h, rot, mirror);
       const tc = cam.worldToScreen(ox + p.x + 0.5, oy + p.y + 0.5);
       const vx = tc.x - center.x;
       const vy = tc.y - center.y;
@@ -116,7 +119,7 @@ export function drawOperator(
   if (opts.flash && opts.flash > 0) {
     ctx.fillStyle = `rgba(255, 255, 255, ${0.35 * opts.flash})`;
     for (const t of def.tiles) {
-      const p = rotateLocal(t.x, t.y, def.w, def.h, rot);
+      const p = transformLocal(t.x, t.y, def.w, def.h, rot, mirror);
       const sp = cam.worldToScreen(ox + p.x, oy + p.y);
       ctx.beginPath();
       ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0.22 * s);

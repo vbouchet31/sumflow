@@ -26,10 +26,10 @@ export function togglePriorityAt(world: World, x: number, y: number): PriorityRe
     const src = world.laneAt(x + DX[d], y + DY[d], axisOf(push));
     if (!src || !hasOutput(src.belt, push) || outputCount(src.belt.outputs) < 2) continue;
     if (src.belt.priority === push) {
-      src.belt.priority = null;
+      world.setBeltPriority(src.belt, null);
       return 'cleared';
     }
-    src.belt.priority = push;
+    world.setBeltPriority(src.belt, push);
     return 'set';
   }
   // 2. A building output face touching this tile.
@@ -41,10 +41,10 @@ export function togglePriorityAt(world: World, x: number, y: number): PriorityRe
     if (kind !== 'out' && kind !== 'O' && kind !== 'Q' && kind !== 'R') continue;
     const pk = key(ref.port.x, ref.port.y) * 4 + face;
     if (ref.building.priority === pk) {
-      ref.building.priority = null;
+      world.setBuildingPriority(ref.building, null);
       return 'cleared';
     }
-    ref.building.priority = pk;
+    world.setBuildingPriority(ref.building, pk);
     return 'set';
   }
   return 'none';

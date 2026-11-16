@@ -6,6 +6,10 @@ interface ToolButton {
   label: MessageKey;
   key: string;
   icon: string;
+  /** Compact key label shown on the button (defaults to `key`). */
+  short?: string;
+  /** Editing tools form a second group (PLAN §9.1). */
+  edit?: boolean;
 }
 
 const BUTTONS: readonly ToolButton[] = [
@@ -19,7 +23,12 @@ const BUTTONS: readonly ToolButton[] = [
   { tool: 'storage', label: 'tool.storage', key: '8', icon: '▦' },
   { tool: 'bridge', label: 'tool.bridge', key: '9', icon: '≡' },
   { tool: 'priority', label: 'tool.priority', key: 'P', icon: '◆' },
-  { tool: 'demolish', label: 'tool.demolish', key: 'X', icon: '✕' },
+  { tool: 'demolish', label: 'tool.demolish', key: 'X', icon: '✕', edit: true },
+  { tool: 'clear', label: 'tool.clear', key: 'C', icon: '○', edit: true },
+  { tool: 'copy', label: 'tool.copy', key: 'Ctrl+C', short: '^C', icon: '⧉', edit: true },
+  { tool: 'cut', label: 'tool.cut', key: 'Ctrl+X', short: '^X', icon: '✂', edit: true },
+  { tool: 'paste', label: 'tool.paste', key: 'Ctrl+V', short: '^V', icon: '⎘', edit: true },
+  { tool: 'marker', label: 'tool.marker', key: 'B', icon: '⚑', edit: true },
 ];
 
 /** Bottom-centre build bar (PLAN §9.1). Locked buildings are hidden (later milestones). */
@@ -34,12 +43,26 @@ export class BuildBar {
     bar.className = 'build-bar';
     bar.setAttribute('role', 'toolbar');
     bar.setAttribute('aria-label', t('toolbar.label'));
+    let group = document.createElement('div');
+    group.className = 'build-group';
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', t('toolbar.label'));
+    bar.append(group);
     for (const def of BUTTONS) {
+      if (def.edit && group.dataset['edit'] === undefined) {
+        group = document.createElement('div');
+        group.className = 'build-group build-group-edit';
+        group.dataset['edit'] = '';
+        group.setAttribute('role', 'group');
+        group.setAttribute('aria-label', t('toolbar.edit'));
+        bar.append(group);
+      }
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'build-btn';
       btn.dataset['tool'] = def.tool;
       btn.title = `${t(def.label)} (${def.key})`;
+      btn.setAttribute('aria-label', t(def.label));
       const icon = document.createElement('span');
       icon.className = 'build-icon';
       icon.textContent = def.icon;
@@ -48,13 +71,13 @@ export class BuildBar {
       label.className = 'build-label';
       label.textContent = t(def.label);
       const key = document.createElement('kbd');
-      key.textContent = def.key;
+      key.textContent = def.short ?? def.key;
       btn.append(icon, label, key);
       btn.addEventListener('click', () => {
         tools.setTool(def.tool);
         btn.blur();
       });
-      bar.append(btn);
+      group.append(btn);
       this.buttons.set(def.tool, btn);
     }
     root.append(bar);
@@ -67,10 +90,14 @@ export class BuildBar {
     this.refresh();
   }
 
-  /** Hide buildings that are still locked (PLAN §9.1). Call after a level reward. */
+  /**
+   * Hide buildings that are still locked (PLAN §9.1); paste stays visible but is disabled
+   * while the clipboard is empty. Call after a reward or a clipboard change.
+   */
   refresh(): void {
     for (const [tool, btn] of this.buttons) {
-      btn.hidden = !this.tools.isAvailable(tool);
+      if (tool === 'paste') btn.disabled = !this.tools.isAvailable(tool);
+      else btn.hidden = !this.tools.isAvailable(tool);
     }
   }
 }

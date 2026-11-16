@@ -8,6 +8,7 @@ import {
   type Track,
 } from '../config/balance';
 import { toSeed } from '../core/rng';
+import type { Clip, Marker } from './clip';
 import type { Belt, Bridge, Building } from './entities';
 import { ensureLevels, type GeneratedLevel } from './levels';
 
@@ -49,6 +50,10 @@ export interface GameState {
   nextBuildingId: number;
   /** Total items delivered to the hub, all values. */
   totalDelivered: number;
+  /** Text markers by tile key (PLAN §8.2). */
+  markers: Map<number, Marker>;
+  /** Clipboard history, most recent first, at most `EDIT.clipboardSize` entries (PLAN §8.2). */
+  clipboard: Clip[];
 }
 
 export const HUB_ID = 0;
@@ -91,6 +96,8 @@ export function createInitialState(seed: number): GameState {
     buildings,
     nextBuildingId: HUB_ID + 1,
     totalDelivered: 0,
+    markers: new Map(),
+    clipboard: [],
   };
   state.levelRequirement = requirementFor(state, 1);
   return state;

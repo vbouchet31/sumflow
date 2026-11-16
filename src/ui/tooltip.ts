@@ -1,5 +1,6 @@
 import { STORAGE_CAPACITY } from '../config/balance';
 import { formatFull } from '../core/format';
+import { key } from '../core/grid';
 import { getLocale, t } from '../i18n';
 import { beltStatus } from '../sim/belts';
 import { connectedOutputs } from '../sim/outputs';
@@ -12,6 +13,13 @@ import { isExtractable } from '../world/deposits';
 
 /** Lines describing what is at tile `(x, y)` (PLAN §9.1, bottom left). Empty if nothing. */
 export function describeTile(world: World, x: number, y: number): string[] {
+  const lines = describeObject(world, x, y);
+  const marker = world.state.markers.get(key(x, y));
+  if (marker) lines.push(t('tip.marker', { text: marker.text }));
+  return lines;
+}
+
+function describeObject(world: World, x: number, y: number): string[] {
   const num = (n: number): string => formatFull(n, getLocale());
   const b = world.buildingAt(x, y);
   if (b?.type === 'hub') {

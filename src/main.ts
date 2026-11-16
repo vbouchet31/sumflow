@@ -25,12 +25,16 @@ import { DeliveredPanel } from './ui/panels/delivered';
 import { TRACKS } from './config/balance';
 import { isTrackUnlocked, isUpgradeReady } from './sim/upgrades';
 import { StatusBar } from './ui/statusBar';
+import { MarkerEditor } from './ui/markerEditor';
+import { ToolHint } from './ui/toolHint';
 import { describeTile, Tooltip } from './ui/tooltip';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
 
 /** Longest frame delta honoured, in seconds (avoids a jump after a hitch). */
 const MAX_FRAME_DT = 0.25;
+/** Wheel pixels per clipboard step with Shift+wheel in paste mode. */
+const WHEEL_STEP = 50;
 
 /** Seed from `?seed=` when given, otherwise random (outside the simulation, so allowed). */
 function initialSeed(search: string): number {
@@ -55,10 +59,19 @@ function bootstrap(): void {
   const camera = new Camera();
   const renderer = new Renderer(canvas, camera);
   const sfx = new Sfx();
+  let markerEditor: MarkerEditor | null = null;
   const tools = new ToolController(world, {
     onBuild: () => sfx.place(),
     onDemolish: () => sfx.demolish(),
     onError: () => sfx.error(),
+    onClear: (n) => (n > 0 ? sfx.demolish() : sfx.error()),
+    onMarker: (x, y, text) => {
+      markerEditor?.open(text, (value) => {
+        if (value === null) return;
+        tools.setMarker(x, y, value);
+        sfx.place();
+      });
+    },
   });
   renderer.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -73,7 +86,16 @@ function bootstrap(): void {
   const toggleUpgrades = (): void => {
     if (upgradesAvailable()) upgradesPanel.toggle();
   };
+  const undo = (): void => {
+    if (!tools.undo()) sfx.error();
+  };
+  const redo = (): void => {
+    if (!tools.redo()) sfx.error();
+  };
   const topBar = new TopBar(uiRoot, {
+    undo,
+    redo,
+    marker: () => tools.setTool('marker'),
     home: goHome,
     delivered: () => deliveredPanel.toggle(),
     levels: () => levelsPanel.toggle(),
@@ -84,6 +106,8 @@ function bootstrap(): void {
   const statusBar = new StatusBar(uiRoot);
   const toasts = new Toasts(uiRoot);
   const endScreen = new EndScreen(uiRoot);
+  const toolHint = new ToolHint(uiRoot, tools);
+  markerEditor = new MarkerEditor(uiRoot);
 
   world.events.on('levelCompleted', ({ level, reward, final }) => {
     renderer.waveStart = performance.now();
@@ -112,15 +136,22 @@ function bootstrap(): void {
     onLevels: () => levelsPanel.toggle(),
     onUpgrades: toggleUpgrades,
     onDelivered: () => deliveredPanel.toggle(),
-    onTool: (tool) => tools.setTool(tool),
+    onTool: (tool) => {
+      if (tool === 'paste' && !tools.isAvailable('paste')) sfx.error();
+      else tools.setTool(tool);
+    },
     onRotate: (delta) => tools.rotate(delta),
+    onMirror: () => tools.mirror(),
+    onPick: () => tools.pick(),
+    onUndo: undo,
+    onRedo: redo,
     onCancel: () => {
       const open = panels.find((p) => p.isOpen);
       if (endScreen.isOpen) endScreen.hide();
       else if (open) open.close();
       else tools.cancel();
     },
-    onQuickDemolish: () => tools.demolishHovered(),
+    onQuickDemolish: () => tools.deletePressed(),
     onTogglePause: () => {
       loop.paused = !loop.paused;
       statusBar.setPaused(loop.paused);
@@ -130,11 +161,22 @@ function bootstrap(): void {
     onDown: (x, y, mods) => tools.pointerDown(x, y, mods),
     onMove: (x, y, mods) => tools.pointerMove(x, y, mods),
     onUp: (x, y, mods) => tools.pointerUp(x, y, mods),
+    onWheel: (delta, mods) => {
+      if (!mods.shift || tools.tool !== 'paste') return false;
+      // Accumulate so a trackpad does not skip through the history.
+      wheelAcc += delta;
+      if (Math.abs(wheelAcc) >= WHEEL_STEP) {
+        tools.cycleClip(wheelAcc > 0 ? 1 : -1);
+        wheelAcc = 0;
+      }
+      return true;
+    },
   });
 
+  let wheelAcc = 0;
   const debug = isDebugEnabled(location.search);
   const debugPanel = debug ? new DebugPanel(uiRoot) : null;
-  if (debug) installDebugApi({ world, camera, loop });
+  if (debug) installDebugApi({ world, camera, loop, tools });
 
   const resize = (): void => {
     renderer.resize(window.innerWidth, window.innerHeight, window.devicePixelRatio);
@@ -142,7 +184,7 @@ function bootstrap(): void {
   window.addEventListener('resize', resize);
   resize();
 
-  let unlockedCount = -1;
+  let unlockedKey = '';
   let last = performance.now();
   const frame = (now: number): void => {
     const dt = Math.min(MAX_FRAME_DT, Math.max(0, (now - last) / 1000));
@@ -168,10 +210,15 @@ function bootstrap(): void {
       'upgrades',
       TRACKS.some((tr) => isUpgradeReady(state, tr)),
     );
-    if (state.unlockedBuildings.length + state.unlockedFeatures.length !== unlockedCount) {
-      unlockedCount = state.unlockedBuildings.length + state.unlockedFeatures.length;
+    const barKey = `${state.unlockedBuildings.length}|${state.unlockedFeatures.length}|${state.clipboard.length}`;
+    if (barKey !== unlockedKey) {
+      unlockedKey = barKey;
       buildBar.refresh();
     }
+    topBar.setEnabled('undo', tools.history.canUndo);
+    topBar.setEnabled('redo', tools.history.canRedo);
+    topBar.setPressed('marker', tools.tool === 'marker');
+    toolHint.update();
     tooltip.update(mouse.inside ? describeTile(world, hover.x, hover.y) : []);
     debugPanel?.update({
       seed: state.seed,

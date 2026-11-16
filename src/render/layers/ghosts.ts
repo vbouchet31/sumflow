@@ -1,4 +1,4 @@
-import { COLORS, GHOST_COLORS } from '../../config/colors';
+import { AREA_COLORS, COLORS, GHOST_COLORS } from '../../config/colors';
 import { DX, DY } from '../../core/grid';
 import type { Ghost } from '../../build/tools';
 import { buildingSize, isOperator } from '../../sim/entities';
@@ -45,8 +45,11 @@ export function drawGhosts(ctx: CanvasRenderingContext2D, cam: Camera, ghost: Gh
   for (const g of ghost.buildings) {
     if (isOperator(g.type)) {
       // Real look, translucent, so ports and letters are visible before placing.
-      drawOperator(ctx, cam, g.type, g.x, g.y, g.rot, { alpha: g.ok ? 0.75 : 0.35 });
-      if (!g.ok) drawOperator(ctx, cam, g.type, g.x, g.y, g.rot, { tint: GHOST_COLORS.blocked });
+      const mirror = g.mirror === true;
+      drawOperator(ctx, cam, g.type, g.x, g.y, g.rot, { alpha: g.ok ? 0.75 : 0.35, mirror });
+      if (!g.ok) {
+        drawOperator(ctx, cam, g.type, g.x, g.y, g.rot, { tint: GHOST_COLORS.blocked, mirror });
+      }
       continue;
     }
     const size = buildingSize(g.type, g.rot);
@@ -61,6 +64,20 @@ export function drawGhosts(ctx: CanvasRenderingContext2D, cam: Camera, ghost: Gh
       0.4 * s,
     );
     ctx.fill();
+  }
+  if (ghost.area) {
+    const { rect, kind } = ghost.area;
+    const p = cam.worldToScreen(rect.x0, rect.y0);
+    const w = (rect.x1 - rect.x0 + 1) * s;
+    const h = (rect.y1 - rect.y0 + 1) * s;
+    const color = AREA_COLORS[kind];
+    ctx.fillStyle = color.fill;
+    ctx.fillRect(p.x, p.y, w, h);
+    ctx.strokeStyle = color.stroke;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(p.x + 1, p.y + 1, w - 2, h - 2);
+    ctx.setLineDash([]);
   }
   if (ghost.demolish) {
     const p = cam.worldToScreen(ghost.demolish.x, ghost.demolish.y);
