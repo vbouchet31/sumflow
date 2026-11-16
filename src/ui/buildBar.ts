@@ -1,4 +1,6 @@
 import type { ToolController, ToolId } from '../build/tools';
+import { isOperator } from '../sim/entities';
+import { type GameState, isBuildingUnlocked } from '../sim/state';
 import { type MessageKey, t } from '../i18n';
 
 interface ToolButton {
@@ -11,6 +13,11 @@ interface ToolButton {
 const BUTTONS: readonly ToolButton[] = [
   { tool: 'belt', label: 'tool.belt', key: '1', icon: '»' },
   { tool: 'extractor', label: 'tool.extractor', key: '2', icon: '▣' },
+  { tool: 'adder', label: 'tool.adder', key: '3', icon: '+' },
+  { tool: 'multiplier', label: 'tool.multiplier', key: '4', icon: '×' },
+  { tool: 'subtractor', label: 'tool.subtractor', key: '5', icon: '−' },
+  { tool: 'divider', label: 'tool.divider', key: '6', icon: '÷' },
+  { tool: 'exponent', label: 'tool.exponent', key: '7', icon: '^' },
   { tool: 'demolish', label: 'tool.demolish', key: 'X', icon: '✕' },
 ];
 
@@ -18,7 +25,11 @@ const BUTTONS: readonly ToolButton[] = [
 export class BuildBar {
   private readonly buttons = new Map<ToolId, HTMLButtonElement>();
 
-  constructor(root: HTMLElement, tools: ToolController) {
+  constructor(
+    root: HTMLElement,
+    tools: ToolController,
+    private readonly state: GameState,
+  ) {
     const bar = document.createElement('div');
     bar.className = 'build-bar';
     bar.setAttribute('role', 'toolbar');
@@ -53,5 +64,13 @@ export class BuildBar {
     };
     tools.onChange(sync);
     sync();
+    this.refresh();
+  }
+
+  /** Hide buildings that are still locked (PLAN §9.1). Call after a level reward. */
+  refresh(): void {
+    for (const [tool, btn] of this.buttons) {
+      btn.hidden = isOperator(tool) && !isBuildingUnlocked(this.state, tool);
+    }
   }
 }

@@ -1,8 +1,11 @@
 import { formatFull } from '../core/format';
 import { getLocale, t } from '../i18n';
 import { beltStatus } from '../sim/belts';
-import { connectedOutputs } from '../sim/extractor';
+import { connectedOutputs } from '../sim/outputs';
 import { currentExtractorRate } from '../sim/upgrades';
+import { isOperator } from '../sim/entities';
+import { cycleDuration } from '../sim/operators';
+import { type MessageKey } from '../i18n';
 import type { World } from '../sim/world';
 import { isExtractable } from '../world/deposits';
 
@@ -31,6 +34,24 @@ export function describeTile(world: World, x: number, y: number): string[] {
       t('tip.rate', { rate: currentExtractorRate(world.state).toLocaleString(getLocale()) }),
       outs > 0 ? t('tip.outputs', { n: outs }) : t('tip.noOutput'),
     ];
+  }
+  if (b && isOperator(b.type)) {
+    const list = (buf: number[] | undefined): string =>
+      buf && buf.length > 0 ? buf.map(num).join(', ') : t('tip.none');
+    const dur = cycleDuration(world, b.type);
+    const lines = [t(`tool.${b.type}` as MessageKey)];
+    lines.push(t('tip.bufA', { items: list(b.inA) }), t('tip.bufB', { items: list(b.inB) }));
+    if (b.type === 'divider') {
+      lines.push(t('tip.bufQ', { items: list(b.outQ) }), t('tip.bufR', { items: list(b.outR) }));
+    } else {
+      lines.push(t('tip.bufOut', { items: list(b.out) }));
+    }
+    const cycle = b.cycle ?? -1;
+    lines.push(
+      cycle < 0 ? t('tip.idle') : t('tip.cycle', { pct: Math.round(100 * (1 - cycle / dur)) }),
+      t('tip.speed', { rate: (1 / dur).toLocaleString(getLocale(), { maximumFractionDigits: 3 }) }),
+    );
+    return lines;
   }
   const belt = world.beltAt(x, y);
   if (belt) {

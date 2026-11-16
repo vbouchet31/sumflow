@@ -1,4 +1,6 @@
 import { type Dir, normalizeRot, type Rot, rotateDir } from '../core/grid';
+import { isOperator, type OperatorType } from '../sim/entities';
+import { isBuildingUnlocked } from '../sim/state';
 import type { World } from '../sim/world';
 import {
   applyBeltPlan,
@@ -13,9 +15,10 @@ import {
   demolishAt,
   demolishTarget,
   planExtractor,
+  planOperatorRow,
 } from './placement';
 
-export type ToolId = 'none' | 'belt' | 'extractor' | 'demolish';
+export type ToolId = 'none' | 'belt' | 'extractor' | 'demolish' | OperatorType;
 
 export interface Modifiers {
   ctrl: boolean;
@@ -26,7 +29,7 @@ export interface Modifiers {
 /** What the renderer draws as construction ghosts. */
 export interface Ghost {
   belts: PlannedBelt[];
-  building: BuildingPlan | null;
+  buildings: BuildingPlan[];
   demolish: { x: number; y: number } | null;
 }
 
@@ -59,7 +62,9 @@ export class ToolController {
     return () => this.listeners.delete(fn);
   }
 
+  /** Select a tool (selecting the active one again deselects it). Locked tools are ignored. */
   setTool(tool: ToolId): void {
+    if (isOperator(tool) && !isBuildingUnlocked(this.world.state, tool)) return;
     this.tool = this.tool === tool ? 'none' : tool;
     this.drag = null;
     for (const fn of this.listeners) fn();
@@ -88,31 +93,35 @@ export class ToolController {
   pointerDown(x: number, y: number, mods: Modifiers): void {
     this.hover = { x, y };
     this.ctrl = mods.ctrl;
-    if (this.tool === 'belt') this.drag = { x, y, moved: false };
+    if (this.tool === 'belt' || isOperator(this.tool)) this.drag = { x, y, moved: false };
   }
 
   pointerUp(x: number, y: number, mods: Modifiers): void {
     this.hover = { x, y };
     this.ctrl = mods.ctrl;
-    switch (this.tool) {
-      case 'belt': {
-        const plan = this.currentBeltPlan();
-        this.drag = null;
-        if (plan.length > 0 && applyBeltPlan(this.world, plan) > 0) this.events.onBuild?.();
-        else if (plan.every((t) => t.status === 'blocked')) this.events.onError?.();
-        break;
+    const tool = this.tool;
+    if (tool === 'belt') {
+      const plan = this.currentBeltPlan();
+      this.drag = null;
+      if (plan.length > 0 && applyBeltPlan(this.world, plan) > 0) this.events.onBuild?.();
+      else if (plan.every((t) => t.status === 'blocked')) this.events.onError?.();
+    } else if (tool === 'extractor') {
+      if (applyBuildingPlan(this.world, planExtractor(this.world, x, y))) this.events.onBuild?.();
+      else this.events.onError?.();
+    } else if (tool === 'demolish') {
+      if (demolishAt(this.world, x, y)) this.events.onDemolish?.();
+    } else if (isOperator(tool)) {
+      const plans = this.currentOperatorPlans(tool);
+      this.drag = null;
+      let placed = 0;
+      for (const p of plans) {
+        // Re-check: an earlier copy of the row may now occupy the spot.
+        if (p.ok && this.world.isFootprintFree(p.type, p.x, p.y, p.rot)) {
+          if (applyBuildingPlan(this.world, p)) placed++;
+        }
       }
-      case 'extractor': {
-        const plan = planExtractor(this.world, x, y);
-        if (applyBuildingPlan(this.world, plan)) this.events.onBuild?.();
-        else this.events.onError?.();
-        break;
-      }
-      case 'demolish':
-        if (demolishAt(this.world, x, y)) this.events.onDemolish?.();
-        break;
-      case 'none':
-        break;
+      if (placed > 0) this.events.onBuild?.();
+      else this.events.onError?.();
     }
   }
 
@@ -139,20 +148,27 @@ export class ToolController {
     return planSingleBelt(this.world, at.x, at.y, this.beltDir);
   }
 
+  private currentOperatorPlans(type: OperatorType): BuildingPlan[] {
+    if (!this.hover) return [];
+    const from = this.drag ?? this.hover;
+    const to = this.drag?.moved ? this.hover : from;
+    return planOperatorRow(this.world, type, from, to, this.rot);
+  }
+
   ghost(): Ghost {
-    const empty: Ghost = { belts: [], building: null, demolish: null };
+    const empty: Ghost = { belts: [], buildings: [], demolish: null };
     if (!this.hover) return empty;
-    switch (this.tool) {
-      case 'belt':
-        return { ...empty, belts: this.currentBeltPlan() };
-      case 'extractor':
-        return { ...empty, building: planExtractor(this.world, this.hover.x, this.hover.y) };
-      case 'demolish':
-        return demolishTarget(this.world, this.hover.x, this.hover.y)
-          ? { ...empty, demolish: { ...this.hover } }
-          : empty;
-      case 'none':
-        return empty;
+    const tool = this.tool;
+    if (tool === 'belt') return { ...empty, belts: this.currentBeltPlan() };
+    if (tool === 'extractor') {
+      return { ...empty, buildings: [planExtractor(this.world, this.hover.x, this.hover.y)] };
     }
+    if (tool === 'demolish') {
+      return demolishTarget(this.world, this.hover.x, this.hover.y)
+        ? { ...empty, demolish: { ...this.hover } }
+        : empty;
+    }
+    if (isOperator(tool)) return { ...empty, buildings: this.currentOperatorPlans(tool) };
+    return empty;
   }
 }

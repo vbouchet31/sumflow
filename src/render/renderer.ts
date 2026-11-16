@@ -55,7 +55,13 @@ export class Renderer {
     // Chevrons follow simulation time, so they stop when the game is paused.
     const phase = (state.tick * TICK_DT * currentBeltSpeed(state)) % 1;
     drawBelts(ctx, camera, belts, phase);
-    drawBuildings(ctx, camera, world.buildingsInRect(v.x0, v.y0, v.x1, v.y1), state);
+    drawBuildings(
+      ctx,
+      camera,
+      world.buildingsInRect(v.x0, v.y0, v.x1, v.y1),
+      state,
+      this.reducedMotion,
+    );
     drawItems(ctx, camera, belts);
     drawGhosts(ctx, camera, ghost);
     if (this.waveStart !== null && !this.reducedMotion)
