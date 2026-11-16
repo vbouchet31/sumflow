@@ -20,6 +20,7 @@ async function camera(page: Page): Promise<{ x: number; y: number; zoom: number 
 }
 
 const BACKGROUND = [15, 20, 34, 255];
+const DEPOSIT = [30, 39, 64, 255];
 const HUB = [43, 108, 176, 255];
 
 test('loads the page without console errors and draws the hub', async ({ page }) => {
@@ -42,7 +43,10 @@ test('loads the page without console errors and draws the hub', async ({ page })
 
   const cx = viewport.width / 2;
   const cy = viewport.height / 2;
-  await expect.poll(() => pixelAt(page, 2, 2)).toEqual(BACKGROUND);
+  // The corner shows either the background or a deposit square (never transparent black).
+  await expect
+    .poll(async () => [BACKGROUND, DEPOSIT].map(String).includes(String(await pixelAt(page, 2, 2))))
+    .toBe(true);
   // Inside the hub, away from its text (hub spans ±96 px at zoom 1).
   await expect.poll(() => pixelAt(page, cx - 80, cy - 80)).toEqual(HUB);
 
@@ -67,11 +71,11 @@ test('camera zooms around the cursor, pans with the mouse and keys, and H recent
   const cx = viewport.width / 2;
   const cy = viewport.height / 2;
 
-  // Zoom out under the centre: the hub shrinks and the probe point becomes background.
+  // Zoom out under the centre: the hub shrinks and no longer covers the probe point.
   await page.mouse.move(cx, cy);
   await page.mouse.wheel(0, 800);
   await expect.poll(async () => (await camera(page)).zoom).toBeLessThan(0.5);
-  await expect.poll(() => pixelAt(page, cx - 80, cy - 80)).toEqual(BACKGROUND);
+  await expect.poll(() => pixelAt(page, cx - 80, cy - 80)).not.toEqual(HUB);
   const zoomed = await camera(page);
   expect(zoomed.x).toBeCloseTo(0, 5);
   expect(zoomed.y).toBeCloseTo(0, 5);

@@ -67,3 +67,49 @@ export const LEVEL_TABLE: readonly LevelDef[] = [
 
 /** Hub footprint (PLAN §4.2): tiles x, y ∈ [-3, 2]. */
 export const HUB = { x: -3, y: -3, size: 6 } as const;
+
+/** Starting extraction cap (PLAN §4.5). */
+export const START_MAX_EXTRACTION = 1;
+
+/** Map generation (PLAN §4.3, §4.4). Distances are in tiles from the hub centre. */
+export const MAPGEN = {
+  /** Deposit edge length in tiles. */
+  depositSize: 3,
+  /** Minimum empty tiles between two deposits. */
+  depositGap: 1,
+  /** No deposit tile inside x, y ∈ [min, max] around the hub. */
+  clearZone: { min: -6, max: 5 },
+  /** The value that never appears on the map. */
+  forbiddenValue: 10,
+  /** Guaranteed deposits are placed for values 1..guaranteedMaxValue. */
+  guaranteedMaxValue: 80,
+  /** Retries rotating the angle before pushing the distance out. */
+  angleRetries: 30,
+  /** Distance added after `angleRetries` failed attempts. */
+  retryDistanceStep: 3,
+  /** Random deposit attempts per chunk. */
+  attemptsPerChunk: 4,
+  /** vmax(d) = vmaxBase + floor(d / vmaxDistanceStep). */
+  vmaxBase: 2,
+  vmaxDistanceStep: 22,
+  /** Weight of value v: v^(-weightExponent). */
+  weightExponent: 1.15,
+} as const;
+
+export interface GuaranteedRule {
+  count: number;
+  minDist: number;
+  maxDist: number;
+  /** One deposit per quadrant (value 1). */
+  perQuadrant?: boolean;
+}
+
+/** Guaranteed deposit rule for value v (PLAN §4.4 step A), or null for none. */
+export function guaranteedRule(v: number): GuaranteedRule | null {
+  if (v === MAPGEN.forbiddenValue || v < 1 || v > MAPGEN.guaranteedMaxValue) return null;
+  if (v === 1) return { count: 4, minDist: 9, maxDist: 16, perQuadrant: true };
+  if (v === 2) return { count: 3, minDist: 14, maxDist: 24 };
+  if (v === 3) return { count: 2, minDist: 20, maxDist: 32 };
+  if (v <= 9) return { count: 2, minDist: 10 + 7 * v, maxDist: 18 + 9 * v };
+  return { count: 1, minDist: 60 + 14 * v, maxDist: 90 + 18 * v };
+}

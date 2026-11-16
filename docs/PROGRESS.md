@@ -15,6 +15,13 @@
 | M10 Sauvegarde, options, i18n, menu, aide, audio | ⏳ à faire        |                                                                      |
 | M11 Performance et finition                      | ⏳ à faire        |                                                                      |
 
+## M2 : détail
+
+- [x] RNG seedé (`mulberry32`, `hash2`), gisements garantis (étape A) et aléatoires par chunk (étape B).
+- [x] Rendu des gisements avec LOD, valeurs grisées et cadenas si non extractibles.
+- [x] Graine affichée dans le panneau debug (`?debug=1`), graine fixable via `?seed=`.
+- [x] Tests : déterminisme, indépendance à l'ordre des chunks, pas de 10, pas de chevauchement (écart d'une tuile), zone dégagée, au moins quatre 1 à moins de 16 tuiles, poids `v^-1,15`, `vmax(d)`.
+
 ## M1 : détail
 
 - [x] Caméra : déplacement WASD/ZQSD physique + flèches (Shift ×3, ignoré avec Ctrl/Alt), glisser clic droit/milieu, zoom molette centré sur le curseur (0,05 à 4), `H` = retour au Hub.
@@ -32,7 +39,7 @@
 - [x] Workflow `.github/workflows/deploy.yml` (§15).
 - [x] Page : canvas plein écran bleu nuit `#0f1422` + titre « Sumflow » (via i18n).
 - [x] `npm run build` sans avertissement.
-- [ ] L'URL Pages affiche la page : nécessite le merge sur `main` et le réglage Settings > Pages > Source : **GitHub Actions**.
+- [x] L'URL Pages affiche la page (CI et déploiement verts après le merge de la PR 1).
 
 ### Écarts connus
 

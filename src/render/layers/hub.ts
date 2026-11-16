@@ -4,10 +4,8 @@ import { formatCompact } from '../../core/format';
 import { t } from '../../i18n';
 import type { GameState } from '../../sim/state';
 import type { Camera } from '../camera';
+import { LOD } from '../lod';
 import { roundRect } from '../shapes';
-
-/** Below this zoom the hub is drawn without text (PLAN §10.3, text LOD). */
-const TEXT_MIN_ZOOM = 0.3;
 
 const OPERATOR_SYMBOLS: Partial<Record<string, string>> = {
   adder: '+',
@@ -45,7 +43,7 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
   roundRect(ctx, x, y, w, w, Math.max(2, 0.4 * s));
   ctx.fill();
 
-  if (cam.zoom < TEXT_MIN_ZOOM) return;
+  if (cam.zoom < LOD.buildingText) return;
 
   const cx = x + w / 2;
   const req = state.levelRequirement;

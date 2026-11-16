@@ -5,6 +5,7 @@ export const COLORS = {
   deposit: '#1e2740',
   hub: '#2b6cb0',
   text: '#ffffff',
+  depositLocked: '#6b7590',
 } as const;
 
 /** Building colours (PLAN §6.3). Operators are also told apart by symbol and shape (§9.5). */

@@ -1,6 +1,8 @@
 import { COLORS } from '../config/colors';
 import type { GameState } from '../sim/state';
+import type { DepositMap } from '../world/chunks';
 import type { Camera } from './camera';
+import { drawDeposits } from './layers/deposits';
 import { drawGrid } from './layers/grid';
 import { drawHub } from './layers/hub';
 
@@ -30,11 +32,12 @@ export class Renderer {
   }
 
   /** Draw one frame. Reads the state, never mutates it (PLAN §13.2). */
-  draw(state: GameState): void {
+  draw(state: GameState, deposits: DepositMap): void {
     const { ctx, camera } = this;
     ctx.fillStyle = COLORS.background;
     ctx.fillRect(0, 0, camera.viewW, camera.viewH);
     drawGrid(ctx, camera);
+    drawDeposits(ctx, camera, deposits, state);
     drawHub(ctx, camera, state);
   }
 }

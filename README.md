@@ -4,7 +4,7 @@ Jeu d'usine à nombres pour navigateur : extraire des nombres, les transporter s
 
 > Projet de fan, inspiré par Beltmatic de Notional Games. Code et visuels originaux.
 
-État : jalon **M1** (grille, caméra, Hub). Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
+État : jalon **M2** (carte procédurale). Version jouable en ligne : https://vbouchet31.github.io/sumflow/ (ajouter `?debug=1` pour le panneau debug, `?seed=42` pour fixer la carte). Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ## Commandes (état actuel)
 
