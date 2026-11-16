@@ -2,7 +2,7 @@ import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT, type Track } from '../confi
 import { add, divmod, mul, pow, sub } from '../core/intmath';
 import { EPS } from './belts';
 import { type Building, isOperator, type OperatorType } from './entities';
-import { pushOut } from './outputs';
+import { outputGroup, pushOut } from './outputs';
 import type { World } from './world';
 
 /** Upgrade track driving each operator's speed (PLAN §7.3). */
@@ -74,9 +74,9 @@ export function stepOutputs(world: World): void {
 }
 
 function drain(world: World, b: Building, buf: number[] | undefined, kind: 'O' | 'Q' | 'R'): void {
-  if (!buf) return;
+  if (!buf || buf.length === 0) return;
   // Each face takes at most one item per tick: try as many times as there are faces.
-  const faces = world.buildingPorts.get(b.id)?.filter((p) => p.kind === kind).length ?? 0;
+  const faces = outputGroup(world, b, kind).ports.length;
   for (let i = 0; i < faces && buf.length > 0; i++) {
     const value = buf[0];
     if (value === undefined || !pushOut(world, b, kind, value)) break;

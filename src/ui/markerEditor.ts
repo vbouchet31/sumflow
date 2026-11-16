@@ -1,6 +1,6 @@
 import { EDIT } from '../config/balance';
 import { t } from '../i18n';
-import { el } from './dom';
+import { el, releaseFocus, trapTab } from './dom';
 
 /**
  * Small dialog to type a marker's text (PLAN §8.2). Enter validates, Escape cancels;
@@ -36,6 +36,7 @@ export class MarkerEditor {
     cancel.addEventListener('click', () => this.finish(undefined));
     this.deleteBtn.addEventListener('click', () => this.finish(''));
     form.addEventListener('keydown', (e) => {
+      trapTab(form, e);
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
@@ -69,6 +70,7 @@ export class MarkerEditor {
   /** `undefined` = cancelled; a string (maybe empty) = validated. */
   private finish(text: string | undefined): void {
     if (this.overlay.hidden) return;
+    releaseFocus(this.overlay);
     this.overlay.hidden = true;
     const done = this.onDone;
     this.onDone = null;

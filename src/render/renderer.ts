@@ -3,7 +3,10 @@ import { TICK_DT } from '../config/balance';
 import { COLORS } from '../config/colors';
 import { currentBeltSpeed } from '../sim/upgrades';
 import type { World } from '../sim/world';
+import type { Belt } from '../sim/entities';
+import { RegionCache } from './cache';
 import type { Camera } from './camera';
+import { LOD } from './lod';
 import { drawBelts } from './layers/belts';
 import { drawBridges, drawPriorities } from './layers/bridges';
 import { priorityTiles } from '../sim/priority';
@@ -17,6 +20,11 @@ import { drawWave } from './layers/wave';
 
 /** Maximum device pixel ratio honoured by the canvas (PLAN §10.4). */
 const MAX_DPR = 2;
+/**
+ * Frames the zoom must stay unchanged before caches are used: while zooming, every frame
+ * has a new scale and cached bitmaps would be thrown away at once.
+ */
+const STABLE_FRAMES = 3;
 
 export class Renderer {
   private readonly ctx: CanvasRenderingContext2D;
@@ -26,6 +34,14 @@ export class Renderer {
   /** Options (PLAN §9.4). */
   showGrid = true;
   itemValuesAlways = false;
+  private dpr = 1;
+  private readonly depositCache = new RegionCache();
+  private readonly beltCache = new RegionCache();
+  private world: World | null = null;
+  private unwatch: (() => void) | null = null;
+  private lastZoom = 0;
+  /** Frames since the zoom last changed. */
+  private stableFrames = 0;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -38,6 +54,7 @@ export class Renderer {
 
   resize(cssWidth: number, cssHeight: number, devicePixelRatio: number): void {
     const dpr = Math.min(MAX_DPR, Math.max(1, devicePixelRatio));
+    this.dpr = dpr;
     this.camera.setViewport(cssWidth, cssHeight);
     this.canvas.width = Math.round(cssWidth * dpr);
     this.canvas.height = Math.round(cssHeight * dpr);
@@ -48,33 +65,77 @@ export class Renderer {
 
   /**
    * Draw one frame in layer order (PLAN §10.2). Reads the world, never mutates it.
+   * Deposits and belts come from off-screen caches once the zoom has settled.
    */
   draw(world: World, ghost: Ghost, nowMs: number): void {
-    const { ctx, camera } = this;
+    const { ctx, camera, dpr } = this;
     const { state } = world;
+    this.watch(world);
+    this.stableFrames = camera.zoom === this.lastZoom ? this.stableFrames + 1 : 0;
+    this.lastZoom = camera.zoom;
+    const cached = this.stableFrames >= STABLE_FRAMES && RegionCache.usable(camera, dpr);
+
     ctx.fillStyle = COLORS.background;
     ctx.fillRect(0, 0, camera.viewW, camera.viewH);
     if (this.showGrid) drawGrid(ctx, camera);
-    drawDeposits(ctx, camera, world.deposits, state);
+    if (cached) {
+      this.depositCache.draw(ctx, camera, dpr, `${state.maxExtraction}`, (c, cam) =>
+        drawDeposits(c, cam, world.deposits, state),
+      );
+    } else {
+      drawDeposits(ctx, camera, world.deposits, state);
+    }
+
     const v = camera.visibleTiles(1);
-    const belts = [...world.beltsInRect(v.x0, v.y0, v.x1, v.y1)];
+    // From zoom 0.6 chevrons move: only the tile bases are cached, chevrons are drawn live.
+    const liveChevrons = camera.zoom >= LOD.full;
+    // Below zoom 0.12 items and priorities are hidden: cached belts need no belt list at all.
+    const needBelts = !cached || camera.zoom >= LOD.depositText;
+    const belts = needBelts ? [...world.beltsInRect(v.x0, v.y0, v.x1, v.y1)] : [];
     // Chevrons follow simulation time, so they stop when the game is paused.
     const phase = (state.tick * TICK_DT * currentBeltSpeed(state)) % 1;
-    drawBelts(ctx, camera, belts, phase);
+    if (cached) {
+      this.beltCache.draw(ctx, camera, dpr, '', (c, cam, r) =>
+        drawBelts(
+          c,
+          cam,
+          [...world.beltsInRect(r.x0, r.y0, r.x1, r.y1)],
+          0,
+          liveChevrons ? 'base' : 'all',
+        ),
+      );
+      if (liveChevrons) drawBelts(ctx, camera, belts, phase, 'chevrons');
+    } else {
+      drawBelts(ctx, camera, belts, phase);
+    }
     const bridges = [...world.bridgesInRect(v.x0, v.y0, v.x1, v.y1)];
-    drawBridges(ctx, camera, bridges, phase);
-    drawBuildings(
-      ctx,
-      camera,
-      world.buildingsInRect(v.x0, v.y0, v.x1, v.y1),
-      state,
-      this.reducedMotion,
-    );
+    drawBridges(ctx, camera, bridges, phase, this.itemValuesAlways);
+    const buildings = [...world.buildingsInRect(v.x0, v.y0, v.x1, v.y1)];
+    drawBuildings(ctx, camera, buildings, state, this.reducedMotion);
     drawItems(ctx, camera, belts, this.itemValuesAlways);
-    drawPriorities(ctx, camera, priorityTiles(world));
+    if (camera.zoom >= LOD.depositText) {
+      const lanes: Belt[] = [];
+      for (const b of bridges) {
+        if (b.h) lanes.push(b.h);
+        if (b.v) lanes.push(b.v);
+      }
+      drawPriorities(ctx, camera, priorityTiles(world, belts.concat(lanes), buildings));
+    }
     drawGhosts(ctx, camera, ghost);
     drawMarkers(ctx, camera, state.markers.values());
     if (this.waveStart !== null && !this.reducedMotion)
       drawWave(ctx, camera, nowMs - this.waveStart);
+  }
+
+  /** Keep the belt cache in sync with the world being drawn. */
+  private watch(world: World): void {
+    if (world === this.world) return;
+    this.unwatch?.();
+    this.world = world;
+    this.beltCache.clear();
+    this.depositCache.clear();
+    this.unwatch = world.events.on('beltChanged', ({ x, y }) =>
+      this.beltCache.invalidateTile(x, y),
+    );
   }
 }

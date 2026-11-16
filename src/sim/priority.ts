@@ -1,5 +1,5 @@
 import { DIRS, type Dir, DX, DY, key, opposite } from '../core/grid';
-import { axisOf, hasOutput } from './entities';
+import { axisOf, type Belt, type Building, hasOutput } from './entities';
 import { isFeatureUnlocked } from './state';
 import type { World } from './world';
 
@@ -50,15 +50,24 @@ export function togglePriorityAt(world: World, x: number, y: number): PriorityRe
   return 'none';
 }
 
-/** Tiles that carry a priority diamond (the prioritised outputs' targets). */
-export function priorityTiles(world: World): { x: number; y: number }[] {
+/**
+ * Tiles that carry a priority diamond (the prioritised outputs' targets). By default every
+ * belt, lane and building is scanned; the renderer passes only the visible ones.
+ */
+export function priorityTiles(
+  world: World,
+  belts?: Iterable<Belt>,
+  buildings: Iterable<Building> = world.state.buildings.values(),
+): { x: number; y: number }[] {
   const out: { x: number; y: number }[] = [];
-  for (const [, b] of world.nodes()) {
+  const add = (b: Belt): void => {
     if (b.priority !== null && hasOutput(b, b.priority)) {
       out.push({ x: b.x + DX[b.priority], y: b.y + DY[b.priority] });
     }
-  }
-  for (const b of world.state.buildings.values()) {
+  };
+  if (belts) for (const b of belts) add(b);
+  else for (const [, b] of world.nodes()) add(b);
+  for (const b of buildings) {
     if (b.priority === null) continue;
     const tileKey = Math.floor(b.priority / 4);
     const face = (b.priority % 4) as Dir;

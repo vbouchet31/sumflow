@@ -11,6 +11,11 @@ export function isTypingTarget(target: EventTarget | null): boolean {
   );
 }
 
+/** True for a focused control that Space activates. */
+function isActivatable(target: EventTarget | null): boolean {
+  return target instanceof HTMLButtonElement || target instanceof HTMLAnchorElement;
+}
+
 export type ToolKey = (typeof TOOL_CODES)[keyof typeof TOOL_CODES];
 
 export interface KeyboardHandlers {
@@ -29,6 +34,7 @@ export interface KeyboardHandlers {
   onLevels: () => void;
   onUpgrades: () => void;
   onDelivered: () => void;
+  onTogglePerf: () => void;
 }
 
 /** Tracks held physical keys for camera panning and dispatches shortcuts (PLAN §8). */
@@ -69,6 +75,8 @@ export class Keyboard {
       this.handlers.onCancel();
       return;
     }
+    // Space on a focused button or link activates it instead of pausing (PLAN §9.5).
+    if (e.key === SPECIAL_KEYS.pause && isActivatable(e.target)) return;
     if ((e.ctrlKey || e.metaKey) && !e.altKey) {
       if (this.onCtrlKey(e.key.toLowerCase(), e.shiftKey, e.repeat)) e.preventDefault();
       return;
@@ -76,6 +84,11 @@ export class Keyboard {
     if (e.ctrlKey || e.altKey || e.metaKey) return;
     this.held.add(e.code);
     if (e.repeat) return;
+    if (e.code === SPECIAL_KEYS.perf) {
+      this.handlers.onTogglePerf();
+      e.preventDefault(); // F3 opens the browser's search otherwise
+      return;
+    }
     const tool = TOOL_CODES[e.code as keyof typeof TOOL_CODES] as ToolKey | undefined;
     if (tool) {
       this.handlers.onTool(tool);

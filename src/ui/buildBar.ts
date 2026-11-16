@@ -73,9 +73,10 @@ export class BuildBar {
       const key = document.createElement('kbd');
       key.textContent = def.short ?? def.key;
       btn.append(icon, label, key);
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
         tools.setTool(def.tool);
-        btn.blur();
+        // Mouse clicks give the keyboard back to the game; keyboard users keep their place.
+        if (e.detail > 0) btn.blur();
       });
       group.append(btn);
       this.buttons.set(def.tool, btn);

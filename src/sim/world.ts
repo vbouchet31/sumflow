@@ -17,12 +17,15 @@ import {
 } from './entities';
 import { type BuildingSnap, type Change, sameSnap, type TileSnap } from './journal';
 import { computeNetwork, type BeltNetwork } from './network';
+import type { OutputGroup } from './outputs';
 import type { Emit, ProgressionEvents } from './progression';
 import type { GameState } from './state';
 import { DeliveryStats } from './stats';
 
 export type SimEvents = ProgressionEvents & {
   networkChanged: Record<string, never>;
+  /** A belt was added, changed or removed on this tile (for render caches). */
+  beltChanged: { x: number; y: number };
 };
 
 export interface PortRef {
@@ -75,6 +78,8 @@ export class World {
   readonly directTransfers = new Map<number, number>();
   /** Hub deliveries over the last minute (runtime only). */
   readonly stats = new DeliveryStats();
+  /** Output faces and their targets per building and port kind (see `outputGroup`). */
+  readonly outputGroups = new Map<number, OutputGroup>();
   private network: BeltNetwork | null = null;
   /** Slots touched by the open change, with their state before it (undo journal). */
   private journal: {
@@ -107,6 +112,7 @@ export class World {
 
   private invalidate(): void {
     this.network = null;
+    this.outputGroups.clear();
     this.events.emit('networkChanged', {});
   }
 
@@ -318,6 +324,7 @@ export class World {
     const k = key(x, y);
     this.noteTile(k);
     const existing = this.state.belts.get(k);
+    this.events.emit('beltChanged', { x, y });
     if (existing) {
       existing.outputs = outputs;
       if (existing.priority !== null && (outputs & (1 << existing.priority)) === 0) {
@@ -395,6 +402,7 @@ export class World {
     this.state.belts.delete(k);
     const { cx, cy } = chunkOf(x, y);
     this.beltChunks.get(chunkId(cx, cy))?.delete(k);
+    this.events.emit('beltChanged', { x, y });
     this.invalidate();
     return belt;
   }

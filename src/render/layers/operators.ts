@@ -15,6 +15,18 @@ export const OPERATOR_SYMBOL: Record<OperatorType, string> = {
 
 /** Mix a #rrggbb colour toward black (f < 0) or white (f > 0). */
 export function shade(hex: string, f: number): string {
+  const id = `${hex}${f}`;
+  let c = shades.get(id);
+  if (c === undefined) {
+    c = computeShade(hex, f);
+    shades.set(id, c);
+  }
+  return c;
+}
+
+const shades = new Map<string, string>();
+
+function computeShade(hex: string, f: number): string {
   const n = parseInt(hex.slice(1), 16);
   const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) =>
     Math.round(f < 0 ? c * (1 + f) : c + (255 - c) * f),

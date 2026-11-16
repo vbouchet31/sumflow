@@ -1,7 +1,7 @@
 import { LINKS } from '../config/links';
 import { LOCALES, type Locale, type MessageKey, t } from '../i18n';
 import { AUTOSAVE_CHOICES, type AutosaveSeconds, type Settings } from '../save/settings';
-import { el } from './dom';
+import { el, releaseFocus, trapTab } from './dom';
 import type { HelpTip } from './help';
 
 export interface MenuActions {
@@ -39,6 +39,7 @@ const CONTROLS = [
   'cancel',
   'pause',
   'panels',
+  'perf',
 ] as const;
 
 /**
@@ -75,6 +76,7 @@ export class GameMenu {
       if (e.target === this.overlay) this.close();
     });
     this.overlay.addEventListener('keydown', (e) => {
+      trapTab(this.card, e);
       if (e.key !== 'Escape') return;
       e.preventDefault();
       e.stopPropagation();
@@ -94,6 +96,7 @@ export class GameMenu {
   }
 
   close(): void {
+    releaseFocus(this.overlay);
     this.overlay.hidden = true;
   }
 

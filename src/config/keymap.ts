@@ -50,6 +50,8 @@ export const SPECIAL_KEYS = {
   cancel: 'Escape',
   quickDemolish: 'Delete',
   pause: ' ',
+  /** Physical key (event.code) of the performance overlay. */
+  perf: 'F3',
 } as const;
 
 export const CAMERA = {
