@@ -4,7 +4,16 @@ Jeu d'usine à nombres pour navigateur : extraire des nombres, les transporter s
 
 > Projet de fan, inspiré par Beltmatic de Notional Games. Code et visuels originaux.
 
-État : jalon **M0** (squelette). Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
+État : jalon **M1** (grille, caméra, Hub). Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
+
+## Commandes (état actuel)
+
+| Action               | Entrée                                                                            |
+| -------------------- | --------------------------------------------------------------------------------- |
+| Déplacer la caméra   | `W A S D` (touches physiques, donc `Z Q S D` en AZERTY) ou flèches ; `Shift` = ×3 |
+| Déplacer à la souris | clic droit ou molette maintenus + glisser                                         |
+| Zoom                 | molette, centré sur le curseur                                                    |
+| Retour au Hub        | `H`                                                                               |
 
 ## Développement
 

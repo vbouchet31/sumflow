@@ -21,8 +21,13 @@ export function detectLocale(language: string | undefined): Locale {
   return language?.toLowerCase().startsWith('en') ? 'en' : 'fr';
 }
 
-export function t(key: MessageKey): string {
-  return dictionaries[current][key];
+/** Translate `key`, replacing `{name}` placeholders with `params[name]`. */
+export function t(key: MessageKey, params?: Record<string, string | number>): string {
+  const message = dictionaries[current][key];
+  if (!params) return message;
+  return message.replace(/\{(\w+)\}/g, (match, name: string) =>
+    name in params ? String(params[name]) : match,
+  );
 }
 
 export const LOCALES: readonly Locale[] = ['fr', 'en'];

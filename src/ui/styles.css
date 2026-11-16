@@ -36,26 +36,3 @@ body {
 #ui-root > * {
   pointer-events: auto;
 }
-
-.splash {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-content: center;
-  text-align: center;
-  pointer-events: none;
-}
-
-.splash h1 {
-  margin: 0;
-  font-family: var(--font-num);
-  font-size: clamp(2.5rem, 8vw, 5rem);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.splash p {
-  margin: 0.5rem 0 0;
-  color: var(--muted);
-  font-size: 1.1rem;
-}

@@ -15,6 +15,14 @@
 | M10 Sauvegarde, options, i18n, menu, aide, audio | ⏳ à faire        |                                                                      |
 | M11 Performance et finition                      | ⏳ à faire        |                                                                      |
 
+## M1 : détail
+
+- [x] Caméra : déplacement WASD/ZQSD physique + flèches (Shift ×3, ignoré avec Ctrl/Alt), glisser clic droit/milieu, zoom molette centré sur le curseur (0,05 à 4), `H` = retour au Hub.
+- [x] Grille visible à zoom ≥ 0,5, canvas HiDPI (DPR plafonné à 2).
+- [x] Hub 6×6 dessiné : niveau 1, cible 1, `0 / 10`, barre, icône de récompense (+).
+- [x] Tests unitaires `grid.ts` (clés, rotations, faces, chunks), caméra, format.
+- [x] Tests e2e : rendu du Hub, zoom, glisser, touche D, touche H.
+
 ## M0 : détail
 
 - [x] Vite + TypeScript strict (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`).
