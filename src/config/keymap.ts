@@ -8,9 +8,24 @@ export const PAN_KEYS = {
   right: ['KeyD', 'ArrowRight'],
 } as const;
 
-/** Tool / action letters (event.key, case-insensitive). */
+/** Action letters (event.key, case-insensitive). Never a physical movement key. */
 export const ACTION_KEYS = {
   home: 'h',
+  rotate: 'r',
+  demolish: 'x',
+} as const;
+
+/** Tool digits (event.code, so they work on AZERTY without Shift). PLAN §8.2. */
+export const TOOL_CODES = {
+  Digit1: 'belt',
+  Digit2: 'extractor',
+} as const;
+
+/** Keys by event.key. */
+export const SPECIAL_KEYS = {
+  cancel: 'Escape',
+  quickDemolish: 'Delete',
+  pause: ' ',
 } as const;
 
 export const CAMERA = {

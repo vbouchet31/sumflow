@@ -1,4 +1,4 @@
-import { ACTION_KEYS, PAN_KEYS } from '../config/keymap';
+import { ACTION_KEYS, PAN_KEYS, SPECIAL_KEYS, TOOL_CODES } from '../config/keymap';
 
 /** True when keyboard shortcuts must be ignored (a text field has focus). */
 export function isTypingTarget(target: EventTarget | null): boolean {
@@ -11,15 +11,24 @@ export function isTypingTarget(target: EventTarget | null): boolean {
   );
 }
 
+export type ToolKey = (typeof TOOL_CODES)[keyof typeof TOOL_CODES];
+
 export interface KeyboardHandlers {
   onHome: () => void;
+  onTool: (tool: ToolKey | 'demolish') => void;
+  onRotate: (delta: 1 | -1) => void;
+  onCancel: () => void;
+  onQuickDemolish: () => void;
+  onTogglePause: () => void;
 }
 
-/** Tracks held physical keys for camera panning and dispatches action shortcuts. */
+/** Tracks held physical keys for camera panning and dispatches shortcuts (PLAN §8). */
 export class Keyboard {
   private readonly held = new Set<string>();
   private shift = false;
   private modifier = false;
+  /** Ctrl state, readable by tools (elbow swap while dragging). */
+  ctrl = false;
 
   constructor(
     target: Window,
@@ -42,13 +51,39 @@ export class Keyboard {
   private onKeyDown(e: KeyboardEvent): void {
     this.updateModifiers(e);
     if (isTypingTarget(e.target)) return;
+    if (e.key === SPECIAL_KEYS.cancel) {
+      this.handlers.onCancel();
+      return;
+    }
     if (e.ctrlKey || e.altKey || e.metaKey) return;
     this.held.add(e.code);
     if (e.repeat) return;
-    if (e.key.toLowerCase() === ACTION_KEYS.home) {
-      this.handlers.onHome();
+    const tool = TOOL_CODES[e.code as keyof typeof TOOL_CODES] as ToolKey | undefined;
+    if (tool) {
+      this.handlers.onTool(tool);
       e.preventDefault();
+      return;
     }
+    switch (e.key.toLowerCase()) {
+      case ACTION_KEYS.home:
+        this.handlers.onHome();
+        break;
+      case ACTION_KEYS.rotate:
+        this.handlers.onRotate(e.shiftKey ? -1 : 1);
+        break;
+      case ACTION_KEYS.demolish:
+        this.handlers.onTool('demolish');
+        break;
+      case SPECIAL_KEYS.quickDemolish.toLowerCase():
+        this.handlers.onQuickDemolish();
+        break;
+      case SPECIAL_KEYS.pause:
+        this.handlers.onTogglePause();
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
   }
 
   private onKeyUp(e: KeyboardEvent): void {
@@ -58,12 +93,14 @@ export class Keyboard {
 
   private updateModifiers(e: KeyboardEvent): void {
     this.shift = e.shiftKey;
+    this.ctrl = e.ctrlKey || e.metaKey;
     this.modifier = e.ctrlKey || e.altKey || e.metaKey;
   }
 
   private reset(): void {
     this.held.clear();
     this.shift = false;
+    this.ctrl = false;
     this.modifier = false;
   }
 }

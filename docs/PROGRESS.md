@@ -15,6 +15,22 @@
 | M10 Sauvegarde, options, i18n, menu, aide, audio | ⏳ à faire        |                                                                      |
 | M11 Performance et finition                      | ⏳ à faire        |                                                                      |
 
+## M3 : détail
+
+- [x] Tracé en L (Ctrl inverse le coude), départ sur un tapis existant = division, remplacement, tuiles de bâtiments sautées, pose d'un clic orientée par `R`.
+- [x] Simulation des tapis (§6.4) : ordre aval → amont, report de l'avance, tourniquet des sorties, fusion équitable, blocage face sans entrée, face-à-face.
+- [x] Extracteur : pose aimantée sur un gisement extractible, débit `capacité × vitesse`, tourniquet entre sorties.
+- [x] Hub : consomme tout, fait progresser le niveau ; niveau 1 complétable.
+- [x] Info-bulle de survol (Hub, extracteur, tapis avec « Bloqué : pas d'entrée ici », gisement), démolition (`Suppr`, outil `X` en clic), barre de construction, pause (`Espace`).
+- [x] Tests : tapis plein à vitesse 1 = 60 ± 1 items/min (et à 2, 5, 8) ; extracteur niveau 1 avec 3 sorties = 1 item/s ; e2e : extracteur + tapis via l'API debug → niveau 2 ; e2e : tracé d'un tapis à la souris.
+
+## M2 : détail
+
+- [x] RNG seedé (`mulberry32`, `hash2`), gisements garantis (étape A) et aléatoires par chunk (étape B).
+- [x] Rendu des gisements avec LOD, valeurs grisées et cadenas si non extractibles.
+- [x] Graine affichée dans le panneau debug (`?debug=1`), graine fixable via `?seed=`.
+- [x] Tests : déterminisme, indépendance à l'ordre des chunks, pas de 10, pas de chevauchement (écart d'une tuile), zone dégagée, au moins quatre 1 à moins de 16 tuiles, poids `v^-1,15`, `vmax(d)`.
+
 ## M1 : détail
 
 - [x] Caméra : déplacement WASD/ZQSD physique + flèches (Shift ×3, ignoré avec Ctrl/Alt), glisser clic droit/milieu, zoom molette centré sur le curseur (0,05 à 4), `H` = retour au Hub.
@@ -32,7 +48,7 @@
 - [x] Workflow `.github/workflows/deploy.yml` (§15).
 - [x] Page : canvas plein écran bleu nuit `#0f1422` + titre « Sumflow » (via i18n).
 - [x] `npm run build` sans avertissement.
-- [ ] L'URL Pages affiche la page : nécessite le merge sur `main` et le réglage Settings > Pages > Source : **GitHub Actions**.
+- [x] L'URL Pages affiche la page (CI et déploiement verts après le merge de la PR 1).
 
 ### Écarts connus
 

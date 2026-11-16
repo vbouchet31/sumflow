@@ -1,8 +1,15 @@
+import type { Ghost } from '../build/tools';
+import { TICK_DT } from '../config/balance';
 import { COLORS } from '../config/colors';
-import type { GameState } from '../sim/state';
+import { currentBeltSpeed } from '../sim/upgrades';
+import type { World } from '../sim/world';
 import type { Camera } from './camera';
+import { drawBelts } from './layers/belts';
+import { drawBuildings } from './layers/buildings';
+import { drawDeposits } from './layers/deposits';
+import { drawGhosts } from './layers/ghosts';
 import { drawGrid } from './layers/grid';
-import { drawHub } from './layers/hub';
+import { drawItems } from './layers/items';
 
 /** Maximum device pixel ratio honoured by the canvas (PLAN §10.4). */
 const MAX_DPR = 2;
@@ -29,12 +36,23 @@ export class Renderer {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  /** Draw one frame. Reads the state, never mutates it (PLAN §13.2). */
-  draw(state: GameState): void {
+  /**
+   * Draw one frame in layer order (PLAN §10.2). Reads the world, never mutates it.
+   */
+  draw(world: World, ghost: Ghost): void {
     const { ctx, camera } = this;
+    const { state } = world;
     ctx.fillStyle = COLORS.background;
     ctx.fillRect(0, 0, camera.viewW, camera.viewH);
     drawGrid(ctx, camera);
-    drawHub(ctx, camera, state);
+    drawDeposits(ctx, camera, world.deposits, state);
+    const v = camera.visibleTiles(1);
+    const belts = [...world.beltsInRect(v.x0, v.y0, v.x1, v.y1)];
+    // Chevrons follow simulation time, so they stop when the game is paused.
+    const phase = (state.tick * TICK_DT * currentBeltSpeed(state)) % 1;
+    drawBelts(ctx, camera, belts, phase);
+    drawBuildings(ctx, camera, world.buildingsInRect(v.x0, v.y0, v.x1, v.y1), state);
+    drawItems(ctx, camera, belts);
+    drawGhosts(ctx, camera, ghost);
   }
 }

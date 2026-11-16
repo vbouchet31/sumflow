@@ -67,3 +67,109 @@ export const LEVEL_TABLE: readonly LevelDef[] = [
 
 /** Hub footprint (PLAN §4.2): tiles x, y ∈ [-3, 2]. */
 export const HUB = { x: -3, y: -3, size: 6 } as const;
+
+/** Starting extraction cap (PLAN §4.5). */
+export const START_MAX_EXTRACTION = 1;
+
+/** Map generation (PLAN §4.3, §4.4). Distances are in tiles from the hub centre. */
+export const MAPGEN = {
+  /** Deposit edge length in tiles. */
+  depositSize: 3,
+  /** Minimum empty tiles between two deposits. */
+  depositGap: 1,
+  /** No deposit tile inside x, y ∈ [min, max] around the hub. */
+  clearZone: { min: -6, max: 5 },
+  /** The value that never appears on the map. */
+  forbiddenValue: 10,
+  /** Guaranteed deposits are placed for values 1..guaranteedMaxValue. */
+  guaranteedMaxValue: 80,
+  /** Retries rotating the angle before pushing the distance out. */
+  angleRetries: 30,
+  /** Distance added after `angleRetries` failed attempts. */
+  retryDistanceStep: 3,
+  /** Random deposit attempts per chunk. */
+  attemptsPerChunk: 4,
+  /** vmax(d) = vmaxBase + floor(d / vmaxDistanceStep). */
+  vmaxBase: 2,
+  vmaxDistanceStep: 22,
+  /** Weight of value v: v^(-weightExponent). */
+  weightExponent: 1.15,
+} as const;
+
+export interface GuaranteedRule {
+  count: number;
+  minDist: number;
+  maxDist: number;
+  /** One deposit per quadrant (value 1). */
+  perQuadrant?: boolean;
+}
+
+/** Guaranteed deposit rule for value v (PLAN §4.4 step A), or null for none. */
+export function guaranteedRule(v: number): GuaranteedRule | null {
+  if (v === MAPGEN.forbiddenValue || v < 1 || v > MAPGEN.guaranteedMaxValue) return null;
+  if (v === 1) return { count: 4, minDist: 9, maxDist: 16, perQuadrant: true };
+  if (v === 2) return { count: 3, minDist: 14, maxDist: 24 };
+  if (v === 3) return { count: 2, minDist: 20, maxDist: 32 };
+  if (v <= 9) return { count: 2, minDist: 10 + 7 * v, maxDist: 18 + 9 * v };
+  return { count: 1, minDist: 60 + 14 * v, maxDist: 90 + 18 * v };
+}
+
+/** Simulation rate (PLAN §2, §11.1). */
+export const TICK_RATE = 60;
+export const TICK_DT = 1 / TICK_RATE;
+/** Max simulation ticks per rendered frame before slowing down (PLAN §11.1). */
+export const MAX_TICKS_PER_FRAME = 8;
+
+/** Operator buffers (PLAN §6.2). */
+export const INPUT_BUFFER_SIZE = 4;
+export const OUTPUT_BUFFER_SIZE = 2;
+
+export type Track = 'belt' | 'extractor' | 'adder' | 'multiplier' | 'subdiv' | 'exponent';
+export const TRACKS: readonly Track[] = [
+  'belt',
+  'extractor',
+  'adder',
+  'multiplier',
+  'subdiv',
+  'exponent',
+];
+
+/** Upgrade values for levels 1..8 (PLAN §7.3). Index 0 is level 1. */
+const BELT_SPEED = [1, 2, 3, 4, 5, 6, 7, 8];
+const ADDER_SPEED = [0.25, 0.333, 0.4, 0.5, 0.667, 1, 1.5, 2];
+const OPERATOR_SPEED = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1];
+
+export const UPGRADE_CAPS = {
+  beltSpeed: 20,
+  adderSpeed: 4,
+  operatorSpeed: 3,
+  extractorLevel: 12,
+} as const;
+
+/** Belt speed in tiles/s at upgrade level L. */
+export function beltSpeed(level: number): number {
+  const L = Math.max(1, Math.floor(level));
+  const v = L <= 8 ? (BELT_SPEED[L - 1] ?? 1) : 8 + 0.1 * (L - 8);
+  return Math.min(UPGRADE_CAPS.beltSpeed, v);
+}
+
+/** Extractor capacity in full belts at upgrade level L. */
+export function extractorCapacity(level: number): number {
+  return Math.min(UPGRADE_CAPS.extractorLevel, Math.max(1, Math.floor(level)));
+}
+
+/** Operations per second of a track's operator at upgrade level L. */
+export function operatorSpeed(track: Track, level: number): number {
+  const L = Math.max(1, Math.floor(level));
+  if (track === 'adder') {
+    const v = L <= 8 ? (ADDER_SPEED[L - 1] ?? 0.25) : 2 + 0.02 * (L - 8);
+    return Math.min(UPGRADE_CAPS.adderSpeed, v);
+  }
+  const v = L <= 8 ? (OPERATOR_SPEED[L - 1] ?? 0.2) : 1 + 0.02 * (L - 8);
+  return Math.min(UPGRADE_CAPS.operatorSpeed, v);
+}
+
+/** Fixed, well-separated hues for items 1..9 (PLAN §5). Index 0 is value 1. */
+export const ITEM_HUES = [210, 0, 120, 45, 280, 170, 25, 320, 85] as const;
+export const ITEM_SATURATION = 65;
+export const ITEM_LIGHTNESS = 55;
