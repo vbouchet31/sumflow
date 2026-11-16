@@ -39,9 +39,14 @@ export class Keyboard {
   /** Ctrl state, readable by tools (elbow swap while dragging). */
   ctrl = false;
 
+  /**
+   * `blocked` returns true while a modal (menu, editor) is open: shortcuts are ignored then,
+   * the modal handles its own keys.
+   */
   constructor(
     target: Window,
     private readonly handlers: KeyboardHandlers,
+    private readonly blocked: () => boolean = () => false,
   ) {
     target.addEventListener('keydown', (e) => this.onKeyDown(e));
     target.addEventListener('keyup', (e) => this.onKeyUp(e));
@@ -59,7 +64,7 @@ export class Keyboard {
 
   private onKeyDown(e: KeyboardEvent): void {
     this.updateModifiers(e);
-    if (isTypingTarget(e.target)) return;
+    if (isTypingTarget(e.target) || this.blocked()) return;
     if (e.key === SPECIAL_KEYS.cancel) {
       this.handlers.onCancel();
       return;

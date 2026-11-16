@@ -41,12 +41,20 @@ function itemPosition(
   return cam.worldToScreen(b.x + 0.5 + ox, b.y + 0.5 + oy);
 }
 
-/** Items layer (PLAN §10.2 layer 5) with LOD (§10.3). */
-export function drawItems(ctx: CanvasRenderingContext2D, cam: Camera, belts: Iterable<Belt>): void {
+/**
+ * Items layer (PLAN §10.2 layer 5) with LOD (§10.3). `valuesAlways` (option) draws the
+ * numbers on every disc instead of only from zoom 0.6.
+ */
+export function drawItems(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  belts: Iterable<Belt>,
+  valuesAlways = false,
+): void {
   if (cam.zoom < LOD.depositText) return;
   const s = cam.scale;
   const dot = cam.zoom < LOD.buildingText;
-  const withText = cam.zoom >= LOD.full;
+  const withText = cam.zoom >= LOD.full || (valuesAlways && !dot);
   const r = dot ? 1 : 0.36 * s;
   if (withText) {
     ctx.textAlign = 'center';

@@ -644,3 +644,192 @@ body {
 .build-group-edit .build-label {
   display: none;
 }
+
+.status-chip {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgb(10 14 26 / 85%);
+  border: 1px solid #26304a;
+  color: var(--muted);
+  font: 12px var(--font-ui);
+}
+
+.status-cursor {
+  font-family: var(--font-num);
+}
+
+.help-bubble {
+  position: absolute;
+  left: 12px;
+  top: 190px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 10px;
+  align-items: start;
+  width: min(300px, calc(100vw - 24px));
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #16233d;
+  border: 1px solid #3b6aa8;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  color: var(--fg);
+  font: 13px/1.5 var(--font-ui);
+}
+
+.help-bubble p {
+  margin: 0;
+}
+
+.help-bubble button {
+  grid-column: 2;
+  justify-self: end;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.help-icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #3b6aa8;
+  color: #fff;
+  font: 700 13px var(--font-ui);
+}
+
+.menu-overlay {
+  background: rgb(5 8 15 / 70%);
+}
+
+.menu-card {
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 20px;
+  border-radius: 14px;
+  background: #121a2c;
+  border: 1px solid #2c3754;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 40%);
+}
+
+.menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.menu-header h2 {
+  margin: 0;
+  font: 700 20px var(--font-ui);
+}
+
+.menu-header .secondary-btn {
+  padding: 6px 12px;
+}
+
+.menu-list {
+  display: grid;
+  gap: 8px;
+}
+
+.menu-btn {
+  padding: 11px 14px;
+  border: 1px solid #2c3754;
+  border-radius: 10px;
+  background: #1a2236;
+  color: var(--fg);
+  font: 600 15px var(--font-ui);
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-btn:hover,
+.secondary-btn:hover {
+  background: #232d46;
+}
+
+.menu-btn:focus-visible,
+.opt-select:focus-visible,
+.opt-range:focus-visible,
+.menu-card a:focus-visible,
+.menu-card input[type='checkbox']:focus-visible {
+  outline: 2px solid #7fb2ff;
+  outline-offset: 2px;
+}
+
+.menu-form {
+  display: grid;
+  gap: 10px;
+}
+
+.menu-label {
+  font: 600 13px var(--font-ui);
+}
+
+.menu-note {
+  margin: 0;
+  color: var(--muted);
+  font: 13px/1.5 var(--font-ui);
+}
+
+.opt-list {
+  display: grid;
+  gap: 10px;
+}
+
+.opt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font: 14px var(--font-ui);
+}
+
+.opt-select {
+  padding: 6px 8px;
+  border: 1px solid #2c3754;
+  border-radius: 8px;
+  background: #0c111e;
+  color: var(--fg);
+  font: 13px var(--font-ui);
+}
+
+.opt-range {
+  width: 160px;
+}
+
+.opt-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+}
+
+.controls-table td.ctl-keys {
+  color: var(--muted);
+  font-family: var(--font-num);
+  font-size: 12px;
+}
+
+.help-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 16px;
+  padding-left: 20px;
+  font: 14px/1.5 var(--font-ui);
+}
+
+.about-links {
+  display: grid;
+  gap: 6px;
+  padding-left: 20px;
+}
+
+.menu-card a {
+  color: #7fb2ff;
+}
+
+.menu-card p {
+  font: 14px/1.6 var(--font-ui);
+}
