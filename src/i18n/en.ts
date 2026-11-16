@@ -82,4 +82,10 @@ export const en: Record<MessageKey, string> = {
   'tip.idle': 'Idle',
   'tip.speed': 'Speed: {rate} op/s',
   'tip.none': '(empty)',
+  'tool.bridge': 'Bridge',
+  'tool.priority': 'Priority',
+  'tip.bridge': 'Bridge',
+  'tip.laneH': 'Horizontal lane: {item}',
+  'tip.laneV': 'Vertical lane: {item}',
+  'tip.priority': 'Priority output',
 };

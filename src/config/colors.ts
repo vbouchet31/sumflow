@@ -31,6 +31,9 @@ export const FONT_NUM = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
 export const FONT_UI = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 
 export const BELT_COLORS = {
+  bridgeBase: '#1b2232',
+  bridgeDeck: '#34405a',
+  priority: '#48c774',
   base: '#232b3d',
   chevron: '#55627e',
   line: '#3d4860',

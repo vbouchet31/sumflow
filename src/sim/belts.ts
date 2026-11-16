@@ -1,6 +1,13 @@
 import { INPUT_BUFFER_SIZE, TICK_DT } from '../config/balance';
 import { type Dir, DX, DY, key, opposite } from '../core/grid';
-import { type Belt, type Building, hasOutput, isInputKind, type PortKind } from './entities';
+import {
+  axisOf,
+  type Belt,
+  type Building,
+  hasOutput,
+  isInputKind,
+  type PortKind,
+} from './entities';
 import { deliver } from './progression';
 import { currentBeltSpeed } from './upgrades';
 import type { World } from './world';
@@ -10,7 +17,7 @@ export const EPS = 1e-9;
 
 /** What a belt output (or building output face) leads into. */
 export type Target =
-  | { kind: 'belt'; belt: Belt; from: Dir }
+  | { kind: 'belt'; belt: Belt; node: number; from: Dir }
   | { kind: 'hub' }
   | { kind: 'port'; building: Building; port: PortKind; face: number }
   | { kind: 'none' }
@@ -24,12 +31,14 @@ export type Target =
 export function resolveTarget(world: World, x: number, y: number, d: Dir): Target {
   const nx = x + DX[d];
   const ny = y + DY[d];
-  const belt = world.beltAt(nx, ny);
-  if (belt) {
-    return hasOutput(belt, opposite(d))
+  const lane = world.laneAt(nx, ny, axisOf(d));
+  if (lane) {
+    return hasOutput(lane.belt, opposite(d))
       ? { kind: 'blocked' }
-      : { kind: 'belt', belt, from: opposite(d) };
+      : { kind: 'belt', belt: lane.belt, node: lane.node, from: opposite(d) };
   }
+  // A bridge without a lane on this axis accepts nothing.
+  if (world.bridgeAt(nx, ny)) return { kind: 'none' };
   const ref = world.portAt(nx, ny, opposite(d));
   if (ref && isInputKind(ref.port.kind)) {
     if (ref.building.type === 'hub') return { kind: 'hub' };
@@ -80,14 +89,13 @@ export function offer(
     case 'belt': {
       const t = target.belt;
       if (t.item) return false;
-      const tk = key(t.x, t.y);
-      const inputs = world.getNetwork().inputs.get(tk);
+      const inputs = world.getNetwork().inputs.get(target.node);
       if (inputs && inputs.length > 1 && sourceKey !== null) {
         const step = currentBeltSpeed(state) * TICK_DT;
         const turn = t.rrIn % inputs.length;
         const designated = inputs[turn];
         if (designated !== sourceKey && designated !== undefined) {
-          const d = state.belts.get(designated);
+          const d = world.nodeBelt(designated);
           if (d && isReady(d, state.tick, step)) return false;
         }
         const idx = inputs.indexOf(sourceKey);
@@ -147,9 +155,8 @@ function stepBelt(world: World, k: number, belt: Belt, speed: number): void {
 /** Advance every belt, downstream first (PLAN §6.4, §11.2 step 2). */
 export function stepBelts(world: World): void {
   const speed = currentBeltSpeed(world.state);
-  const { belts } = world.state;
   for (const k of world.getNetwork().order) {
-    const belt = belts.get(k);
+    const belt = world.nodeBelt(k);
     if (belt) stepBelt(world, k, belt, speed);
   }
 }

@@ -117,7 +117,7 @@ describe('network order', () => {
   it('orders a chain downstream first', () => {
     const world = makeWorld();
     beltLine(world, 50, 0, E, 4);
-    const order = computeNetwork(world.state.belts).order;
+    const order = computeNetwork(world).order;
     const xs = order.map((k) =>
       [...world.state.belts.values()].find((b) => b && k === k && b),
     ).length;
@@ -136,9 +136,9 @@ describe('network order', () => {
     world.setBelt(60, 0, dirMask(E)); // → (61,0)
     world.setBelt(61, -1, dirMask(S)); // → (61,0)
     world.setBelt(61, 0, dirMask(E));
-    const net = computeNetwork(world.state.belts);
+    const net = computeNetwork(world);
     const ins = [...net.inputs.values()][0];
     expect(ins).toHaveLength(2);
-    expect(computeNetwork(world.state.belts)).toEqual(net);
+    expect(computeNetwork(world)).toEqual(net);
   });
 });

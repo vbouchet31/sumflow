@@ -63,7 +63,7 @@ function bootstrap(): void {
   const levelsPanel = new LevelsPanel(uiRoot, world);
   mountTopBar(uiRoot, { home: goHome, levels: () => levelsPanel.toggle() });
   const tooltip = new Tooltip(uiRoot);
-  const buildBar = new BuildBar(uiRoot, tools, world.state);
+  const buildBar = new BuildBar(uiRoot, tools);
   const statusBar = new StatusBar(uiRoot);
   const toasts = new Toasts(uiRoot);
   const endScreen = new EndScreen(uiRoot);
@@ -135,8 +135,8 @@ function bootstrap(): void {
     loop.advance(dt);
     renderer.draw(world, tools.ghost(), now);
     hud.update(world);
-    if (state.unlockedBuildings.length !== unlockedCount) {
-      unlockedCount = state.unlockedBuildings.length;
+    if (state.unlockedBuildings.length + state.unlockedFeatures.length !== unlockedCount) {
+      unlockedCount = state.unlockedBuildings.length + state.unlockedFeatures.length;
       buildBar.refresh();
     }
     tooltip.update(mouse.inside ? describeTile(world, hover.x, hover.y) : []);

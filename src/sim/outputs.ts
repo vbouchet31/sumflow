@@ -17,8 +17,13 @@ export function pushOut(world: World, b: Building, kind: PortKind, value: number
   if (n === 0) return false;
   const { state } = world;
   const interval = 1 / (currentBeltSpeed(state) * TICK_DT);
-  for (let i = 0; i < n; i++) {
-    const idx = (b.rrOut + i) % n;
+  // Priority face first (PLAN §6.6), then round-robin over the others.
+  const prio =
+    b.priority === null ? -1 : ports.findIndex((p) => key(p.x, p.y) * 4 + p.face === b.priority);
+  for (let i = -1; i < n; i++) {
+    if (i === -1 && prio < 0) continue;
+    const idx = i === -1 ? prio : (b.rrOut + i) % n;
+    if (i >= 0 && idx === prio) continue;
     const p = ports[idx];
     if (!p) continue;
     const target = resolveTarget(world, p.x, p.y, p.face);
@@ -32,7 +37,7 @@ export function pushOut(world: World, b: Building, kind: PortKind, value: number
     } else if (!offer(world, target, value, 0, null)) {
       continue;
     }
-    b.rrOut = (idx + 1) % n;
+    if (idx !== prio) b.rrOut = (idx + 1) % n;
     return true;
   }
   return false;

@@ -1,4 +1,7 @@
-import { type Dir, E, isInBounds, key, N, S, W } from '../core/grid';
+import { DIRS, type Dir, DX, DY, E, isInBounds, key, N, opposite, S, W } from '../core/grid';
+import { axisOf, type Belt, hasOutput } from '../sim/entities';
+import { isBuildingUnlocked } from '../sim/state';
+import { singleOutput } from '../sim/world';
 import { dirMask } from '../sim/entities';
 import type { World } from '../sim/world';
 
@@ -56,8 +59,8 @@ export function computeLPath(
   return tiles;
 }
 
-/** Ghost colours: new = green, replace = orange, bridge = blue (M6), blocked = red. */
-export type PlanStatus = 'new' | 'replace' | 'addOutput' | 'blocked';
+/** Ghost colours: new = green, replace = orange, bridge = blue, blocked = red. */
+export type PlanStatus = 'new' | 'replace' | 'addOutput' | 'bridge' | 'blocked';
 
 export interface PlannedBelt extends PathTile {
   status: PlanStatus;
@@ -66,15 +69,46 @@ export interface PlannedBelt extends PathTile {
 }
 
 /**
+ * A straight belt: one output, and nothing feeding it except from straight behind
+ * (PLAN §6.5: "une seule entrée, une sortie opposée").
+ */
+export function isStraightBelt(world: World, b: Belt): Dir | null {
+  const d = singleOutput(b);
+  if (d === null) return null;
+  for (const side of DIRS) {
+    if (side === d || side === opposite(d)) continue;
+    const n = world.laneAt(b.x + DX[side], b.y + DY[side], axisOf(opposite(side)));
+    if (n && hasOutput(n.belt, opposite(side))) return null;
+  }
+  return d;
+}
+
+/**
  * Decide what each tile of a path does (PLAN §6.5). The first tile adds an output to an
- * existing belt (split) instead of replacing it. Buildings and the hub are skipped.
+ * existing belt (split) instead of replacing it. Buildings and the hub are skipped. Once
+ * bridges are unlocked, crossing a straight perpendicular belt (or a bridge) straight on
+ * makes a bridge.
  */
 export function planBeltPath(world: World, path: readonly PathTile[]): PlannedBelt[] {
+  const bridges = isBuildingUnlocked(world.state, 'bridge');
   return path.map((t, i) => {
     if (!isInBounds(t.x, t.y) || world.occupancy.has(key(t.x, t.y))) {
       return { ...t, status: 'blocked', outputs: 0 };
     }
+    const prev = path[i - 1];
+    const straightThrough = i > 0 && prev?.dir === t.dir;
+    if (world.bridgeAt(t.x, t.y)) {
+      return straightThrough && bridges
+        ? { ...t, status: 'bridge', outputs: dirMask(t.dir) }
+        : { ...t, status: 'replace', outputs: dirMask(t.dir) };
+    }
     const existing = world.beltAt(t.x, t.y);
+    if (existing && bridges && straightThrough) {
+      const d = isStraightBelt(world, existing);
+      if (d !== null && axisOf(d) !== axisOf(t.dir)) {
+        return { ...t, status: 'bridge', outputs: dirMask(t.dir) };
+      }
+    }
     if (!existing) return { ...t, status: 'new', outputs: dirMask(t.dir) };
     if (i === 0 && path.length > 1) {
       return { ...t, status: 'addOutput', outputs: existing.outputs | dirMask(t.dir) };
@@ -97,10 +131,45 @@ export function applyBeltPlan(world: World, plan: readonly PlannedBelt[]): numbe
   let n = 0;
   for (const t of plan) {
     if (t.status === 'blocked') continue;
+    if (t.status === 'bridge') {
+      const horizontal = axisOf(t.dir) === 0;
+      world.setBridge(t.x, t.y, horizontal ? t.dir : undefined, horizontal ? undefined : t.dir);
+      n++;
+      continue;
+    }
     const existing = world.beltAt(t.x, t.y);
     if (existing && existing.outputs === t.outputs) continue;
     world.setBelt(t.x, t.y, t.outputs);
     n++;
   }
   return n;
+}
+
+/**
+ * Manual bridge (PLAN §6.7, tool 9): lane directions come from neighbouring belts feeding
+ * the tile, then from the rotation (`dir`) for its axis, then East / South. A straight belt
+ * already on the tile keeps its lane. Returns null when impossible.
+ */
+export function planManualBridge(
+  world: World,
+  x: number,
+  y: number,
+  dir: Dir,
+): { h: Dir; v: Dir } | null {
+  if (!isInBounds(x, y) || world.occupancy.has(key(x, y)) || world.bridgeAt(x, y)) return null;
+  const fed = (axis: 0 | 1): Dir | null => {
+    for (const side of DIRS) {
+      const push = opposite(side);
+      if (axisOf(push) !== axis) continue;
+      const n = world.laneAt(x + DX[side], y + DY[side], axis);
+      if (n && hasOutput(n.belt, push)) return push;
+    }
+    return null;
+  };
+  const existing = world.beltAt(x, y);
+  const keep = existing ? isStraightBelt(world, existing) : null;
+  if (existing && keep === null) return null;
+  const h = keep !== null && axisOf(keep) === 0 ? keep : (fed(0) ?? (axisOf(dir) === 0 ? dir : E));
+  const v = keep !== null && axisOf(keep) === 1 ? keep : (fed(1) ?? (axisOf(dir) === 1 ? dir : S));
+  return { h, v };
 }

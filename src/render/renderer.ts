@@ -5,6 +5,8 @@ import { currentBeltSpeed } from '../sim/upgrades';
 import type { World } from '../sim/world';
 import type { Camera } from './camera';
 import { drawBelts } from './layers/belts';
+import { drawBridges, drawPriorities } from './layers/bridges';
+import { priorityTiles } from '../sim/priority';
 import { drawBuildings } from './layers/buildings';
 import { drawDeposits } from './layers/deposits';
 import { drawGhosts } from './layers/ghosts';
@@ -55,6 +57,8 @@ export class Renderer {
     // Chevrons follow simulation time, so they stop when the game is paused.
     const phase = (state.tick * TICK_DT * currentBeltSpeed(state)) % 1;
     drawBelts(ctx, camera, belts, phase);
+    const bridges = [...world.bridgesInRect(v.x0, v.y0, v.x1, v.y1)];
+    drawBridges(ctx, camera, bridges, phase);
     drawBuildings(
       ctx,
       camera,
@@ -63,6 +67,7 @@ export class Renderer {
       this.reducedMotion,
     );
     drawItems(ctx, camera, belts);
+    drawPriorities(ctx, camera, priorityTiles(world));
     drawGhosts(ctx, camera, ghost);
     if (this.waveStart !== null && !this.reducedMotion)
       drawWave(ctx, camera, nowMs - this.waveStart);

@@ -68,3 +68,14 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Onde de fin de niveau** désactivée si le système demande de réduire les animations (`prefers-reduced-motion`). L'option du jeu viendra en M10.
 - **CSS** : règle globale `[hidden] { display: none !important }`, sinon un `display: grid` réaffiche des éléments masqués.
 - **API debug** : `unlockAll()` et `setLevel(n)` (accorde les récompenses des niveaux précédents).
+
+## M6
+
+- **Ponts** : `state.bridges` (une tuile porte un tapis **ou** un pont). Chaque voie est un objet `Belt` à une seule sortie, ce qui réutilise toute la logique des tapis. Dans le réseau, une voie a une clé de nœud négative dérivée de la tuile et de l'axe. Un item qui arrive sur un pont prend la voie de son axe de déplacement. Une voie absente (`null`) n'accepte rien.
+- **Tapis « droit »** (pour le pont auto, §6.5) : une seule sortie, et aucun voisin qui l'alimente par le côté (seule l'arrière est permise). Le chemin doit traverser la tuile tout droit (même direction avant et après), pas dans un coude.
+- **Repasser sur un pont existant** : tout droit, le tracé redéfinit la voie de son axe ; dans un coude, il remplace le pont par un tapis.
+- **Pont manuel (touche 9)** : la direction de chaque voie vient d'un tapis voisin qui alimente la tuile sur cet axe, sinon de la rotation `R` si elle est sur cet axe, sinon Est (horizontale) et Sud (verticale). Un tapis droit déjà présent garde sa voie et son item. Refusé sur un bâtiment, un pont existant ou un tapis non droit.
+- **Priorités** : sur un tapis-jonction, `priority` = direction prioritaire. Sur un bâtiment, `priority` = clé de port (tuile × 4 + face) de la face de sortie prioritaire. Le clic se fait sur la **tuile alimentée** ; on cherche d'abord une jonction voisine, puis une face de sortie de bâtiment. Le losange vert est dessiné sur cette tuile. Une seule priorité par source. La sortie prioritaire ne fait pas avancer le tourniquet des autres.
+- **Outil Priorité** : `P`, ou `Alt+clic` en mode Tapis. Visible quand la fonction est débloquée (niveau 10).
+- **Rendu du pont** : voie verticale et ses items dessous, tablier horizontal avec rails clairs, items horizontaux dessus.
+- **Info-bulle remontée** au-dessus de la barre de construction, qui s'élargit avec les déblocages.

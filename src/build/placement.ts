@@ -102,9 +102,10 @@ export function demolishTarget(
   world: World,
   x: number,
   y: number,
-): { kind: 'building'; id: number } | { kind: 'belt' } | null {
+): { kind: 'building'; id: number } | { kind: 'belt' } | { kind: 'bridge' } | null {
   const id = world.occupancy.get(key(x, y));
   if (id !== undefined) return id === HUB_ID ? null : { kind: 'building', id };
+  if (world.bridgeAt(x, y)) return { kind: 'bridge' };
   return world.beltAt(x, y) ? { kind: 'belt' } : null;
 }
 
@@ -113,5 +114,6 @@ export function demolishAt(world: World, x: number, y: number): boolean {
   const target = demolishTarget(world, x, y);
   if (!target) return false;
   if (target.kind === 'building') return world.removeBuilding(target.id) !== null;
+  if (target.kind === 'bridge') return world.removeBridge(x, y) !== null;
   return world.removeBelt(x, y) !== null;
 }

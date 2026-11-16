@@ -80,4 +80,10 @@ export const fr = {
   'tip.idle': 'En attente',
   'tip.speed': 'Vitesse : {rate} op/s',
   'tip.none': '(vide)',
+  'tool.bridge': 'Pont',
+  'tool.priority': 'Priorité',
+  'tip.bridge': 'Pont',
+  'tip.laneH': 'Voie horizontale : {item}',
+  'tip.laneV': 'Voie verticale : {item}',
+  'tip.priority': 'Sortie prioritaire',
 } as const;

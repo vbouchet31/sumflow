@@ -3,8 +3,12 @@ import { CHUNK_SIZE, chunkOf, type Dir, key, type Rot } from '../core/grid';
 import { EventBus } from '../core/events';
 import type { DepositMap } from '../world/chunks';
 import {
+  type Axis,
   type Belt,
+  type Bridge,
   type Building,
+  dirMask,
+  laneNode,
   footprintTiles,
   isOperator,
   type PortFace,
@@ -27,6 +31,26 @@ export interface PortRef {
 
 const chunkId = (cx: number, cy: number): string => `${cx},${cy}`;
 
+function newBelt(x: number, y: number, outputs: number): Belt {
+  return {
+    x,
+    y,
+    outputs,
+    item: null,
+    rr: 0,
+    rrIn: 0,
+    priority: null,
+    vacatedTick: -1,
+    vacatedCarry: 0,
+  };
+}
+
+/** The only output direction of a belt, or null if it has zero or several. */
+export function singleOutput(b: Belt): Dir | null {
+  for (let d = 0; d < 4; d++) if (b.outputs === 1 << d) return d as Dir;
+  return null;
+}
+
 /**
  * Simulation world: the saved `state` plus derived indexes (occupancy, ports, chunk
  * buckets, belt order). All mutations go through this class so indexes stay in sync.
@@ -42,6 +66,8 @@ export class World {
   readonly buildingPorts = new Map<number, PortFace[]>();
   /** Chunk id → belt keys, for culling. */
   readonly beltChunks = new Map<string, Set<number>>();
+  /** Chunk id → bridge keys, for culling. */
+  readonly bridgeChunks = new Map<string, Set<number>>();
   /** Chunk id (of origin) → building ids, for culling. */
   readonly buildingChunks = new Map<string, Set<number>>();
   /** Port key → tick of the last direct building-to-building transfer (runtime only). */
@@ -55,14 +81,15 @@ export class World {
     readonly deposits: DepositMap,
   ) {
     for (const b of state.buildings.values()) this.indexBuilding(b);
-    for (const [k, belt] of state.belts) this.indexBelt(k, belt);
+    for (const [k, belt] of state.belts) this.indexTile(this.beltChunks, k, belt.x, belt.y);
+    for (const [k, br] of state.bridges) this.indexTile(this.bridgeChunks, k, br.x, br.y);
     this.stats.advance(state.tick);
     this.events.on('delivered', ({ value }) => this.stats.record(value));
   }
 
   /** Belt order and merge inputs, recomputed lazily after network changes. */
   getNetwork(): BeltNetwork {
-    this.network ??= computeNetwork(this.state.belts);
+    this.network ??= computeNetwork(this);
     return this.network;
   }
 
@@ -80,8 +107,44 @@ export class World {
     return id === undefined ? null : (this.state.buildings.get(id) ?? null);
   }
 
+  /** Plain belt at a tile (not a bridge lane). */
   beltAt(x: number, y: number): Belt | null {
     return this.state.belts.get(key(x, y)) ?? null;
+  }
+
+  bridgeAt(x: number, y: number): Bridge | null {
+    return this.state.bridges.get(key(x, y)) ?? null;
+  }
+
+  /**
+   * The belt-like node an item moving along `axis` meets at `(x, y)`: the plain belt there,
+   * or the bridge lane of that axis. Returns its network key too.
+   */
+  laneAt(x: number, y: number, axis: Axis): { belt: Belt; node: number } | null {
+    const k = key(x, y);
+    const belt = this.state.belts.get(k);
+    if (belt) return { belt, node: k };
+    const br = this.state.bridges.get(k);
+    const lane = br ? (axis === 0 ? br.h : br.v) : null;
+    return lane ? { belt: lane, node: laneNode(k, axis) } : null;
+  }
+
+  /** Belt (or lane) for a network node key. */
+  nodeBelt(node: number): Belt | null {
+    if (node >= 0) return this.state.belts.get(node) ?? null;
+    const m = -node - 1;
+    const br = this.state.bridges.get(Math.floor(m / 2));
+    if (!br) return null;
+    return m % 2 === 0 ? br.h : br.v;
+  }
+
+  /** Every belt and bridge lane with its node key. */
+  *nodes(): Generator<[number, Belt]> {
+    yield* this.state.belts;
+    for (const [k, br] of this.state.bridges) {
+      if (br.h) yield [laneNode(k, 0), br.h];
+      if (br.v) yield [laneNode(k, 1), br.v];
+    }
   }
 
   portAt(x: number, y: number, face: Dir): PortRef | null {
@@ -102,21 +165,63 @@ export class World {
       this.invalidate();
       return existing;
     }
-    const belt: Belt = {
-      x,
-      y,
-      outputs,
-      item: null,
-      rr: 0,
-      rrIn: 0,
-      priority: null,
-      vacatedTick: -1,
-      vacatedCarry: 0,
-    };
+    this.removeBridge(x, y);
+    const belt = newBelt(x, y, outputs);
     this.state.belts.set(k, belt);
-    this.indexBelt(k, belt);
+    this.indexTile(this.beltChunks, k, x, y);
     this.invalidate();
     return belt;
+  }
+
+  /**
+   * Create or update a bridge (PLAN §6.7). A lane given `undefined` keeps its current state;
+   * `null` removes it; a direction sets it (keeping its item if the axis matches). A plain
+   * belt on the tile becomes the lane of its own axis.
+   */
+  setBridge(x: number, y: number, h: Dir | null | undefined, v: Dir | null | undefined): Bridge {
+    const k = key(x, y);
+    let br = this.state.bridges.get(k);
+    if (!br) {
+      br = { x, y, h: null, v: null };
+      const old = this.removeBelt(x, y);
+      if (old) {
+        // Keep the straight belt as the lane of its axis, with its item.
+        const d = singleOutput(old);
+        if (d !== null) {
+          const lane = newBelt(x, y, dirMask(d));
+          lane.item = old.item;
+          if (d % 2 === 1) br.h = lane;
+          else br.v = lane;
+        }
+      }
+      this.state.bridges.set(k, br);
+      this.indexTile(this.bridgeChunks, k, x, y);
+    }
+    const apply = (cur: Belt | null, d: Dir | null | undefined): Belt | null => {
+      if (d === undefined) return cur;
+      if (d === null) return null;
+      if (cur) {
+        cur.outputs = dirMask(d);
+        return cur;
+      }
+      return newBelt(x, y, dirMask(d));
+    };
+    br.h = apply(br.h, h);
+    br.v = apply(br.v, v);
+    this.invalidate();
+    return br;
+  }
+
+  /** Remove a bridge and both its lanes (PLAN §6.7). */
+  removeBridge(x: number, y: number): Bridge | null {
+    const k = key(x, y);
+    const br = this.state.bridges.get(k);
+    if (!br) return null;
+    this.state.bridges.delete(k);
+    const { cx, cy } = chunkOf(x, y);
+    this.bridgeChunks.get(chunkId(cx, cy))?.delete(k);
+    this.invalidate();
+    return br;
   }
 
   removeBelt(x: number, y: number): Belt | null {
@@ -130,13 +235,13 @@ export class World {
     return belt;
   }
 
-  private indexBelt(k: number, belt: Belt): void {
-    const { cx, cy } = chunkOf(belt.x, belt.y);
+  private indexTile(index: Map<string, Set<number>>, k: number, x: number, y: number): void {
+    const { cx, cy } = chunkOf(x, y);
     const id = chunkId(cx, cy);
-    let set = this.beltChunks.get(id);
+    let set = index.get(id);
     if (!set) {
       set = new Set();
-      this.beltChunks.set(id, set);
+      index.set(id, set);
     }
     set.add(k);
   }
@@ -184,7 +289,10 @@ export class World {
         b.out = [];
       }
     }
-    for (const t of footprintTiles(type, x, y, b.rot)) this.removeBelt(t.x, t.y);
+    for (const t of footprintTiles(type, x, y, b.rot)) {
+      this.removeBelt(t.x, t.y);
+      this.removeBridge(t.x, t.y);
+    }
     this.state.buildings.set(b.id, b);
     this.indexBuilding(b);
     this.invalidate();
@@ -229,6 +337,20 @@ export class World {
         if (!set) continue;
         for (const k of set) {
           const b = this.state.belts.get(k);
+          if (b) yield b;
+        }
+      }
+    }
+  }
+
+  /** Bridges in chunks overlapping the tile rectangle (inclusive). */
+  *bridgesInRect(x0: number, y0: number, x1: number, y1: number): Generator<Bridge> {
+    for (let cy = Math.floor(y0 / CHUNK_SIZE); cy <= Math.floor(y1 / CHUNK_SIZE); cy++) {
+      for (let cx = Math.floor(x0 / CHUNK_SIZE); cx <= Math.floor(x1 / CHUNK_SIZE); cx++) {
+        const set = this.bridgeChunks.get(chunkId(cx, cy));
+        if (!set) continue;
+        for (const k of set) {
+          const b = this.state.bridges.get(k);
           if (b) yield b;
         }
       }

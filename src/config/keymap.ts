@@ -14,6 +14,7 @@ export const ACTION_KEYS = {
   rotate: 'r',
   demolish: 'x',
   levels: 'l',
+  priority: 'p',
 } as const;
 
 /** Tool digits (event.code, so they work on AZERTY without Shift). PLAN §8.2. */
@@ -25,6 +26,7 @@ export const TOOL_CODES = {
   Digit5: 'subtractor',
   Digit6: 'divider',
   Digit7: 'exponent',
+  Digit9: 'bridge',
 } as const;
 
 /** Keys by event.key. */
