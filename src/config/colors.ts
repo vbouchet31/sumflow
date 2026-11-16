@@ -29,3 +29,18 @@ export const HUB_COLORS = {
 
 export const FONT_NUM = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
 export const FONT_UI = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+
+export const BELT_COLORS = {
+  base: '#232b3d',
+  chevron: '#55627e',
+  line: '#3d4860',
+} as const;
+
+/** Ghost fills: new, replace, bridge, impossible (PLAN §6.5). */
+export const GHOST_COLORS = {
+  new: 'rgba(72, 199, 116, 0.45)',
+  replace: 'rgba(237, 150, 54, 0.5)',
+  bridge: 'rgba(80, 150, 240, 0.5)',
+  blocked: 'rgba(230, 70, 70, 0.45)',
+  demolish: 'rgba(230, 70, 70, 0.35)',
+} as const;

@@ -50,7 +50,7 @@ test('loads the page without console errors and draws the hub', async ({ page })
   // Inside the hub, away from its text (hub spans ±96 px at zoom 1).
   await expect.poll(() => pixelAt(page, cx - 80, cy - 80)).toEqual(HUB);
 
-  const { state } = await page
+  const state = await page
     .evaluate(() => window.__sumflow?.getState() ?? null)
     .then((s) => {
       if (!s) throw new Error('debug API missing');

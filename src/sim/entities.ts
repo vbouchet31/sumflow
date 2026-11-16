@@ -1,0 +1,134 @@
+import { BUILDINGS, type BuildingType, type PortRole } from '../config/buildings';
+import {
+  type Dir,
+  DX,
+  DY,
+  key,
+  normalizeRot,
+  type Rot,
+  rotateDir,
+  rotatedSize,
+  rotateLocal,
+} from '../core/grid';
+
+/** An item on a belt. `progress` ∈ [0, 1] along the tile (PLAN §6.4). */
+export interface Item {
+  value: number;
+  progress: number;
+  /** Side the item entered from (for drawing); null when unknown. */
+  from: Dir | null;
+  /** Tick at which the item last moved or advanced (runtime only, never saved). */
+  stamp: number;
+}
+
+export interface Belt {
+  x: number;
+  y: number;
+  /** Bitmask of output directions (bit d = 1 << d). */
+  outputs: number;
+  item: Item | null;
+  /** Round-robin index over output directions. */
+  rr: number;
+  /** Round-robin index over incoming neighbours (merge). */
+  rrIn: number;
+  priority: Dir | null;
+  /** Runtime only (never saved): tick at which the item last left, and its carried progress. */
+  vacatedTick: number;
+  vacatedCarry: number;
+}
+
+export interface Building {
+  id: number;
+  type: BuildingType;
+  /** Top-left tile after rotation. */
+  x: number;
+  y: number;
+  rot: Rot;
+  /** Round-robin index over output ports. */
+  rrOut: number;
+  priority: number | null;
+  /** Extractor: value produced and fractional production accumulator. */
+  extractValue?: number;
+  extractAcc?: number;
+}
+
+export type PortKind = 'A' | 'B' | 'O' | 'Q' | 'R' | 'in' | 'out' | 'dynamic';
+
+/** A port face in world coordinates: building tile `(x, y)`, face `face` (pointing outward). */
+export interface PortFace {
+  x: number;
+  y: number;
+  face: Dir;
+  kind: PortKind;
+}
+
+export function hasOutput(belt: Belt, d: Dir): boolean {
+  return (belt.outputs & (1 << d)) !== 0;
+}
+
+export function dirMask(d: Dir): number {
+  return 1 << d;
+}
+
+/** World tiles covered by a building of `type` at origin `(x, y)` with rotation `rot`. */
+export function footprintTiles(
+  type: BuildingType,
+  x: number,
+  y: number,
+  rot: number,
+): { x: number; y: number; role: PortRole }[] {
+  const def = BUILDINGS[type];
+  return def.tiles.map((t) => {
+    const p = rotateLocal(t.x, t.y, def.w, def.h, rot);
+    return { x: x + p.x, y: y + p.y, role: t.role };
+  });
+}
+
+/** Size of a building after rotation. */
+export function buildingSize(type: BuildingType, rot: number): { w: number; h: number } {
+  const def = BUILDINGS[type];
+  return rotatedSize(def.w, def.h, rot);
+}
+
+function kindOf(role: PortRole, anyRole: 'input' | 'output' | 'dynamic' | undefined): PortKind {
+  if (role === 'any') return anyRole === 'input' ? 'in' : anyRole === 'output' ? 'out' : 'dynamic';
+  if (role === 'body') throw new Error('body tiles have no ports');
+  return role;
+}
+
+/**
+ * Port faces of a building in world coordinates, in a deterministic order
+ * (footprint order, then N, E, S, W). Only faces that lead outside the building count.
+ */
+export function portFaces(type: BuildingType, x: number, y: number, rot: number): PortFace[] {
+  const def = BUILDINGS[type];
+  const r = normalizeRot(rot);
+  const tiles = footprintTiles(type, x, y, r);
+  const inside = new Set(tiles.map((t) => key(t.x, t.y)));
+  const out: PortFace[] = [];
+  def.tiles.forEach((t, i) => {
+    if (t.role === 'body') return;
+    const world = tiles[i];
+    if (!world) return;
+    const faces: Dir[] = t.faces === 'outward' ? [0, 1, 2, 3] : t.faces.map((f) => rotateDir(f, r));
+    faces.sort((a, b) => a - b);
+    for (const face of faces) {
+      if (inside.has(key(world.x + DX[face], world.y + DY[face]))) continue;
+      out.push({ x: world.x, y: world.y, face, kind: kindOf(t.role, def.anyRole) });
+    }
+  });
+  return out;
+}
+
+/** Port lookup key: building tile key and face. */
+export function portKey(tileKey: number, face: Dir): number {
+  return tileKey * 4 + face;
+}
+
+export function isInputKind(kind: PortKind): boolean {
+  return kind === 'A' || kind === 'B' || kind === 'in';
+}
+
+export function isOutputKind(kind: PortKind): boolean {
+  return kind === 'O' || kind === 'Q' || kind === 'R' || kind === 'out';
+}

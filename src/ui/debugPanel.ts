@@ -2,13 +2,14 @@ import { t } from '../i18n';
 
 export interface DebugInfo {
   seed: number;
+  tick: number;
   cursorX: number;
   cursorY: number;
   zoom: number;
   deposit: number | null;
 }
 
-/** Small read-only debug box (seed, cursor tile, zoom), shown with `?debug=1` or in dev. */
+/** Small read-only debug box (seed, ticks, cursor tile, zoom), with `?debug=1` or in dev. */
 export class DebugPanel {
   private readonly el: HTMLElement;
   private last = '';
@@ -23,6 +24,7 @@ export class DebugPanel {
   update(info: DebugInfo): void {
     const lines = [
       t('debug.seed', { seed: info.seed }),
+      t('debug.ticks', { n: info.tick }),
       t('debug.cursor', { x: info.cursorX, y: info.cursorY }),
       t('debug.zoom', { zoom: info.zoom.toFixed(2) }),
     ];

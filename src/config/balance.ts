@@ -113,3 +113,63 @@ export function guaranteedRule(v: number): GuaranteedRule | null {
   if (v <= 9) return { count: 2, minDist: 10 + 7 * v, maxDist: 18 + 9 * v };
   return { count: 1, minDist: 60 + 14 * v, maxDist: 90 + 18 * v };
 }
+
+/** Simulation rate (PLAN §2, §11.1). */
+export const TICK_RATE = 60;
+export const TICK_DT = 1 / TICK_RATE;
+/** Max simulation ticks per rendered frame before slowing down (PLAN §11.1). */
+export const MAX_TICKS_PER_FRAME = 8;
+
+/** Operator buffers (PLAN §6.2). */
+export const INPUT_BUFFER_SIZE = 4;
+export const OUTPUT_BUFFER_SIZE = 2;
+
+export type Track = 'belt' | 'extractor' | 'adder' | 'multiplier' | 'subdiv' | 'exponent';
+export const TRACKS: readonly Track[] = [
+  'belt',
+  'extractor',
+  'adder',
+  'multiplier',
+  'subdiv',
+  'exponent',
+];
+
+/** Upgrade values for levels 1..8 (PLAN §7.3). Index 0 is level 1. */
+const BELT_SPEED = [1, 2, 3, 4, 5, 6, 7, 8];
+const ADDER_SPEED = [0.25, 0.333, 0.4, 0.5, 0.667, 1, 1.5, 2];
+const OPERATOR_SPEED = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1];
+
+export const UPGRADE_CAPS = {
+  beltSpeed: 20,
+  adderSpeed: 4,
+  operatorSpeed: 3,
+  extractorLevel: 12,
+} as const;
+
+/** Belt speed in tiles/s at upgrade level L. */
+export function beltSpeed(level: number): number {
+  const L = Math.max(1, Math.floor(level));
+  const v = L <= 8 ? (BELT_SPEED[L - 1] ?? 1) : 8 + 0.1 * (L - 8);
+  return Math.min(UPGRADE_CAPS.beltSpeed, v);
+}
+
+/** Extractor capacity in full belts at upgrade level L. */
+export function extractorCapacity(level: number): number {
+  return Math.min(UPGRADE_CAPS.extractorLevel, Math.max(1, Math.floor(level)));
+}
+
+/** Operations per second of a track's operator at upgrade level L. */
+export function operatorSpeed(track: Track, level: number): number {
+  const L = Math.max(1, Math.floor(level));
+  if (track === 'adder') {
+    const v = L <= 8 ? (ADDER_SPEED[L - 1] ?? 0.25) : 2 + 0.02 * (L - 8);
+    return Math.min(UPGRADE_CAPS.adderSpeed, v);
+  }
+  const v = L <= 8 ? (OPERATOR_SPEED[L - 1] ?? 0.2) : 1 + 0.02 * (L - 8);
+  return Math.min(UPGRADE_CAPS.operatorSpeed, v);
+}
+
+/** Fixed, well-separated hues for items 1..9 (PLAN §5). Index 0 is value 1. */
+export const ITEM_HUES = [210, 0, 120, 45, 280, 170, 25, 320, 85] as const;
+export const ITEM_SATURATION = 65;
+export const ITEM_LIGHTNESS = 55;

@@ -39,8 +39,8 @@ body {
 
 .debug-panel {
   position: absolute;
-  left: 12px;
-  bottom: 12px;
+  right: 12px;
+  top: 12px;
   padding: 6px 10px;
   border-radius: 6px;
   background: rgb(10 14 26 / 85%);
@@ -48,4 +48,95 @@ body {
   font: 12px/1.5 var(--font-num);
   white-space: pre;
   pointer-events: none;
+}
+
+.tooltip {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  min-width: 160px;
+  max-width: 320px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgb(10 14 26 / 88%);
+  border: 1px solid #26304a;
+  color: var(--fg);
+  font: 13px/1.5 var(--font-ui);
+  pointer-events: none;
+}
+
+.tooltip-title {
+  font-weight: 700;
+}
+
+.build-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 12px;
+  background: rgb(10 14 26 / 88%);
+  border: 1px solid #26304a;
+}
+
+.build-btn {
+  display: grid;
+  grid-template-rows: auto auto;
+  justify-items: center;
+  gap: 2px;
+  position: relative;
+  min-width: 72px;
+  padding: 6px 10px 4px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #1a2236;
+  color: var(--fg);
+  font: 12px var(--font-ui);
+  cursor: pointer;
+}
+
+.build-btn:hover {
+  background: #232d46;
+}
+
+.build-btn:focus-visible {
+  outline: 2px solid #7fb2ff;
+  outline-offset: 1px;
+}
+
+.build-btn[aria-pressed='true'] {
+  border-color: #7fb2ff;
+  background: #22345a;
+}
+
+.build-icon {
+  font: 700 18px var(--font-num);
+}
+
+.build-btn kbd {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  color: var(--muted);
+  font: 10px var(--font-num);
+}
+
+.status-bar {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.status-paused {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #b7791f;
+  color: #111;
+  font: 700 13px var(--font-ui);
 }

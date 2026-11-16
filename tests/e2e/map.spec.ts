@@ -7,7 +7,7 @@ test('a seeded map is reproducible and shows the seed in the debug panel', async
   const first = await page.evaluate(() => {
     const api = window.__sumflow;
     if (!api) throw new Error('debug API missing');
-    return { seed: api.getState().state.seed, one: api.findDeposit(1), ten: api.findDeposit(10) };
+    return { seed: api.getState().seed, one: api.findDeposit(1), ten: api.findDeposit(10) };
   });
   expect(first.seed).toBe(42);
   expect(first.ten).toBeNull();
