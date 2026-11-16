@@ -26,18 +26,20 @@ function chevron(
 
 /**
  * Belts layer (PLAN §10.2 layer 3): tile base plus chevrons animated along each output.
- * `phase` ∈ [0, 1) scrolls with time × belt speed.
+ * `phase` ∈ [0, 1) scrolls with time × belt speed. `part` draws only the static tile bases
+ * or only the chevrons (below zoom 0.3 belts are plain lines and count as base).
  */
 export function drawBelts(
   ctx: CanvasRenderingContext2D,
   cam: Camera,
   belts: Iterable<Belt>,
   phase: number,
-  withBase = true,
+  part: 'all' | 'base' | 'chevrons' = 'all',
 ): void {
   const s = cam.scale;
-  const list = [...belts];
+  const list = Array.isArray(belts) ? (belts as Belt[]) : [...belts];
   if (cam.zoom < LOD.buildingText) {
+    if (part === 'chevrons') return;
     // Lines only.
     ctx.strokeStyle = BELT_COLORS.line;
     ctx.lineWidth = Math.max(1, cam.zoom < LOD.depositText ? 0.15 * s : 0.3 * s);
@@ -56,7 +58,7 @@ export function drawBelts(
   }
 
   const inset = 0.06 * s;
-  if (withBase) {
+  if (part !== 'chevrons') {
     ctx.fillStyle = BELT_COLORS.base;
     ctx.beginPath();
     for (const b of list) {
@@ -66,11 +68,16 @@ export function drawBelts(
     ctx.fill();
   }
 
+  if (part === 'base') return;
+
   const animated = cam.zoom >= LOD.full;
   ctx.strokeStyle = BELT_COLORS.chevron;
   ctx.lineWidth = Math.max(1, 0.07 * s);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
+  // Round ends cost a lot on thousands of live chevrons and do not show on thin lines:
+  // keep them where chevrons are cached (static) or large (zoom ≥ 1).
+  const round = !animated || cam.zoom >= 1;
+  ctx.lineCap = round ? 'round' : 'butt';
+  ctx.lineJoin = round ? 'round' : 'miter';
   ctx.beginPath();
   const size = 0.17 * s;
   for (const b of list) {

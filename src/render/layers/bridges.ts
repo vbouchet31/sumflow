@@ -15,6 +15,7 @@ export function drawBridges(
   cam: Camera,
   bridges: readonly Bridge[],
   phase: number,
+  itemValuesAlways = false,
 ): void {
   if (bridges.length === 0) return;
   const s = cam.scale;
@@ -29,7 +30,7 @@ export function drawBridges(
   }
   const vertical = bridges.map((b) => b.v).filter((l): l is Belt => l !== null);
   drawBelts(ctx, cam, vertical, phase);
-  drawItems(ctx, cam, vertical);
+  drawItems(ctx, cam, vertical, itemValuesAlways);
   if (cam.zoom >= LOD.buildingText) {
     // Raised deck for the horizontal lane, with side rails.
     ctx.fillStyle = BELT_COLORS.bridgeDeck;
@@ -49,8 +50,8 @@ export function drawBridges(
     }
   }
   const horizontal = bridges.map((b) => b.h).filter((l): l is Belt => l !== null);
-  drawBelts(ctx, cam, horizontal, phase, false);
-  drawItems(ctx, cam, horizontal);
+  drawBelts(ctx, cam, horizontal, phase, 'chevrons');
+  drawItems(ctx, cam, horizontal, itemValuesAlways);
 }
 
 /** Green diamonds on prioritised output tiles (PLAN §6.6). */

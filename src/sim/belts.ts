@@ -149,35 +149,45 @@ function outputOrder(belt: Belt): Dir[] {
   return order;
 }
 
-/** Move one belt's item forward. */
-function stepBelt(world: World, k: number, belt: Belt, speed: number): void {
-  const item = belt.item;
-  if (!item) return;
+/**
+ * Advance every belt, downstream first (PLAN §6.4, §11.2 step 2). Outputs are tried
+ * priority first, then round-robin from `rr`; their targets come from the network cache.
+ */
+export function stepBelts(world: World): void {
+  const net = world.getNetwork();
+  const { order, belts, targets } = net;
   const tick = world.state.tick;
-  if (item.stamp === tick) return; // already moved this tick (arrived from upstream)
-  item.stamp = tick;
-  item.progress += speed * TICK_DT;
-  if (item.progress < 1 - EPS) return;
-  const carry = Math.max(0, item.progress - 1);
-  for (const d of outputOrder(belt)) {
-    const target = resolveTarget(world, belt.x, belt.y, d);
-    if (offer(world, target, item.value, carry, k)) {
+  const step = currentBeltSpeed(world.state) * TICK_DT;
+  for (let n = 0; n < belts.length; n++) {
+    const belt = belts[n] as Belt;
+    const item = belt.item;
+    if (!item) continue;
+    if (item.stamp === tick) continue; // already moved this tick (arrived from upstream)
+    item.stamp = tick;
+    item.progress += step;
+    if (item.progress < 1 - EPS) continue;
+    const carry = Math.max(0, item.progress - 1);
+    const prio = belt.priority !== null && hasOutput(belt, belt.priority) ? belt.priority : -1;
+    let moved = false;
+    for (let i = -1; i < 4 && !moved; i++) {
+      let d: Dir;
+      if (i === -1) {
+        if (prio < 0) continue;
+        d = prio as Dir;
+      } else {
+        d = ((belt.rr + i) & 3) as Dir;
+        if (d === prio || !hasOutput(belt, d)) continue;
+      }
+      const target = (targets[n * 4 + d] ??= resolveTarget(world, belt.x, belt.y, d));
+      if (target.kind === 'none' || target.kind === 'blocked') continue;
+      if (!offer(world, target, item.value, carry, order[n] as number)) continue;
       belt.item = null;
       belt.vacatedTick = tick;
       belt.vacatedCarry = carry;
-      if (d !== belt.priority) belt.rr = (d + 1) & 3;
-      return;
+      if (d !== prio) belt.rr = (d + 1) & 3;
+      moved = true;
     }
-  }
-  item.progress = 1;
-}
-
-/** Advance every belt, downstream first (PLAN §6.4, §11.2 step 2). */
-export function stepBelts(world: World): void {
-  const speed = currentBeltSpeed(world.state);
-  for (const k of world.getNetwork().order) {
-    const belt = world.nodeBelt(k);
-    if (belt) stepBelt(world, k, belt, speed);
+    if (!moved) item.progress = 1;
   }
 }
 

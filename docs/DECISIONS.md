@@ -133,3 +133,20 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Commandes** : texte des touches traduit aussi (« flèches », « molette »…), dans un tableau en lecture seule.
 - **Aucune chaîne en dur** : test par motifs sur `src/ui` (`textContent`, `title`, `aria-label`, `placeholder`, troisième argument de `el()`, `append('…')`, `innerHTML`). Les interpolations `${…}` et les symboles (icônes) sont permis.
 - **À propos** : lien Steam vérifié (`store.steampowered.com/app/2674590/Beltmatic/`) et lien vers le dépôt, dans `src/config/links.ts`.
+
+## M11
+
+- **Scénario de référence** : 250 modules identiques (2 extracteurs → additionneur → stockage, 80 tapis et 4 bâtiments par module), pistes d'amélioration au niveau 4 (tapis à 4 tuiles/s), 40 s de chauffe. Les tapis d'entrée sont saturés (items en attente), ce qui est le cas le plus coûteux et le plus courant dans une vraie usine. Le même code sert au bench et à `__sumflow.loadReference()`.
+- **Cache des cibles** : ce vers quoi mène chaque sortie (tapis, port, Hub, rien) est mémorisé dans le réseau pour les tapis, et par bâtiment et type de port (`world.outputGroups`). Tout est vidé à chaque changement de structure, comme l'ordre du réseau. Le comportement est inchangé : tous les tests de débit, de répartition et de sauvegarde passent sans modification.
+- **Tableaux typés pour les items** (§10.4) : non retenus. Le budget est tenu avec une marge de 3,5 sans changer le modèle de données.
+- **Recalcul du réseau** : toujours complet après une modification (environ 18 ms pour 20 000 tapis, soit une image perdue au pire). Un recalcul partiel n'est pas justifié à cette taille.
+- **Rattrapage** : la durée d'absence est mesurée entre `visibilitychange → hidden` et le retour. Moins d'une seconde : ignoré. Rien n'est dû si le jeu est en pause. Pendant le rattrapage, une image s'arrête de simuler au bout de **24 ms** même si le lot de 600 ticks n'est pas fini : sans cela, une grosse usine figerait l'écran (600 ticks × 1 ms). Le plan demande une barre « non bloquante », d'où ce plafond. Pas de rattrapage après une fermeture de l'onglet.
+- **Cache par régions** : une région couvre 1, 2, 4… chunks de côté pour que son image fasse entre 256 et 512 px. Elle est collée sans redimensionnement, alignée sur les pixels de l'écran. Les caches ne servent qu'une fois le zoom stable depuis 3 images (pendant un zoom continu, chaque image aurait une nouvelle échelle) et tant qu'un chunk fait au plus 1 024 px. Un tapis posé ou retiré n'invalide que sa région (événement `beltChanged`) ; les gisements se redessinent quand `maxExtraction` change.
+- **Ce qui n'est pas en cache** : bâtiments (peu nombreux, ils clignotent et peuvent chevaucher deux régions), ponts, chevrons animés (zoom ≥ 0,6 : seule la base des tapis est en cache).
+- **Chevrons** : extrémités arrondies seulement quand ils sont en cache ou au zoom ≥ 1. Entre 0,6 et 1, le trait fait moins de 2 px et l'arrondi coûtait cher pour rien.
+- **Items avec valeur** : un sprite par valeur et par échelle, collé aligné sur les pixels pour garder des chiffres nets.
+- **Overlay `F3`** : disponible sans `?debug=1` (lecture seule, utile pour signaler un problème de performance). Chiffres rafraîchis toutes les 500 ms. Placé au-dessus du panneau debug, en bas à droite.
+- **API debug** : `loadReference()`, `perf()` (les chiffres de l'overlay) et `lookAt(x, y, zoom?)`.
+- **Contraste** : vérifié par un test e2e qui calcule le rapport de chaque texte du DOM sur son fond réel (couches translucides composées sur le fond du canvas). Les boutons désactivés sont exclus, comme dans WCAG. Aucune couleur n'a dû être changée.
+- **Clavier** : fermer un panneau ou une fenêtre retire le focus de ses éléments (sinon l'`Échap` suivant était avalé par l'élément masqué). Un clic à la souris sur un bouton rend le clavier au jeu ; une activation au clavier garde le focus sur le bouton.
+- **Lighthouse** : pas ajouté aux dépendances (liste fermée du §1.6) ni à la CI. À lancer à la main avec `npx lighthouse`.

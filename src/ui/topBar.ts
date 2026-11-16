@@ -16,9 +16,10 @@ export class TopBar {
       btn.title = t(label);
       btn.setAttribute('aria-label', t(label));
       btn.dataset['action'] = id;
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
         actions[id]();
-        btn.blur();
+        // Mouse clicks give the keyboard back to the game; keyboard users keep their place.
+        if (e.detail > 0) btn.blur();
       });
       bar.append(btn);
       this.buttons.set(id, btn);

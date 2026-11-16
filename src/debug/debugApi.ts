@@ -16,6 +16,8 @@ import { layoutString } from '../sim/layout';
 import type { SaveManager } from '../save/manager';
 import { stateHash } from '../save/serialize';
 import type { Deposit } from '../world/deposits';
+import type { PerfMeter, PerfStats } from './perfMeter';
+import { buildReferenceScenario, countItems, REFERENCE } from './reference';
 
 export interface DebugContext {
   world: World;
@@ -23,6 +25,7 @@ export interface DebugContext {
   loop: SimLoop;
   tools: ToolController;
   saves: SaveManager;
+  perf: PerfMeter;
 }
 
 export interface DebugSnapshot {
@@ -89,6 +92,15 @@ export interface DebugApi {
   save: () => Promise<string>;
   /** Hash of everything saved: equal before a save and after reloading it. */
   stateHash: () => string;
+  /**
+   * Build the reference factory of PLAN §10.4 (20 000 belts, 1 000 buildings, ~15 000
+   * items) in the current game, warmed up. For a fresh game only.
+   */
+  loadReference: () => void;
+  /** Frame timings of the last half second (the numbers of the F3 overlay). */
+  perf: () => PerfStats;
+  /** Move the camera (tiles) and optionally set the zoom. */
+  lookAt: (x: number, y: number, zoom?: number) => void;
 }
 
 declare global {
@@ -103,15 +115,14 @@ export function isDebugEnabled(search: string): boolean {
 
 /** Expose `window.__sumflow` (PLAN §13.4). Grows with each milestone. */
 export function installDebugApi(ctx: DebugContext): void {
-  const { world, camera, loop, tools, saves } = ctx;
+  const { world, camera, loop, tools, saves, perf } = ctx;
   const { history } = tools;
   const rect = (x0: number, y0: number, x1: number, y1: number) =>
     selectionRect({ x: x0, y: y0 }, { x: x1, y: y1 });
   window.__sumflow = {
     getState: () => {
       const s = world.state;
-      let items = 0;
-      for (const b of s.belts.values()) if (b.item) items++;
+      const items = countItems(world);
       return {
         seed: s.seed,
         tick: s.tick,
@@ -170,6 +181,15 @@ export function installDebugApi(ctx: DebugContext): void {
     layout: () => layoutString(world),
     save: () => saves.save(),
     stateHash: () => stateHash(world, camera),
+    loadReference: () => {
+      buildReferenceScenario(world);
+      runTicks(world, REFERENCE.warmupSeconds * TICK_RATE);
+    },
+    perf: () => ({ ...perf.stats }),
+    lookAt: (x, y, zoom) => {
+      camera.centerOn(x, y);
+      if (zoom !== undefined) camera.zoomAt(camera.viewW / 2, camera.viewH / 2, zoom / camera.zoom);
+    },
     step: (seconds) => runTicks(world, Math.round(seconds * TICK_RATE)),
     setTimeScale: (x) => {
       loop.timeScale = Math.min(50, Math.max(1, x));

@@ -147,6 +147,16 @@ export const TICK_RATE = 60;
 export const TICK_DT = 1 / TICK_RATE;
 /** Max simulation ticks per rendered frame before slowing down (PLAN §11.1). */
 export const MAX_TICKS_PER_FRAME = 8;
+/** Catching up after the tab was hidden (PLAN §11.1). */
+export const CATCH_UP = {
+  /** Longest absence simulated, in seconds. */
+  maxSeconds: 600,
+  ticksPerFrame: 600,
+  /** Absences shorter than this are ignored, in seconds. */
+  minSeconds: 1,
+  /** A catch-up frame stops simulating after this long, in milliseconds. */
+  frameBudgetMs: 24,
+} as const;
 
 /** Storage capacity, single value (PLAN §6.3). */
 export const STORAGE_CAPACITY = 10_000;

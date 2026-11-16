@@ -54,6 +54,49 @@ body {
   pointer-events: none;
 }
 
+.perf-overlay {
+  position: absolute;
+  right: 12px;
+  bottom: 210px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgb(10 14 26 / 85%);
+  color: var(--fg);
+  font: 12px/1.5 var(--font-num);
+  white-space: pre;
+  pointer-events: none;
+}
+
+.catch-up {
+  position: absolute;
+  left: 50%;
+  top: 96px;
+  transform: translateX(-50%);
+  width: 220px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgb(10 14 26 / 88%);
+  border: 1px solid #26304a;
+  color: var(--fg);
+  font: 13px/1.4 var(--font-ui);
+  text-align: center;
+  pointer-events: none;
+}
+
+.catch-up-track {
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 3px;
+  background: #1c4a7d;
+  overflow: hidden;
+}
+
+.catch-up-fill {
+  height: 100%;
+  width: 0;
+  background: #ffffff;
+}
+
 .tooltip {
   position: absolute;
   left: 12px;
@@ -321,6 +364,14 @@ body {
   .toast {
     animation: none;
   }
+}
+
+/* Option "Reduce animations" (PLAN §9.5). */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation: none !important;
+  transition: none !important;
 }
 
 .overlay {

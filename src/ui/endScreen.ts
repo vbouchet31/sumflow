@@ -2,7 +2,7 @@ import { TICK_RATE } from '../config/balance';
 import { formatFull } from '../core/format';
 import { getLocale, t } from '../i18n';
 import type { GameState } from '../sim/state';
-import { el } from './dom';
+import { el, releaseFocus, trapTab } from './dom';
 import { formatDuration } from './labels';
 
 /** "Game complete" overlay (PLAN §7.2) with play time and items delivered. */
@@ -27,6 +27,7 @@ export class EndScreen {
     this.overlay.setAttribute('aria-labelledby', 'end-title');
     this.overlay.hidden = true;
     this.overlay.addEventListener('keydown', (e) => {
+      trapTab(this.overlay, e);
       if (e.key === 'Escape') {
         e.stopPropagation();
         this.hide();
@@ -46,6 +47,7 @@ export class EndScreen {
   }
 
   hide(): void {
+    releaseFocus(this.overlay);
     this.overlay.hidden = true;
   }
 

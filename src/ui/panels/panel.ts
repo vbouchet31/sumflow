@@ -1,5 +1,5 @@
 import { type MessageKey, t } from '../../i18n';
-import { el } from '../dom';
+import { el, releaseFocus } from '../dom';
 
 let nextId = 0;
 
@@ -54,6 +54,7 @@ export abstract class Panel {
   }
 
   close(): void {
+    releaseFocus(this.root);
     this.root.hidden = true;
   }
 

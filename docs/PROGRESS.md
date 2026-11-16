@@ -1,19 +1,33 @@
 # Avancement
 
-| Jalon                                            | État              | Notes                                              |
-| ------------------------------------------------ | ----------------- | -------------------------------------------------- |
-| M0 Squelette et déploiement                      | ✅ terminé        |                                                    |
-| M1 Grille, caméra, Hub                           | ✅ terminé        |                                                    |
-| M2 Carte procédurale                             | ✅ terminé        |                                                    |
-| M3 Tapis, extracteur, livraison                  | ✅ terminé        |                                                    |
-| M4 Progression des niveaux                       | ✅ terminé        |                                                    |
-| M5 Opérateurs                                    | ✅ terminé        |                                                    |
-| M6 Jonctions, priorités, ponts                   | ✅ terminé        |                                                    |
-| M7 Améliorations et statistiques                 | ✅ terminé        |                                                    |
-| M8 Stockage                                      | ✅ terminé        |                                                    |
-| M9 Outils d'édition                              | ✅ terminé        |                                                    |
-| M10 Sauvegarde, options, i18n, menu, aide, audio | ✅ terminé (code) | CI et déploiement à valider après merge sur `main` |
-| M11 Performance et finition                      | ⏳ à faire        |                                                    |
+| Jalon                                            | État              | Notes                                       |
+| ------------------------------------------------ | ----------------- | ------------------------------------------- |
+| M0 Squelette et déploiement                      | ✅ terminé        |                                             |
+| M1 Grille, caméra, Hub                           | ✅ terminé        |                                             |
+| M2 Carte procédurale                             | ✅ terminé        |                                             |
+| M3 Tapis, extracteur, livraison                  | ✅ terminé        |                                             |
+| M4 Progression des niveaux                       | ✅ terminé        |                                             |
+| M5 Opérateurs                                    | ✅ terminé        |                                             |
+| M6 Jonctions, priorités, ponts                   | ✅ terminé        |                                             |
+| M7 Améliorations et statistiques                 | ✅ terminé        |                                             |
+| M8 Stockage                                      | ✅ terminé        |                                             |
+| M9 Outils d'édition                              | ✅ terminé        |                                             |
+| M10 Sauvegarde, options, i18n, menu, aide, audio | ✅ terminé        |                                             |
+| M11 Performance et finition                      | ✅ terminé (code) | Score Lighthouse à relever (voir le détail) |
+
+## M11 : détail
+
+- [x] **Bench** : scénario de référence (`src/debug/reference.ts`, 20 000 tapis, 1 000 bâtiments, 14 750 items). `npm run bench` échoue au-delà de 4 ms/tick ; il tourne aussi en CI.
+- [x] **Simulation** : 7,1 ms/tick avant, **1,1 ms/tick** après (cibles des sorties mises en cache par tapis et par bâtiment). Premier tick après une modification : environ 50 ms avant, 25 ms après (réseau recalculé sur tableaux typés).
+- [x] **Caches de rendu** (`src/render/cache.ts`) : gisements et tapis dessinés une fois par région de chunks dans des canvas hors écran, items avec valeur dessinés depuis des sprites, disques et points regroupés par couleur.
+- [x] **LOD** (§10.3) et **culling** par chunks visibles + 1 de marge ; les losanges de priorité ne parcourent plus que les objets visibles.
+- [x] **60 fps** sur le scénario de référence à tous les zooms testés (0,05 à 2), mesuré en 1920×1080 dans Chromium sans GPU : rendu 1 à 6 ms par image.
+- [x] **Rattrapage hors onglet** (§11.1) : jusqu'à 10 minutes, par lots de 600 ticks par image, barre « Rattrapage… » non bloquante.
+- [x] **Overlay `F3`** : FPS, temps de simulation par tick, temps de rendu, ticks, items, tapis, bâtiments.
+- [x] **Accessibilité** (§9.5) : contraste ≥ 4,5:1 vérifié par un test sur tous les écrans ; navigation clavier (focus piégé dans le menu, `Espace` active le bouton qui a le focus) ; l'option « Réduire les animations » coupe aussi les transitions de l'interface.
+- [x] **README** : présentation, commandes, performances, crédits, licence.
+- [x] Tests : boucle et rattrapage, scénario de référence déterministe, invalidation des caches ; e2e : chaîne 1 + 1 → Hub, sauvegarde, rechargement, état conservé ; `F3` ; rattrapage ; clavier ; contraste ; cache des tapis après une modification.
+- [ ] **Lighthouse performance ≥ 90** : pas relevé (Lighthouse n'a pas pu être lancé dans l'environnement de dev). Mesures équivalentes avec le profil mobile de Lighthouse (4G lente, processeur ÷4) : premier affichage et plus grand élément à 0,8 s, décalage de mise en page 0,014, aucun blocage après l'affichage. Commande à lancer : voir le README.
 
 ## M10 : détail
 

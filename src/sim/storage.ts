@@ -1,4 +1,5 @@
-import { offer, resolveTarget } from './belts';
+import { offer } from './belts';
+import { outputGroup } from './outputs';
 import type { World } from './world';
 
 /**
@@ -10,10 +11,9 @@ export function stepStorages(world: World): void {
   for (const b of world.state.buildings.values()) {
     if (b.type !== 'storage') continue;
     if ((b.storeCount ?? 0) <= 0) continue;
-    for (const p of world.buildingPorts.get(b.id) ?? []) {
+    for (const target of outputGroup(world, b, 'dynamic').targets) {
       const count = b.storeCount ?? 0;
       if (count <= 0 || b.storeValue === null || b.storeValue === undefined) break;
-      const target = resolveTarget(world, p.x, p.y, p.face);
       // Belts only: storages do not feed buildings directly.
       if (target.kind !== 'belt') continue;
       if (!offer(world, target, b.storeValue, 0, null)) continue;

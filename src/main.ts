@@ -1,9 +1,12 @@
 import './ui/styles.css';
 import { Sfx } from './audio/sfx';
 import { ToolController } from './build/tools';
+import { CATCH_UP } from './config/balance';
 import { CAMERA } from './config/keymap';
 import { toSeed } from './core/rng';
 import { installDebugApi, isDebugEnabled } from './debug/debugApi';
+import { PerfMeter } from './debug/perfMeter';
+import { countItems } from './debug/reference';
 import { detectLocale, getLocale, setLocale } from './i18n';
 import { Keyboard } from './input/keyboard';
 import { Mouse } from './input/mouse';
@@ -13,6 +16,8 @@ import { SimLoop } from './sim/loop';
 import { createInitialState } from './sim/state';
 import { World } from './sim/world';
 import { BuildBar } from './ui/buildBar';
+import { CatchUpBar } from './ui/catchUp';
+import { PerfOverlay } from './ui/perfOverlay';
 import { DebugPanel } from './ui/debugPanel';
 import { EndScreen } from './ui/endScreen';
 import { Hud } from './ui/hud';
@@ -123,6 +128,7 @@ async function bootstrap(): Promise<void> {
   });
   const applySettings = (): void => {
     renderer.reducedMotion = settings.reduceMotion;
+    document.documentElement.classList.toggle('reduce-motion', settings.reduceMotion);
     renderer.showGrid = settings.showGrid;
     renderer.itemValuesAlways = settings.itemValues === 'always';
     sfx.volume = settings.volume / 100;
@@ -165,6 +171,9 @@ async function bootstrap(): Promise<void> {
   const toolHint = new ToolHint(uiRoot, tools);
   markerEditor = new MarkerEditor(uiRoot);
   const help = new HelpBubble(uiRoot, state);
+  const catchUpBar = new CatchUpBar(uiRoot);
+  const perfOverlay = new PerfOverlay(uiRoot);
+  const perf = new PerfMeter();
 
   /** Replace the save and reload: the page starts again on the new game. */
   const reloadWith = (text: string | null): void => {
@@ -228,8 +237,17 @@ async function bootstrap(): Promise<void> {
     else if (result === 'unavailable') toasts.show(t('toast.saveFailed'));
     else if (manual) toasts.show(t('toast.saved'));
   });
+  // Time spent with the tab hidden is simulated when it comes back (PLAN §11.1).
+  let hiddenAt: number | null = null;
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') void saves.save();
+    if (document.visibilityState === 'hidden') {
+      hiddenAt = performance.now();
+      void saves.save();
+    } else if (hiddenAt !== null) {
+      const away = (performance.now() - hiddenAt) / 1000;
+      hiddenAt = null;
+      if (away >= CATCH_UP.minSeconds) loop.queueCatchUp(away);
+    }
   });
   window.addEventListener('beforeunload', () => saves.saveSync());
   if (loaded.error) toasts.show(t('toast.loadError'));
@@ -267,6 +285,7 @@ async function bootstrap(): Promise<void> {
       onLevels: () => levelsPanel.toggle(),
       onUpgrades: toggleUpgrades,
       onDelivered: () => deliveredPanel.toggle(),
+      onTogglePerf: () => perfOverlay.toggle(),
       onTool: (tool) => {
         if (tool === 'paste' && !tools.isAvailable('paste')) sfx.error();
         else tools.setTool(tool);
@@ -310,7 +329,7 @@ async function bootstrap(): Promise<void> {
   let wheelAcc = 0;
   const debug = isDebugEnabled(location.search);
   const debugPanel = debug ? new DebugPanel(uiRoot) : null;
-  if (debug) installDebugApi({ world, camera, loop, tools, saves });
+  if (debug) installDebugApi({ world, camera, loop, tools, saves, perf });
 
   const resize = (): void => {
     renderer.resize(window.innerWidth, window.innerHeight, window.devicePixelRatio);
@@ -335,8 +354,20 @@ async function bootstrap(): Promise<void> {
     const hover = mouse.tileAt(mouse.x, mouse.y);
     tools.pointerMove(hover.x, hover.y, { ctrl: keyboard.ctrl, shift: false, alt: false });
 
-    loop.advance(dt);
+    const simStart = performance.now();
+    const ticks = loop.advance(dt, () => performance.now() - simStart > CATCH_UP.frameBudgetMs);
+    const drawStart = performance.now();
     renderer.draw(world, tools.ghost(), now);
+    const drawEnd = performance.now();
+    catchUpBar.update(loop.catchUpProgress);
+    if (perf.frame(now, drawStart - simStart, ticks, drawEnd - drawStart) && perfOverlay.visible) {
+      perfOverlay.update(perf.stats, {
+        tick: state.tick,
+        items: countItems(world),
+        belts: state.belts.size,
+        buildings: state.buildings.size - 1,
+      });
+    }
     hud.update(world);
     for (const p of panels) p.update();
     topBar.setVisible('upgrades', upgradesAvailable());
