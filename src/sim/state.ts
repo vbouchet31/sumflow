@@ -1,6 +1,15 @@
-import { HUB, LEVEL_TABLE, type Reward, START_MAX_EXTRACTION, type Track } from '../config/balance';
+import {
+  type Feature,
+  HUB,
+  LEVELS,
+  type PlaceableType,
+  START_BUILDINGS,
+  START_MAX_EXTRACTION,
+  type Track,
+} from '../config/balance';
 import { toSeed } from '../core/rng';
 import type { Belt, Building } from './entities';
+import { ensureLevels, type GeneratedLevel } from './levels';
 
 export interface Requirement {
   value: number;
@@ -9,14 +18,20 @@ export interface Requirement {
 }
 
 export interface GameState {
-  /** 32-bit game seed: the whole map derives from it (PLAN §4.4). */
+  /** 32-bit game seed: the whole map and every random target derive from it (PLAN §4.4). */
   seed: number;
   tick: number;
   level: number;
+  /** Generated levels, index 0 = level 1, up to current + lookahead (PLAN §7.2). */
+  levels: GeneratedLevel[];
+  /** Requirement of the current level; null once the final level is done (free play). */
+  levelRequirement: Requirement | null;
+  /** Tick at which the final level was completed, or null. */
+  finishedAtTick: number | null;
   /** Highest extractable value (10 is never extractable). PLAN §4.5. */
   maxExtraction: number;
-  levelRequirement: Requirement;
-  nextReward: Reward | null;
+  unlockedBuildings: PlaceableType[];
+  unlockedFeatures: Feature[];
   /** Upgrade level per track (1 = initial). */
   upgrades: Record<Track, number>;
   /** Belts by tile key. */
@@ -30,10 +45,15 @@ export interface GameState {
 
 export const HUB_ID = 0;
 
-/** Fresh game state with the hub in place. Randomised targets and rewards arrive in M4. */
+/** Requirement for `level`, generating levels ahead as needed. */
+export function requirementFor(state: GameState, level: number): Requirement | null {
+  ensureLevels(state.seed, state.levels, level + LEVELS.lookahead);
+  const def = state.levels[level - 1];
+  return def ? { value: def.target, required: def.quantity, delivered: 0 } : null;
+}
+
+/** Fresh game state with the hub in place. */
 export function createInitialState(seed: number): GameState {
-  const first = LEVEL_TABLE[0];
-  if (!first) throw new Error('LEVEL_TABLE is empty');
   const buildings = new Map<number, Building>();
   buildings.set(HUB_ID, {
     id: HUB_ID,
@@ -44,17 +64,30 @@ export function createInitialState(seed: number): GameState {
     rrOut: 0,
     priority: null,
   });
-  return {
+  const state: GameState = {
     seed: toSeed(seed),
     tick: 0,
     level: 1,
+    levels: [],
+    levelRequirement: null,
+    finishedAtTick: null,
     maxExtraction: START_MAX_EXTRACTION,
-    levelRequirement: { value: first.target, required: first.quantity, delivered: 0 },
-    nextReward: first.reward,
+    unlockedBuildings: [...START_BUILDINGS],
+    unlockedFeatures: [],
     upgrades: { belt: 1, extractor: 1, adder: 1, multiplier: 1, subdiv: 1, exponent: 1 },
     belts: new Map(),
     buildings,
     nextBuildingId: HUB_ID + 1,
     totalDelivered: 0,
   };
+  state.levelRequirement = requirementFor(state, 1);
+  return state;
+}
+
+export function isBuildingUnlocked(state: GameState, type: PlaceableType): boolean {
+  return state.unlockedBuildings.includes(type);
+}
+
+export function isFeatureUnlocked(state: GameState, feature: Feature): boolean {
+  return state.unlockedFeatures.includes(feature);
 }

@@ -5,7 +5,7 @@ import { type Dir, rotateDir } from '../core/grid';
 import type { Camera } from '../render/camera';
 import { dirMask } from '../sim/entities';
 import type { SimLoop } from '../sim/loop';
-import { deliver } from '../sim/progression';
+import { applyReward, deliver, setLevel } from '../sim/progression';
 import { runTicks } from '../sim/tick';
 import type { World } from '../sim/world';
 import type { Deposit } from '../world/deposits';
@@ -21,7 +21,10 @@ export interface DebugSnapshot {
   tick: number;
   level: number;
   maxExtraction: number;
-  levelRequirement: { value: number; required: number; delivered: number };
+  levelRequirement: { value: number; required: number; delivered: number } | null;
+  unlockedBuildings: string[];
+  unlockedFeatures: string[];
+  finished: boolean;
   upgrades: Record<Track, number>;
   belts: number;
   buildings: number;
@@ -46,6 +49,10 @@ export interface DebugApi {
   setTimeScale: (x: number) => void;
   setUpgrade: (track: Track, level: number) => void;
   deliver: (value: number, count: number) => void;
+  /** Unlock every building, feature and extraction up to 80. */
+  unlockAll: () => void;
+  /** Jump to level `n`, granting the rewards of every level before it. */
+  setLevel: (n: number) => void;
 }
 
 declare global {
@@ -71,7 +78,10 @@ export function installDebugApi(ctx: DebugContext): void {
         tick: s.tick,
         level: s.level,
         maxExtraction: s.maxExtraction,
-        levelRequirement: { ...s.levelRequirement },
+        levelRequirement: s.levelRequirement ? { ...s.levelRequirement } : null,
+        unlockedBuildings: [...s.unlockedBuildings],
+        unlockedFeatures: [...s.unlockedFeatures],
+        finished: s.finishedAtTick !== null,
         upgrades: { ...s.upgrades },
         belts: s.belts.size,
         buildings: s.buildings.size,
@@ -100,6 +110,22 @@ export function installDebugApi(ctx: DebugContext): void {
     setUpgrade: (track, level) => {
       if (TRACKS.includes(track)) world.state.upgrades[track] = Math.max(1, Math.floor(level));
     },
+    unlockAll: () => {
+      for (const building of [
+        'adder',
+        'multiplier',
+        'subtractor',
+        'divider',
+        'exponent',
+        'storage',
+        'bridge',
+      ] as const)
+        applyReward(world.state, { kind: 'building', building });
+      applyReward(world.state, { kind: 'feature', feature: 'upgrades' });
+      applyReward(world.state, { kind: 'feature', feature: 'priorities' });
+      applyReward(world.state, { kind: 'extraction', max: 80 });
+    },
+    setLevel: (n) => setLevel(world.state, n),
     deliver: (value, count) => {
       for (let i = 0; i < count; i++) deliver(world.state, value, world.emit);
     },

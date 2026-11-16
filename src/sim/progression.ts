@@ -1,9 +1,10 @@
-import { LEVEL_TABLE } from '../config/balance';
-import type { GameState } from './state';
+import type { Reward } from '../config/balance';
+import { rewardFor } from './levels';
+import { type GameState, requirementFor } from './state';
 
 export type ProgressionEvents = {
   delivered: { value: number };
-  levelCompleted: { level: number };
+  levelCompleted: { level: number; reward: Reward | null; final: boolean };
 };
 
 export type Emit = <K extends keyof ProgressionEvents>(
@@ -19,23 +20,52 @@ export function deliver(state: GameState, value: number, emit?: Emit): void {
   state.totalDelivered += 1;
   emit?.('delivered', { value });
   const req = state.levelRequirement;
-  if (req.value === value && req.delivered < req.required) {
+  if (req && req.value === value && req.delivered < req.required) {
     req.delivered += 1;
     if (req.delivered >= req.required) completeLevel(state, emit);
   }
 }
 
-/**
- * Minimal level advance for M3: move to the next level of the base table.
- * Rewards, randomised targets and infinite levels arrive in M4.
- */
+/** Apply a level reward (PLAN §7.2, §7.4). Idempotent. */
+export function applyReward(state: GameState, reward: Reward | null): void {
+  if (!reward) return;
+  switch (reward.kind) {
+    case 'extraction':
+      state.maxExtraction = Math.max(state.maxExtraction, reward.max);
+      break;
+    case 'building':
+      if (!state.unlockedBuildings.includes(reward.building))
+        state.unlockedBuildings.push(reward.building);
+      break;
+    case 'feature':
+      if (!state.unlockedFeatures.includes(reward.feature))
+        state.unlockedFeatures.push(reward.feature);
+      break;
+  }
+}
+
+/** Finish the current level: reward, then next level or end of the game (free play). */
 export function completeLevel(state: GameState, emit?: Emit): void {
   const done = state.level;
-  state.level += 1;
-  const def = LEVEL_TABLE[state.level - 1] ?? LEVEL_TABLE[LEVEL_TABLE.length - 1];
-  if (def) {
-    state.levelRequirement = { value: def.target, required: def.quantity, delivered: 0 };
-    state.nextReward = def.reward;
+  const def = state.levels[done - 1];
+  const reward = rewardFor(done);
+  applyReward(state, reward);
+  const final = def?.final ?? false;
+  if (final) {
+    state.levelRequirement = null;
+    state.finishedAtTick = state.tick;
+  } else {
+    state.level = done + 1;
+    state.levelRequirement = requirementFor(state, state.level);
   }
-  emit?.('levelCompleted', { level: done });
+  emit?.('levelCompleted', { level: done, reward, final });
+}
+
+/** Debug: jump to `level`, granting every reward of the levels before it. */
+export function setLevel(state: GameState, level: number): void {
+  const target = Math.max(1, Math.floor(level));
+  for (let n = 1; n < target; n++) applyReward(state, rewardFor(n));
+  state.level = target;
+  state.finishedAtTick = null;
+  state.levelRequirement = requirementFor(state, target);
 }

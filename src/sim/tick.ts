@@ -8,6 +8,7 @@ import type { World } from './world';
  */
 export function tick(world: World): void {
   world.state.tick += 1;
+  world.stats.advance(world.state.tick);
   stepExtractors(world);
   stepBelts(world);
 }

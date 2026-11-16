@@ -55,3 +55,16 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Boucle** : 60 Hz, accumulateur, 8 ticks max par frame (×`timeScale` en debug). `Espace` met en pause ; les chevrons s'arrêtent aussi (ils suivent le temps de simulation).
 - **Panneau debug déplacé en haut à droite** pour laisser le bas gauche à l'info-bulle (§9.1).
 - **API debug** : `place('belt'|'extractor', x, y, rot)`, `beltPath`, `step`, `setTimeScale`, `setUpgrade`, `deliver`, `getState()` (résumé sérialisable).
+
+## M4
+
+- **Tirage par niveau indépendant** : la cible du niveau `n` utilise `mulberry32(hash2(seed, "LEVL", n))`, un seul tirage. Le résultat ne dépend donc pas du nombre de niveaux déjà générés (testé).
+- **Dernier niveau** : le premier niveau (au-delà de 30) dont la cible tirée dépasserait 2 000 000 000 devient le dernier, avec une cible ramenée à **2 000 000 000**. Ce niveau donne quand même sa récompense « Extraction n − 7 ».
+- **État** : `levels` (cibles et quantités générées jusqu'au niveau courant + 15), `levelRequirement` (`null` en jeu libre), `finishedAtTick`, `unlockedBuildings`, `unlockedFeatures`. La récompense d'un niveau se recalcule à partir de son numéro (`rewardFor(n)`), elle n'est pas stockée.
+- **Temps de jeu** dérivé du compteur de ticks (pause non comptée). Le champ `playTimeMs` de la sauvegarde (M10) en découlera.
+- **Statistiques de livraison** (`DeliveryStats`) : 60 seaux d'une seconde, état d'exécution non sauvegardé. Le débit est une moyenne sur le temps écoulé tant que la fenêtre n'est pas pleine. Le HUD affiche le débit du nombre cible.
+- **Panneau Niveaux** : 12 lignes en partant du niveau en cours (inclus), touche `L` ou bouton en haut à droite.
+- **Son** : `Sfx` WebAudio minimal (arpège de fin de niveau, pose, démolition, erreur), créé au premier geste. Volume et options en M10.
+- **Onde de fin de niveau** désactivée si le système demande de réduire les animations (`prefers-reduced-motion`). L'option du jeu viendra en M10.
+- **CSS** : règle globale `[hidden] { display: none !important }`, sinon un `display: grid` réaffiche des éléments masqués.
+- **API debug** : `unlockAll()` et `setLevel(n)` (accorde les récompenses des niveaux précédents).
