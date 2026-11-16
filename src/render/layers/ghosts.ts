@@ -1,7 +1,8 @@
 import { COLORS, GHOST_COLORS } from '../../config/colors';
 import { DX, DY } from '../../core/grid';
 import type { Ghost } from '../../build/tools';
-import { buildingSize } from '../../sim/entities';
+import { buildingSize, isOperator } from '../../sim/entities';
+import { drawOperator } from './operators';
 import type { Camera } from '../camera';
 
 /** Construction ghosts (PLAN §10.2 layer 7): green new, orange replace, red impossible. */
@@ -39,8 +40,13 @@ export function drawGhosts(ctx: CanvasRenderingContext2D, cam: Camera, ghost: Gh
     );
     ctx.stroke();
   }
-  if (ghost.building) {
-    const g = ghost.building;
+  for (const g of ghost.buildings) {
+    if (isOperator(g.type)) {
+      // Real look, translucent, so ports and letters are visible before placing.
+      drawOperator(ctx, cam, g.type, g.x, g.y, g.rot, { alpha: g.ok ? 0.75 : 0.35 });
+      if (!g.ok) drawOperator(ctx, cam, g.type, g.x, g.y, g.rot, { tint: GHOST_COLORS.blocked });
+      continue;
+    }
     const size = buildingSize(g.type, g.rot);
     const p = cam.worldToScreen(g.x, g.y);
     ctx.fillStyle = g.ok ? GHOST_COLORS.new : GHOST_COLORS.blocked;

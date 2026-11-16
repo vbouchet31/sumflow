@@ -1,6 +1,6 @@
-import { TICK_DT } from '../config/balance';
+import { INPUT_BUFFER_SIZE, TICK_DT } from '../config/balance';
 import { type Dir, DX, DY, key, opposite } from '../core/grid';
-import { type Belt, hasOutput, isInputKind } from './entities';
+import { type Belt, type Building, hasOutput, isInputKind, type PortKind } from './entities';
 import { deliver } from './progression';
 import { currentBeltSpeed } from './upgrades';
 import type { World } from './world';
@@ -12,6 +12,7 @@ export const EPS = 1e-9;
 export type Target =
   | { kind: 'belt'; belt: Belt; from: Dir }
   | { kind: 'hub' }
+  | { kind: 'port'; building: Building; port: PortKind; face: number }
   | { kind: 'none' }
   | { kind: 'blocked' };
 
@@ -24,13 +25,27 @@ export function resolveTarget(world: World, x: number, y: number, d: Dir): Targe
   const nx = x + DX[d];
   const ny = y + DY[d];
   const belt = world.beltAt(nx, ny);
-  if (belt)
+  if (belt) {
     return hasOutput(belt, opposite(d))
       ? { kind: 'blocked' }
       : { kind: 'belt', belt, from: opposite(d) };
-  const port = world.portAt(nx, ny, opposite(d));
-  if (port && isInputKind(port.port.kind) && port.building.type === 'hub') return { kind: 'hub' };
+  }
+  const ref = world.portAt(nx, ny, opposite(d));
+  if (ref && isInputKind(ref.port.kind)) {
+    if (ref.building.type === 'hub') return { kind: 'hub' };
+    return {
+      kind: 'port',
+      building: ref.building,
+      port: ref.port.kind,
+      face: key(nx, ny) * 4 + opposite(d),
+    };
+  }
   return { kind: 'none' };
+}
+
+/** Input buffer of an operator for a port kind. */
+export function inputBuffer(b: Building, port: PortKind): number[] | undefined {
+  return port === 'A' ? b.inA : port === 'B' ? b.inB : undefined;
 }
 
 /** Is `src` holding an item that will want to leave this tick? */
@@ -56,6 +71,12 @@ export function offer(
     case 'hub':
       deliver(state, value, world.emit);
       return true;
+    case 'port': {
+      const buf = inputBuffer(target.building, target.port);
+      if (!buf || buf.length >= INPUT_BUFFER_SIZE) return false;
+      buf.push(value);
+      return true;
+    }
     case 'belt': {
       const t = target.belt;
       if (t.item) return false;
@@ -100,7 +121,7 @@ function outputOrder(belt: Belt): Dir[] {
   return order;
 }
 
-/** Move one belt's item forward; returns true if it left the tile. */
+/** Move one belt's item forward. */
 function stepBelt(world: World, k: number, belt: Belt, speed: number): void {
   const item = belt.item;
   if (!item) return;

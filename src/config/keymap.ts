@@ -20,6 +20,11 @@ export const ACTION_KEYS = {
 export const TOOL_CODES = {
   Digit1: 'belt',
   Digit2: 'extractor',
+  Digit3: 'adder',
+  Digit4: 'multiplier',
+  Digit5: 'subtractor',
+  Digit6: 'divider',
+  Digit7: 'exponent',
 } as const;
 
 /** Keys by event.key. */

@@ -6,6 +6,7 @@ import {
   type Belt,
   type Building,
   footprintTiles,
+  isOperator,
   type PortFace,
   portFaces,
   portKey,
@@ -43,6 +44,8 @@ export class World {
   readonly beltChunks = new Map<string, Set<number>>();
   /** Chunk id (of origin) → building ids, for culling. */
   readonly buildingChunks = new Map<string, Set<number>>();
+  /** Port key → tick of the last direct building-to-building transfer (runtime only). */
+  readonly directTransfers = new Map<number, number>();
   /** Hub deliveries over the last minute (runtime only). */
   readonly stats = new DeliveryStats();
   private network: BeltNetwork | null = null;
@@ -169,6 +172,17 @@ export class World {
     if (extra.extractValue !== undefined) {
       b.extractValue = extra.extractValue;
       b.extractAcc = 0;
+    }
+    if (isOperator(type)) {
+      b.inA = [];
+      b.inB = [];
+      b.cycle = -1;
+      if (type === 'divider') {
+        b.outQ = [];
+        b.outR = [];
+      } else {
+        b.out = [];
+      }
     }
     for (const t of footprintTiles(type, x, y, b.rot)) this.removeBelt(t.x, t.y);
     this.state.buildings.set(b.id, b);

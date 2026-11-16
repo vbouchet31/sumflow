@@ -1,9 +1,9 @@
 import { applyBeltPlan, computeLPath, planBeltPath } from '../build/beltPath';
-import { applyBuildingPlan, planExtractor } from '../build/placement';
+import { applyBuildingPlan, planExtractor, planOperator } from '../build/placement';
 import { TICK_RATE, type Track, TRACKS } from '../config/balance';
-import { type Dir, rotateDir } from '../core/grid';
+import { type Dir, normalizeRot, rotateDir } from '../core/grid';
 import type { Camera } from '../render/camera';
-import { dirMask } from '../sim/entities';
+import { dirMask, type OperatorType } from '../sim/entities';
 import type { SimLoop } from '../sim/loop';
 import { applyReward, deliver, setLevel } from '../sim/progression';
 import { runTicks } from '../sim/tick';
@@ -40,9 +40,10 @@ export interface DebugApi {
   depositAt: (x: number, y: number) => Deposit | null;
   /**
    * Place a building. `belt`: one belt at (x, y) facing `rot` (0 = East, clockwise, like the
-   * belt tool). `extractor`: snaps to the deposit covering (x, y).
+   * belt tool). `extractor`: snaps to the deposit covering (x, y). Operators: (x, y) is the
+   * top-left corner, `rot` quarter turns clockwise; must be unlocked.
    */
-  place: (type: 'belt' | 'extractor', x: number, y: number, rot?: number) => boolean;
+  place: (type: 'belt' | 'extractor' | OperatorType, x: number, y: number, rot?: number) => boolean;
   beltPath: (x1: number, y1: number, x2: number, y2: number, ctrl?: boolean) => number;
   /** Simulate `seconds` immediately (synchronously). */
   step: (seconds: number) => void;
@@ -99,7 +100,10 @@ export function installDebugApi(ctx: DebugContext): void {
         world.setBelt(x, y, dirMask(dir));
         return true;
       }
-      return applyBuildingPlan(world, planExtractor(world, x, y)) !== null;
+      if (type === 'extractor')
+        return applyBuildingPlan(world, planExtractor(world, x, y)) !== null;
+      // Operators: (x, y) is the top-left corner after rotation (0 = as defined in PLAN §6.3).
+      return applyBuildingPlan(world, planOperator(world, type, x, y, normalizeRot(rot))) !== null;
     },
     beltPath: (x1, y1, x2, y2, ctrl = false) =>
       applyBeltPlan(world, planBeltPath(world, computeLPath(x1, y1, x2, y2, ctrl))),

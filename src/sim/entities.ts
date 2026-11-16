@@ -50,6 +50,31 @@ export interface Building {
   /** Extractor: value produced and fractional production accumulator. */
   extractValue?: number;
   extractAcc?: number;
+  /** Operator input buffers (FIFO, PLAN §6.2). */
+  inA?: number[];
+  inB?: number[];
+  /** Operator output buffers per group. */
+  out?: number[];
+  outQ?: number[];
+  outR?: number[];
+  /** Seconds left in the current cycle, -1 when idle. */
+  cycle?: number;
+  /** Tick of the last completed cycle (drawing the flash; runtime only). */
+  flashTick?: number;
+}
+
+export type OperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent';
+
+export const OPERATOR_TYPES: readonly OperatorType[] = [
+  'adder',
+  'multiplier',
+  'subtractor',
+  'divider',
+  'exponent',
+];
+
+export function isOperator(type: string): type is OperatorType {
+  return (OPERATOR_TYPES as readonly string[]).includes(type);
 }
 
 export type PortKind = 'A' | 'B' | 'O' | 'Q' | 'R' | 'in' | 'out' | 'dynamic';

@@ -1,6 +1,8 @@
 import type { BuildingType } from '../config/buildings';
-import { key, type Rot } from '../core/grid';
+import { isInBounds, key, type Rot } from '../core/grid';
+import { buildingSize, footprintTiles, type OperatorType } from '../sim/entities';
 import type { Building } from '../sim/entities';
+import { isBuildingUnlocked } from '../sim/state';
 import { HUB_ID } from '../sim/state';
 import type { World } from '../sim/world';
 import { isExtractable } from '../world/deposits';
@@ -28,6 +30,61 @@ export function planExtractor(world: World, tx: number, ty: number): BuildingPla
     isExtractable(d.value, world.state.maxExtraction) &&
     world.isFootprintFree('extractor', x, y, 0);
   return { type: 'extractor', x, y, rot: 0, ok, value: d.value };
+}
+
+/** Origin that centres a rotated footprint on the cursor tile. */
+export function centredOrigin(
+  type: BuildingType,
+  tx: number,
+  ty: number,
+  rot: Rot,
+): { x: number; y: number } {
+  const size = buildingSize(type, rot);
+  return { x: tx - Math.floor((size.w - 1) / 2), y: ty - Math.floor((size.h - 1) / 2) };
+}
+
+/** Operator ghost at origin `(x, y)`: valid if unlocked, in bounds and free of buildings. */
+export function planOperator(
+  world: World,
+  type: OperatorType,
+  x: number,
+  y: number,
+  rot: Rot,
+): BuildingPlan {
+  const ok =
+    isBuildingUnlocked(world.state, type) &&
+    footprintTiles(type, x, y, rot).every((t) => isInBounds(t.x, t.y)) &&
+    world.isFootprintFree(type, x, y, rot);
+  return { type, x, y, rot, ok };
+}
+
+/**
+ * Dragging a building lays a row of copies spaced by its size along the dominant axis
+ * (PLAN §8.2). Returns plans in order; overlapping or blocked ones are marked not ok.
+ */
+export function planOperatorRow(
+  world: World,
+  type: OperatorType,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  rot: Rot,
+): BuildingPlan[] {
+  const size = buildingSize(type, rot);
+  const start = centredOrigin(type, from.x, from.y, rot);
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const horizontal = Math.abs(dx) >= Math.abs(dy);
+  const step = horizontal ? size.w : size.h;
+  const dist = horizontal ? dx : dy;
+  const count = Math.floor(Math.abs(dist) / step) + 1;
+  const sign = dist < 0 ? -1 : 1;
+  const plans: BuildingPlan[] = [];
+  for (let i = 0; i < count; i++) {
+    const x = start.x + (horizontal ? sign * step * i : 0);
+    const y = start.y + (horizontal ? 0 : sign * step * i);
+    plans.push(planOperator(world, type, x, y, rot));
+  }
+  return plans;
 }
 
 /** Place a planned building if valid. */
