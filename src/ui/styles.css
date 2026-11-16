@@ -1,0 +1,38 @@
+:root {
+  --bg: #0f1422;
+  --fg: #e8edf7;
+  --muted: #a3b0c8;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-num: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+}
+
+#world {
+  position: fixed;
+  inset: 0;
+  display: block;
+}
+
+#ui-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+#ui-root > * {
+  pointer-events: auto;
+}
