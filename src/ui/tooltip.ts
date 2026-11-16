@@ -1,3 +1,4 @@
+import { STORAGE_CAPACITY } from '../config/balance';
 import { formatFull } from '../core/format';
 import { getLocale, t } from '../i18n';
 import { beltStatus } from '../sim/belts';
@@ -33,6 +34,16 @@ export function describeTile(world: World, x: number, y: number): string[] {
       t('tip.extractValue', { value: num(b.extractValue ?? 0) }),
       t('tip.rate', { rate: currentExtractorRate(world.state).toLocaleString(getLocale()) }),
       outs > 0 ? t('tip.outputs', { n: outs }) : t('tip.noOutput'),
+    ];
+  }
+  if (b?.type === 'storage') {
+    const count = b.storeCount ?? 0;
+    return [
+      t('tool.storage'),
+      count > 0 && b.storeValue != null
+        ? t('tip.storeValue', { value: num(b.storeValue) })
+        : t('tip.storeEmpty'),
+      t('tip.storeFill', { n: num(count), max: num(STORAGE_CAPACITY) }),
     ];
   }
   if (b && isOperator(b.type)) {

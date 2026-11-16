@@ -1,4 +1,4 @@
-import { INPUT_BUFFER_SIZE, TICK_DT } from '../config/balance';
+import { INPUT_BUFFER_SIZE, STORAGE_CAPACITY, TICK_DT } from '../config/balance';
 import { type Dir, DX, DY, key, opposite } from '../core/grid';
 import {
   axisOf,
@@ -19,6 +19,7 @@ export const EPS = 1e-9;
 export type Target =
   | { kind: 'belt'; belt: Belt; node: number; from: Dir }
   | { kind: 'hub' }
+  | { kind: 'storage'; building: Building }
   | { kind: 'port'; building: Building; port: PortKind; face: number }
   | { kind: 'none' }
   | { kind: 'blocked' };
@@ -40,6 +41,10 @@ export function resolveTarget(world: World, x: number, y: number, d: Dir): Targe
   // A bridge without a lane on this axis accepts nothing.
   if (world.bridgeAt(nx, ny)) return { kind: 'none' };
   const ref = world.portAt(nx, ny, opposite(d));
+  // Storage faces are inputs for whatever pushes into them (PLAN §6.3).
+  if (ref && ref.port.kind === 'dynamic' && ref.building.type === 'storage') {
+    return { kind: 'storage', building: ref.building };
+  }
   if (ref && isInputKind(ref.port.kind)) {
     if (ref.building.type === 'hub') return { kind: 'hub' };
     return {
@@ -50,6 +55,19 @@ export function resolveTarget(world: World, x: number, y: number, d: Dir): Targe
     };
   }
   return { kind: 'none' };
+}
+
+/**
+ * Put one item in a storage: the first value received while empty fixes it, other values
+ * are refused (the incoming belt waits), up to 10 000 items (PLAN §6.3).
+ */
+export function storeItem(b: Building, value: number): boolean {
+  const count = b.storeCount ?? 0;
+  if (count >= STORAGE_CAPACITY) return false;
+  if (count > 0 && b.storeValue !== value) return false;
+  b.storeValue = value;
+  b.storeCount = count + 1;
+  return true;
 }
 
 /** Input buffer of an operator for a port kind. */
@@ -80,6 +98,8 @@ export function offer(
     case 'hub':
       deliver(state, value, world.emit);
       return true;
+    case 'storage':
+      return storeItem(target.building, value);
     case 'port': {
       const buf = inputBuffer(target.building, target.port);
       if (!buf || buf.length >= INPUT_BUFFER_SIZE) return false;

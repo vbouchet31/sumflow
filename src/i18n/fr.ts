@@ -114,4 +114,8 @@ export const fr = {
   'deliv.unit.min': '/min',
   'deliv.unit.h': '/h',
   'deliv.unitToggle': 'Changer l’unité du débit',
+  'tool.storage': 'Stockage',
+  'tip.storeValue': 'Contient : {value}',
+  'tip.storeEmpty': 'Vide (accepte la première valeur reçue)',
+  'tip.storeFill': 'Remplissage : {n} / {max}',
 } as const;

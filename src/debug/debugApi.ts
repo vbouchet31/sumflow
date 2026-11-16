@@ -3,7 +3,7 @@ import { applyBuildingPlan, planExtractor, planOperator } from '../build/placeme
 import { TICK_RATE, type Track, TRACKS } from '../config/balance';
 import { type Dir, normalizeRot, rotateDir } from '../core/grid';
 import type { Camera } from '../render/camera';
-import { dirMask, type OperatorType } from '../sim/entities';
+import { dirMask, type FreeBuildingType } from '../sim/entities';
 import type { SimLoop } from '../sim/loop';
 import { applyReward, deliver, setLevel } from '../sim/progression';
 import { runTicks } from '../sim/tick';
@@ -45,7 +45,12 @@ export interface DebugApi {
    * belt tool). `extractor`: snaps to the deposit covering (x, y). Operators: (x, y) is the
    * top-left corner, `rot` quarter turns clockwise; must be unlocked.
    */
-  place: (type: 'belt' | 'extractor' | OperatorType, x: number, y: number, rot?: number) => boolean;
+  place: (
+    type: 'belt' | 'extractor' | FreeBuildingType,
+    x: number,
+    y: number,
+    rot?: number,
+  ) => boolean;
   beltPath: (x1: number, y1: number, x2: number, y2: number, ctrl?: boolean) => number;
   /** Simulate `seconds` immediately (synchronously). */
   step: (seconds: number) => void;

@@ -148,6 +148,9 @@ export const TICK_DT = 1 / TICK_RATE;
 /** Max simulation ticks per rendered frame before slowing down (PLAN §11.1). */
 export const MAX_TICKS_PER_FRAME = 8;
 
+/** Storage capacity, single value (PLAN §6.3). */
+export const STORAGE_CAPACITY = 10_000;
+
 /** Operator buffers (PLAN §6.2). */
 export const INPUT_BUFFER_SIZE = 4;
 export const OUTPUT_BUFFER_SIZE = 2;
