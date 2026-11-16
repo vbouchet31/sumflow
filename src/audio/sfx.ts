@@ -43,6 +43,12 @@ export class Sfx {
     [523.25, 659.25, 783.99].forEach((f, i) => this.tone(f, i * 0.11, 0.35, 'triangle', 0.25));
   }
 
+  /** Soft two-note chime. */
+  upgradeReady(): void {
+    this.tone(880, 0, 0.18, 'sine', 0.12);
+    this.tone(1318.5, 0.08, 0.25, 'sine', 0.1);
+  }
+
   place(): void {
     this.tone(440, 0, 0.06, 'square', 0.05);
   }

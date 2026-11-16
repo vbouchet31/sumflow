@@ -14,6 +14,8 @@ export const ACTION_KEYS = {
   rotate: 'r',
   demolish: 'x',
   levels: 'l',
+  upgrades: 'u',
+  delivered: 'n',
   priority: 'p',
 } as const;
 

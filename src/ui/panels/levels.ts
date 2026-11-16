@@ -5,18 +5,18 @@ import { ensureLevels, rewardFor } from '../../sim/levels';
 import type { World } from '../../sim/world';
 import { el } from '../dom';
 import { rewardLabel } from '../labels';
+import { Panel } from './panel';
 
 /** Levels panel (PLAN §7.2): the current level and the next ones (12 in total). */
-export class LevelsPanel {
-  private readonly panel: HTMLElement;
-  private readonly body: HTMLTableSectionElement;
-  private readonly closeBtn: HTMLButtonElement;
+export class LevelsPanel extends Panel {
+  private readonly body = el('tbody');
+  private key = '';
 
   constructor(
-    root: HTMLElement,
+    parent: HTMLElement,
     private readonly world: World,
   ) {
-    this.body = el('tbody');
+    super(parent, 'levels.title', 'levels-panel');
     const head = el(
       'tr',
       undefined,
@@ -25,57 +25,16 @@ export class LevelsPanel {
       el('th', undefined, t('levels.colQty')),
       el('th', undefined, t('levels.colReward')),
     );
-    this.closeBtn = el('button', 'panel-close', '✕');
-    this.closeBtn.type = 'button';
-    this.closeBtn.setAttribute('aria-label', t('btn.close'));
-    this.closeBtn.addEventListener('click', () => this.close());
-    const title = el('h2', undefined, t('levels.title'));
-    title.id = 'levels-title';
-    this.panel = el(
-      'section',
-      'panel levels-panel',
-      el('header', 'panel-header', title, this.closeBtn),
-      el('table', 'levels-table', el('thead', undefined, head), this.body),
-    );
-    this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-labelledby', 'levels-title');
-    this.panel.hidden = true;
-    this.panel.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        this.close();
-      }
-    });
-    root.append(this.panel);
+    this.content.append(el('table', 'levels-table', el('thead', undefined, head), this.body));
   }
 
-  get isOpen(): boolean {
-    return !this.panel.hidden;
-  }
-
-  toggle(): void {
-    if (this.isOpen) this.close();
-    else this.open();
-  }
-
-  open(): void {
-    this.render();
-    this.panel.hidden = false;
-    this.closeBtn.focus();
-  }
-
-  close(): void {
-    this.panel.hidden = true;
-  }
-
-  /** Re-render if open (after a level change). */
-  refresh(): void {
-    if (this.isOpen) this.render();
-  }
-
-  private render(): void {
+  update(force = false): void {
+    if (!force && !this.isOpen) return;
     const { state } = this.world;
     const loc = getLocale();
+    const key = `${state.level}|${state.levelRequirement === null}|${loc}`;
+    if (!force && key === this.key) return;
+    this.key = key;
     ensureLevels(state.seed, state.levels, state.level + LEVELS.lookahead);
     const rows: HTMLTableRowElement[] = [];
     if (state.levelRequirement) {
@@ -88,15 +47,16 @@ export class LevelsPanel {
             : def.final
               ? ` (${t('levels.final')})`
               : '';
-        const row = el(
-          'tr',
-          n === state.level ? 'current' : undefined,
-          el('td', undefined, `${n}${tag}`),
-          el('td', 'num', formatFull(def.target, loc)),
-          el('td', 'num', formatFull(def.quantity, loc)),
-          el('td', undefined, def.final ? t('reward.none') : rewardLabel(rewardFor(n))),
+        rows.push(
+          el(
+            'tr',
+            n === state.level ? 'current' : undefined,
+            el('td', undefined, `${n}${tag}`),
+            el('td', 'num', formatFull(def.target, loc)),
+            el('td', 'num', formatFull(def.quantity, loc)),
+            el('td', undefined, def.final ? t('reward.none') : rewardLabel(rewardFor(n))),
+          ),
         );
-        rows.push(row);
         if (def.final) break;
       }
     }

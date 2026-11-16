@@ -21,6 +21,8 @@ export interface KeyboardHandlers {
   onQuickDemolish: () => void;
   onTogglePause: () => void;
   onLevels: () => void;
+  onUpgrades: () => void;
+  onDelivered: () => void;
 }
 
 /** Tracks held physical keys for camera panning and dispatches shortcuts (PLAN §8). */
@@ -80,6 +82,12 @@ export class Keyboard {
         break;
       case ACTION_KEYS.levels:
         this.handlers.onLevels();
+        break;
+      case ACTION_KEYS.upgrades:
+        this.handlers.onUpgrades();
+        break;
+      case ACTION_KEYS.delivered:
+        this.handlers.onDelivered();
         break;
       case SPECIAL_KEYS.quickDemolish.toLowerCase():
         this.handlers.onQuickDemolish();

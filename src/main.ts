@@ -19,7 +19,11 @@ import { Hud } from './ui/hud';
 import { rewardLabel } from './ui/labels';
 import { LevelsPanel } from './ui/panels/levels';
 import { Toasts } from './ui/toasts';
-import { mountTopBar } from './ui/topBar';
+import { TopBar } from './ui/topBar';
+import { UpgradesPanel } from './ui/panels/upgrades';
+import { DeliveredPanel } from './ui/panels/delivered';
+import { TRACKS } from './config/balance';
+import { isTrackUnlocked, isUpgradeReady } from './sim/upgrades';
 import { StatusBar } from './ui/statusBar';
 import { describeTile, Tooltip } from './ui/tooltip';
 import { t } from './i18n';
@@ -61,7 +65,20 @@ function bootstrap(): void {
   const hud = new Hud(uiRoot);
   const goHome = (): void => camera.centerOn(0, 0);
   const levelsPanel = new LevelsPanel(uiRoot, world);
-  mountTopBar(uiRoot, { home: goHome, levels: () => levelsPanel.toggle() });
+  const upgradesPanel = new UpgradesPanel(uiRoot, world);
+  const deliveredPanel = new DeliveredPanel(uiRoot, world);
+  const panels = [levelsPanel, upgradesPanel, deliveredPanel];
+  for (const p of panels) p.onOpen = () => panels.forEach((o) => o !== p && o.close());
+  const upgradesAvailable = (): boolean => TRACKS.some((tr) => isTrackUnlocked(state, tr));
+  const toggleUpgrades = (): void => {
+    if (upgradesAvailable()) upgradesPanel.toggle();
+  };
+  const topBar = new TopBar(uiRoot, {
+    home: goHome,
+    delivered: () => deliveredPanel.toggle(),
+    levels: () => levelsPanel.toggle(),
+    upgrades: toggleUpgrades,
+  });
   const tooltip = new Tooltip(uiRoot);
   const buildBar = new BuildBar(uiRoot, tools);
   const statusBar = new StatusBar(uiRoot);
@@ -75,8 +92,15 @@ function bootstrap(): void {
       t('toast.levelDone', { n: level }),
       reward ? t('toast.unlocked', { reward: rewardLabel(reward) }) : undefined,
     );
-    levelsPanel.refresh();
     if (final) endScreen.show(world.state);
+  });
+  world.events.on('upgradeReady', ({ track }) => {
+    if (state.autoBuyUpgrades) return;
+    sfx.upgradeReady();
+    toasts.show(t('toast.upgradeReady', { track: t(`track.${track}`) }));
+  });
+  world.events.on('upgradeBought', ({ track, level }) => {
+    toasts.show(t('toast.upgradeBought', { track: t(`track.${track}`), n: level }));
   });
   // The audio context needs a user gesture (PLAN §12).
   const unlockAudio = (): void => sfx.unlock();
@@ -86,11 +110,14 @@ function bootstrap(): void {
   const keyboard = new Keyboard(window, {
     onHome: goHome,
     onLevels: () => levelsPanel.toggle(),
+    onUpgrades: toggleUpgrades,
+    onDelivered: () => deliveredPanel.toggle(),
     onTool: (tool) => tools.setTool(tool),
     onRotate: (delta) => tools.rotate(delta),
     onCancel: () => {
+      const open = panels.find((p) => p.isOpen);
       if (endScreen.isOpen) endScreen.hide();
-      else if (levelsPanel.isOpen) levelsPanel.close();
+      else if (open) open.close();
       else tools.cancel();
     },
     onQuickDemolish: () => tools.demolishHovered(),
@@ -135,6 +162,12 @@ function bootstrap(): void {
     loop.advance(dt);
     renderer.draw(world, tools.ghost(), now);
     hud.update(world);
+    for (const p of panels) p.update();
+    topBar.setVisible('upgrades', upgradesAvailable());
+    topBar.setBadge(
+      'upgrades',
+      TRACKS.some((tr) => isUpgradeReady(state, tr)),
+    );
     if (state.unlockedBuildings.length + state.unlockedFeatures.length !== unlockedCount) {
       unlockedCount = state.unlockedBuildings.length + state.unlockedFeatures.length;
       buildBar.refresh();
