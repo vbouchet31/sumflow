@@ -1,4 +1,5 @@
 import './ui/styles.css';
+import { Sfx } from './audio/sfx';
 import { ToolController } from './build/tools';
 import { CAMERA } from './config/keymap';
 import { toSeed } from './core/rng';
@@ -13,8 +14,15 @@ import { createInitialState } from './sim/state';
 import { World } from './sim/world';
 import { BuildBar } from './ui/buildBar';
 import { DebugPanel } from './ui/debugPanel';
+import { EndScreen } from './ui/endScreen';
+import { Hud } from './ui/hud';
+import { rewardLabel } from './ui/labels';
+import { LevelsPanel } from './ui/panels/levels';
+import { Toasts } from './ui/toasts';
+import { mountTopBar } from './ui/topBar';
 import { StatusBar } from './ui/statusBar';
 import { describeTile, Tooltip } from './ui/tooltip';
+import { t } from './i18n';
 import { DepositMap } from './world/chunks';
 
 /** Longest frame delta honoured, in seconds (avoids a jump after a hitch). */
@@ -42,17 +50,49 @@ function bootstrap(): void {
   const loop = new SimLoop(world);
   const camera = new Camera();
   const renderer = new Renderer(canvas, camera);
-  const tools = new ToolController(world);
+  const sfx = new Sfx();
+  const tools = new ToolController(world, {
+    onBuild: () => sfx.place(),
+    onDemolish: () => sfx.demolish(),
+    onError: () => sfx.error(),
+  });
+  renderer.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  const hud = new Hud(uiRoot);
+  const goHome = (): void => camera.centerOn(0, 0);
+  const levelsPanel = new LevelsPanel(uiRoot, world);
+  mountTopBar(uiRoot, { home: goHome, levels: () => levelsPanel.toggle() });
   const tooltip = new Tooltip(uiRoot);
   new BuildBar(uiRoot, tools);
   const statusBar = new StatusBar(uiRoot);
+  const toasts = new Toasts(uiRoot);
+  const endScreen = new EndScreen(uiRoot);
+
+  world.events.on('levelCompleted', ({ level, reward, final }) => {
+    renderer.waveStart = performance.now();
+    sfx.levelComplete();
+    toasts.show(
+      t('toast.levelDone', { n: level }),
+      reward ? t('toast.unlocked', { reward: rewardLabel(reward) }) : undefined,
+    );
+    levelsPanel.refresh();
+    if (final) endScreen.show(world.state);
+  });
+  // The audio context needs a user gesture (PLAN §12).
+  const unlockAudio = (): void => sfx.unlock();
+  window.addEventListener('pointerdown', unlockAudio, { once: true });
+  window.addEventListener('keydown', unlockAudio, { once: true });
 
   const keyboard = new Keyboard(window, {
-    onHome: () => camera.centerOn(0, 0),
+    onHome: goHome,
+    onLevels: () => levelsPanel.toggle(),
     onTool: (tool) => tools.setTool(tool),
     onRotate: (delta) => tools.rotate(delta),
-    onCancel: () => tools.cancel(),
+    onCancel: () => {
+      if (endScreen.isOpen) endScreen.hide();
+      else if (levelsPanel.isOpen) levelsPanel.close();
+      else tools.cancel();
+    },
     onQuickDemolish: () => tools.demolishHovered(),
     onTogglePause: () => {
       loop.paused = !loop.paused;
@@ -92,7 +132,8 @@ function bootstrap(): void {
     tools.pointerMove(hover.x, hover.y, { ctrl: keyboard.ctrl, shift: false, alt: false });
 
     loop.advance(dt);
-    renderer.draw(world, tools.ghost());
+    renderer.draw(world, tools.ghost(), now);
+    hud.update(world);
     tooltip.update(mouse.inside ? describeTile(world, hover.x, hover.y) : []);
     debugPanel?.update({
       seed: state.seed,

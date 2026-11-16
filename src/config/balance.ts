@@ -65,11 +65,39 @@ export const LEVEL_TABLE: readonly LevelDef[] = [
   { target: 10_904, quantity: 14_000, reward: x(23) },
 ];
 
+/** Level generation (PLAN §7.2). */
+export const LEVELS = {
+  /** Levels 1..fixedUntil keep their base target exactly. */
+  fixedUntil: 5,
+  /** Levels up to the table end: target = round(base × U(min, max)). */
+  tableJitter: { min: 0.92, max: 1.08 },
+  /** Beyond the table: target = round(previous × U(min, max)), at least previous + 1. */
+  infiniteGrowth: { min: 1.01, max: 1.03 },
+  /** quantity(n) = min(quantityCap, quantityBase + quantityStep × (n - table length)). */
+  quantityBase: 14_000,
+  quantityStep: 200,
+  quantityCap: 20_000,
+  /** Reward of infinite level n: Extraction (n - extractionOffset). */
+  extractionOffset: 7,
+  /** The first level whose target would exceed this becomes the last one. */
+  maxTarget: 2_000_000_000,
+  /** Levels generated ahead of the current one (kept in the save). */
+  lookahead: 15,
+  /** Levels listed in the Levels panel. */
+  preview: 12,
+} as const;
+
 /** Hub footprint (PLAN §4.2): tiles x, y ∈ [-3, 2]. */
 export const HUB = { x: -3, y: -3, size: 6 } as const;
 
 /** Starting extraction cap (PLAN §4.5). */
 export const START_MAX_EXTRACTION = 1;
+
+/** Buildings and features available from the start (PLAN §7.4). */
+export const START_BUILDINGS: readonly PlaceableType[] = ['extractor'];
+
+/** Statistics window (PLAN §7.1): sliding 60 s, sampled per second. */
+export const STATS_WINDOW_SECONDS = 60;
 
 /** Map generation (PLAN §4.3, §4.4). Distances are in tiles from the hub centre. */
 export const MAPGEN = {

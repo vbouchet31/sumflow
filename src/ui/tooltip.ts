@@ -12,6 +12,7 @@ export function describeTile(world: World, x: number, y: number): string[] {
   const b = world.buildingAt(x, y);
   if (b?.type === 'hub') {
     const r = world.state.levelRequirement;
+    if (!r) return [t('tip.hub'), t('hub.finished')];
     return [
       t('tip.hub'),
       t('tip.hubLevel', {

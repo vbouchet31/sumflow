@@ -2,6 +2,7 @@ import { HUB, type Reward } from '../../config/balance';
 import { BUILDING_COLORS, COLORS, FONT_NUM, FONT_UI, HUB_COLORS } from '../../config/colors';
 import { formatCompact } from '../../core/format';
 import { t } from '../../i18n';
+import { rewardFor } from '../../sim/levels';
 import type { GameState } from '../../sim/state';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
@@ -50,6 +51,17 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
+  if (!req) {
+    // Game finished: free play.
+    ctx.fillStyle = COLORS.text;
+    ctx.font = `700 ${0.7 * s}px ${FONT_UI}`;
+    ctx.fillText(t('hub.finished'), cx, y + 2.3 * s);
+    ctx.fillStyle = HUB_COLORS.textMuted;
+    ctx.font = `500 ${0.45 * s}px ${FONT_UI}`;
+    ctx.fillText(t('hub.freePlay'), cx, y + 3.2 * s);
+    return;
+  }
+
   // Level number.
   ctx.fillStyle = HUB_COLORS.textMuted;
   ctx.font = `600 ${0.55 * s}px ${FONT_UI}`;
@@ -81,8 +93,9 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
   }
 
   // Next reward icon.
-  if (state.nextReward) {
-    const icon = rewardIcon(state.nextReward);
+  const reward = rewardFor(state.level);
+  if (reward) {
+    const icon = rewardIcon(reward);
     const r = 0.38 * s;
     const iy = y + w - 0.7 * s;
     ctx.fillStyle = HUB_COLORS.textMuted;

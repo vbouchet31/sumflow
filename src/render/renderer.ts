@@ -10,12 +10,16 @@ import { drawDeposits } from './layers/deposits';
 import { drawGhosts } from './layers/ghosts';
 import { drawGrid } from './layers/grid';
 import { drawItems } from './layers/items';
+import { drawWave } from './layers/wave';
 
 /** Maximum device pixel ratio honoured by the canvas (PLAN §10.4). */
 const MAX_DPR = 2;
 
 export class Renderer {
   private readonly ctx: CanvasRenderingContext2D;
+  /** Time (ms, same clock as `draw`'s `nowMs`) of the last level-complete wave. */
+  waveStart: number | null = null;
+  reducedMotion = false;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -39,7 +43,7 @@ export class Renderer {
   /**
    * Draw one frame in layer order (PLAN §10.2). Reads the world, never mutates it.
    */
-  draw(world: World, ghost: Ghost): void {
+  draw(world: World, ghost: Ghost, nowMs: number): void {
     const { ctx, camera } = this;
     const { state } = world;
     ctx.fillStyle = COLORS.background;
@@ -54,5 +58,7 @@ export class Renderer {
     drawBuildings(ctx, camera, world.buildingsInRect(v.x0, v.y0, v.x1, v.y1), state);
     drawItems(ctx, camera, belts);
     drawGhosts(ctx, camera, ghost);
+    if (this.waveStart !== null && !this.reducedMotion)
+      drawWave(ctx, camera, nowMs - this.waveStart);
   }
 }

@@ -15,6 +15,14 @@
 | M10 Sauvegarde, options, i18n, menu, aide, audio | ⏳ à faire        |                                                                      |
 | M11 Performance et finition                      | ⏳ à faire        |                                                                      |
 
+## M4 : détail
+
+- [x] Table 7.2, randomisation seedée (niveaux 6 à 30 ±8 %, puis +1 à 3 % par niveau), quantités infinies, dernier niveau à 2 000 000 000.
+- [x] Récompenses appliquées (`maxExtraction`, bâtiments, fonctions), onde depuis le Hub, son, toast.
+- [x] HUD haut gauche (niveau, cible, barre, débit /s, prochaine récompense), boutons haut droite (Hub, Niveaux).
+- [x] Panneau Niveaux (12 niveaux), écran « Partie terminée » puis jeu libre.
+- [x] Tests : cibles 1 à 5 fixes, suite strictement croissante, déterminisme par seed (même en génération par morceaux), récompenses appliquées, fin de partie ; e2e HUD + panneau + toast.
+
 ## M3 : détail
 
 - [x] Tracé en L (Ctrl inverse le coude), départ sur un tapis existant = division, remplacement, tuiles de bâtiments sautées, pose d'un clic orientée par `R`.

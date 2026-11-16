@@ -13,6 +13,7 @@ export const ACTION_KEYS = {
   home: 'h',
   rotate: 'r',
   demolish: 'x',
+  levels: 'l',
 } as const;
 
 /** Tool digits (event.code, so they work on AZERTY without Shift). PLAN §8.2. */

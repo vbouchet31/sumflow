@@ -13,6 +13,7 @@ import {
 import { computeNetwork, type BeltNetwork } from './network';
 import type { Emit, ProgressionEvents } from './progression';
 import type { GameState } from './state';
+import { DeliveryStats } from './stats';
 
 export type SimEvents = ProgressionEvents & {
   networkChanged: Record<string, never>;
@@ -42,6 +43,8 @@ export class World {
   readonly beltChunks = new Map<string, Set<number>>();
   /** Chunk id (of origin) → building ids, for culling. */
   readonly buildingChunks = new Map<string, Set<number>>();
+  /** Hub deliveries over the last minute (runtime only). */
+  readonly stats = new DeliveryStats();
   private network: BeltNetwork | null = null;
 
   constructor(
@@ -50,6 +53,8 @@ export class World {
   ) {
     for (const b of state.buildings.values()) this.indexBuilding(b);
     for (const [k, belt] of state.belts) this.indexBelt(k, belt);
+    this.stats.advance(state.tick);
+    this.events.on('delivered', ({ value }) => this.stats.record(value));
   }
 
   /** Belt order and merge inputs, recomputed lazily after network changes. */
