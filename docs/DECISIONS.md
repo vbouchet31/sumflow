@@ -150,3 +150,10 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Contraste** : vérifié par un test e2e qui calcule le rapport de chaque texte du DOM sur son fond réel (couches translucides composées sur le fond du canvas). Les boutons désactivés sont exclus, comme dans WCAG. Aucune couleur n'a dû être changée.
 - **Clavier** : fermer un panneau ou une fenêtre retire le focus de ses éléments (sinon l'`Échap` suivant était avalé par l'élément masqué). Un clic à la souris sur un bouton rend le clavier au jeu ; une activation au clavier garde le focus sur le bouton.
 - **Lighthouse** : pas ajouté aux dépendances (liste fermée du §1.6) ni à la CI. À lancer à la main avec `npx lighthouse`.
+
+## Audit de `balance.ts` (après M11)
+
+- **Constantes** : toutes conformes aux §4, §5, §6 et §7 (table des niveaux, vitesses, coûts `C(L)`, facteurs, suites `t_k`, génération de carte, tampons, stockage).
+- **Règles dérivées**, vérifiées sur 2 000 graines : niveaux 1 à 5 fixes, cibles strictement croissantes, dernier niveau ≤ 2 000 000 000 (entre le niveau 618 et 669 selon la graine), suites `t_k` strictement croissantes, sans 10, valeurs de base < 30 conservées. L'écart des niveaux 6 à 30 peut atteindre 10,5 % (au lieu de 8 %) : c'est l'arrondi d'une petite cible (niveau 6, base 19 → 17 ou 21), conforme à la formule.
+- **Plafonds doux jamais atteints** : comme pour le Tapis (M7), les suites `t_k` dépassent 2 000 000 000 avant les plafonds de vitesse. Fin de piste observée (graine 42) : Additionneur L = 68 (3,2 op/s, plafond 4), Multiplicateur L = 60 (≈ 2 op/s, plafond 3), Soustracteur/Diviseur L = 57, Exposant L = 51 (≈ 1,9 op/s). Les deux règles du plan restent appliquées ; seule la seconde joue en pratique.
+- **Valeur interdite** : la suite des améliorations utilise désormais `MAPGEN.forbiddenValue` au lieu d'un `10` en dur. La limite de 32 copies par collage en rangée est passée dans `EDIT.maxPasteRow`.
