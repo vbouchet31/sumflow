@@ -1,9 +1,9 @@
 import { type MessageKey, t } from '../i18n';
 import { el } from './dom';
 
-export type TopAction = 'home' | 'delivered' | 'levels' | 'upgrades';
+export type TopAction = 'undo' | 'redo' | 'home' | 'marker' | 'delivered' | 'levels' | 'upgrades';
 
-/** Top-right buttons (PLAN §9.1). Undo/redo, markers and menu come later. */
+/** Top-right buttons (PLAN §9.1). The menu comes in M10. */
 export class TopBar {
   private readonly buttons = new Map<TopAction, HTMLButtonElement>();
 
@@ -22,7 +22,10 @@ export class TopBar {
       bar.append(btn);
       this.buttons.set(id, btn);
     };
+    add('undo', 'btn.undo', '↶');
+    add('redo', 'btn.redo', '↷');
     add('home', 'btn.home', '⌂');
+    add('marker', 'btn.marker', '⚑');
     add('delivered', 'btn.delivered', '∑');
     add('levels', 'btn.levels', '☰');
     add('upgrades', 'btn.upgrades', '⇧');
@@ -32,6 +35,16 @@ export class TopBar {
   setVisible(id: TopAction, visible: boolean): void {
     const btn = this.buttons.get(id);
     if (btn) btn.hidden = !visible;
+  }
+
+  setEnabled(id: TopAction, enabled: boolean): void {
+    const btn = this.buttons.get(id);
+    if (btn) btn.disabled = !enabled;
+  }
+
+  /** Pressed state (toggle buttons such as the marker tool). */
+  setPressed(id: TopAction, pressed: boolean): void {
+    this.buttons.get(id)?.setAttribute('aria-pressed', String(pressed));
   }
 
   /** Green badge (an upgrade is ready, PLAN §7.3). */

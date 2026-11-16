@@ -86,6 +86,31 @@ export function rotateLocal(
   return { x: cx, y: cy };
 }
 
+/** Horizontal mirror of a direction: E and W swap, N and S stay. */
+export function mirrorDir(d: Dir): Dir {
+  return d === E ? W : d === W ? E : d;
+}
+
+/**
+ * Transform a local tile inside a `w×h` box: optional horizontal mirror first
+ * (`x → w-1-x`), then `rot` clockwise quarter turns (the box becomes `H×W` on odd turns).
+ */
+export function transformLocal(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  rot: number,
+  mirror: boolean,
+): { x: number; y: number } {
+  return rotateLocal(mirror ? w - 1 - x : x, y, w, h, rot);
+}
+
+/** Transform a direction: mirror first, then rotate (same order as `transformLocal`). */
+export function transformDir(d: Dir, rot: number, mirror: boolean): Dir {
+  return rotateDir(mirror ? mirrorDir(d) : d, rot);
+}
+
 /** Chunk coordinates containing tile `(x, y)`. */
 export function chunkOf(x: number, y: number): { cx: number; cy: number } {
   return { cx: Math.floor(x / CHUNK_SIZE), cy: Math.floor(y / CHUNK_SIZE) };

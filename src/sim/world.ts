@@ -1,5 +1,5 @@
 import { BUILDINGS, type BuildingType } from '../config/buildings';
-import { CHUNK_SIZE, chunkOf, type Dir, key, type Rot } from '../core/grid';
+import { CHUNK_SIZE, chunkOf, type Dir, key, type Rot, unkey } from '../core/grid';
 import { EventBus } from '../core/events';
 import type { DepositMap } from '../world/chunks';
 import {
@@ -15,6 +15,7 @@ import {
   portFaces,
   portKey,
 } from './entities';
+import { type BuildingSnap, type Change, sameSnap, type TileSnap } from './journal';
 import { computeNetwork, type BeltNetwork } from './network';
 import type { Emit, ProgressionEvents } from './progression';
 import type { GameState } from './state';
@@ -75,6 +76,13 @@ export class World {
   /** Hub deliveries over the last minute (runtime only). */
   readonly stats = new DeliveryStats();
   private network: BeltNetwork | null = null;
+  /** Slots touched by the open change, with their state before it (undo journal). */
+  private journal: {
+    tiles: Map<number, TileSnap | null>;
+    buildings: Map<number, BuildingSnap | null>;
+    markers: Map<number, string | null>;
+  } | null = null;
+  private journalDepth = 0;
 
   constructor(
     readonly state: GameState,
@@ -151,11 +159,164 @@ export class World {
     return this.ports.get(portKey(key(x, y), face)) ?? null;
   }
 
+  // ---- undo journal ------------------------------------------------------
+
+  /** Start recording structural changes. Nested calls join the outer change. */
+  beginChange(): void {
+    if (this.journalDepth++ === 0) {
+      this.journal = { tiles: new Map(), buildings: new Map(), markers: new Map() };
+    }
+  }
+
+  /**
+   * Stop recording. The outermost call returns the change (null when nothing structural
+   * changed, or for a nested call).
+   */
+  endChange(): Change | null {
+    if (this.journalDepth === 0) return null;
+    if (--this.journalDepth > 0) return null;
+    const j = this.journal;
+    this.journal = null;
+    if (!j) return null;
+    const change: Change = { tiles: new Map(), buildings: new Map(), markers: new Map() };
+    for (const [k, before] of j.tiles) {
+      const after = this.tileSnap(k);
+      if (!sameSnap(before, after)) change.tiles.set(k, { before, after });
+    }
+    for (const [id, before] of j.buildings) {
+      const after = this.buildingSnap(id);
+      if (!sameSnap(before, after)) change.buildings.set(id, { before, after });
+    }
+    for (const [k, before] of j.markers) {
+      const after = this.state.markers.get(k)?.text ?? null;
+      if (before !== after) change.markers.set(k, { before, after });
+    }
+    const empty = change.tiles.size + change.buildings.size + change.markers.size === 0;
+    return empty ? null : change;
+  }
+
+  private noteTile(k: number): void {
+    if (this.journal && !this.journal.tiles.has(k)) this.journal.tiles.set(k, this.tileSnap(k));
+  }
+
+  private noteBuilding(id: number): void {
+    if (this.journal && !this.journal.buildings.has(id)) {
+      this.journal.buildings.set(id, this.buildingSnap(id));
+    }
+  }
+
+  private noteMarker(k: number): void {
+    if (this.journal && !this.journal.markers.has(k)) {
+      this.journal.markers.set(k, this.state.markers.get(k)?.text ?? null);
+    }
+  }
+
+  /** Layout of the belt or bridge at a tile key. */
+  tileSnap(k: number): TileSnap | null {
+    const belt = this.state.belts.get(k);
+    if (belt) return { kind: 'belt', outputs: belt.outputs, priority: belt.priority };
+    const br = this.state.bridges.get(k);
+    if (br) {
+      return {
+        kind: 'bridge',
+        h: br.h ? singleOutput(br.h) : null,
+        v: br.v ? singleOutput(br.v) : null,
+      };
+    }
+    return null;
+  }
+
+  buildingSnap(id: number): BuildingSnap | null {
+    const b = this.state.buildings.get(id);
+    if (!b) return null;
+    return {
+      type: b.type,
+      x: b.x,
+      y: b.y,
+      rot: b.rot,
+      mirror: b.mirror === true,
+      priority: b.priority,
+      extractValue: b.extractValue ?? null,
+    };
+  }
+
+  /**
+   * Put every slot of `change` back to its `side` state (undo = 'before', redo = 'after').
+   * Buildings first (removals, then additions), then tiles, then markers. Live items on
+   * objects that survive are kept; destroyed items never come back.
+   */
+  applyChange(change: Change, side: 'before' | 'after'): void {
+    if (this.journal) throw new Error('applyChange inside an open change');
+    const same = (b: Building, s: BuildingSnap): boolean =>
+      b.type === s.type &&
+      b.x === s.x &&
+      b.y === s.y &&
+      b.rot === s.rot &&
+      (b.mirror === true) === s.mirror;
+    for (const [id, c] of change.buildings) {
+      const target = c[side];
+      const cur = this.state.buildings.get(id);
+      if (cur && (!target || !same(cur, target))) this.removeBuilding(id);
+    }
+    for (const [id, c] of change.buildings) {
+      const target = c[side];
+      if (!target) continue;
+      const cur = this.state.buildings.get(id);
+      if (cur) {
+        cur.priority = target.priority;
+        if (target.extractValue !== null) cur.extractValue = target.extractValue;
+      } else {
+        this.insertBuilding(this.makeBuilding(id, target), target.priority);
+      }
+    }
+    for (const [k, c] of change.tiles) {
+      const target = c[side];
+      const { x, y } = unkey(k);
+      if (!target) {
+        this.removeBelt(x, y);
+        this.removeBridge(x, y);
+      } else if (target.kind === 'belt') {
+        const belt = this.setBelt(x, y, target.outputs);
+        belt.priority = target.priority;
+      } else {
+        this.setBridge(x, y, target.h, target.v);
+      }
+    }
+    for (const [k, c] of change.markers) {
+      const { x, y } = unkey(k);
+      this.setMarker(x, y, c[side]);
+    }
+    this.invalidate();
+  }
+
+  // ---- priorities and markers ---------------------------------------------
+
+  /** Set a belt's (or lane's) prioritised output (PLAN §6.6). */
+  setBeltPriority(belt: Belt, dir: Dir | null): void {
+    this.noteTile(key(belt.x, belt.y));
+    belt.priority = dir;
+  }
+
+  /** Set a building's prioritised output face (port key), or null. */
+  setBuildingPriority(b: Building, portKey: number | null): void {
+    this.noteBuilding(b.id);
+    b.priority = portKey;
+  }
+
+  /** Create, edit (non-empty text) or delete (null or empty text) the marker of a tile. */
+  setMarker(x: number, y: number, text: string | null): void {
+    const k = key(x, y);
+    this.noteMarker(k);
+    if (text === null || text === '') this.state.markers.delete(k);
+    else this.state.markers.set(k, { x, y, text });
+  }
+
   // ---- belts -------------------------------------------------------------
 
   /** Create or overwrite a belt. Keeps the existing item when overwriting. */
   setBelt(x: number, y: number, outputs: number): Belt {
     const k = key(x, y);
+    this.noteTile(k);
     const existing = this.state.belts.get(k);
     if (existing) {
       existing.outputs = outputs;
@@ -180,6 +341,7 @@ export class World {
    */
   setBridge(x: number, y: number, h: Dir | null | undefined, v: Dir | null | undefined): Bridge {
     const k = key(x, y);
+    this.noteTile(k);
     let br = this.state.bridges.get(k);
     if (!br) {
       br = { x, y, h: null, v: null };
@@ -217,6 +379,7 @@ export class World {
     const k = key(x, y);
     const br = this.state.bridges.get(k);
     if (!br) return null;
+    this.noteTile(k);
     this.state.bridges.delete(k);
     const { cx, cy } = chunkOf(x, y);
     this.bridgeChunks.get(chunkId(cx, cy))?.delete(k);
@@ -228,6 +391,7 @@ export class World {
     const k = key(x, y);
     const belt = this.state.belts.get(k);
     if (!belt) return null;
+    this.noteTile(k);
     this.state.belts.delete(k);
     const { cx, cy } = chunkOf(x, y);
     this.beltChunks.get(chunkId(cx, cy))?.delete(k);
@@ -249,8 +413,8 @@ export class World {
   // ---- buildings ---------------------------------------------------------
 
   /** True if every tile of the footprint is free of buildings. Belts do not block. */
-  isFootprintFree(type: BuildingType, x: number, y: number, rot: number): boolean {
-    return footprintTiles(type, x, y, rot).every((t) => !this.occupancy.has(key(t.x, t.y)));
+  isFootprintFree(type: BuildingType, x: number, y: number, rot: number, mirror = false): boolean {
+    return footprintTiles(type, x, y, rot, mirror).every((t) => !this.occupancy.has(key(t.x, t.y)));
   }
 
   /**
@@ -262,42 +426,64 @@ export class World {
     x: number,
     y: number,
     rot: Rot,
-    extra: Partial<Pick<Building, 'extractValue'>> = {},
+    extra: { extractValue?: number; mirror?: boolean } = {},
   ): Building {
-    const def = BUILDINGS[type];
-    const b: Building = {
-      id: this.state.nextBuildingId++,
+    const b = this.makeBuilding(this.state.nextBuildingId, {
       type,
       x,
       y,
-      rot: def.rotatable ? rot : 0,
+      rot,
+      mirror: extra.mirror === true,
+      priority: null,
+      extractValue: extra.extractValue ?? null,
+    });
+    return this.insertBuilding(b, null);
+  }
+
+  /** A fresh building (empty buffers) from a layout snapshot. */
+  private makeBuilding(id: number, s: BuildingSnap): Building {
+    const def = BUILDINGS[s.type];
+    const b: Building = {
+      id,
+      type: s.type,
+      x: s.x,
+      y: s.y,
+      rot: def.rotatable ? s.rot : 0,
       rrOut: 0,
       priority: null,
     };
-    if (extra.extractValue !== undefined) {
-      b.extractValue = extra.extractValue;
+    if (def.rotatable && s.mirror) b.mirror = true;
+    if (s.extractValue !== null) {
+      b.extractValue = s.extractValue;
       b.extractAcc = 0;
     }
-    if (type === 'storage') {
+    if (s.type === 'storage') {
       b.storeValue = null;
       b.storeCount = 0;
     }
-    if (isOperator(type)) {
+    if (isOperator(s.type)) {
       b.inA = [];
       b.inB = [];
       b.cycle = -1;
-      if (type === 'divider') {
+      if (s.type === 'divider') {
         b.outQ = [];
         b.outR = [];
       } else {
         b.out = [];
       }
     }
-    for (const t of footprintTiles(type, x, y, b.rot)) {
+    return b;
+  }
+
+  private insertBuilding(b: Building, priority: number | null): Building {
+    for (const t of footprintTiles(b.type, b.x, b.y, b.rot, b.mirror)) {
       this.removeBelt(t.x, t.y);
       this.removeBridge(t.x, t.y);
     }
+    this.noteBuilding(b.id);
+    b.priority = priority;
     this.state.buildings.set(b.id, b);
+    this.state.nextBuildingId = Math.max(this.state.nextBuildingId, b.id + 1);
     this.indexBuilding(b);
     this.invalidate();
     return b;
@@ -306,8 +492,10 @@ export class World {
   removeBuilding(id: number): Building | null {
     const b = this.state.buildings.get(id);
     if (!b || b.type === 'hub') return null;
+    this.noteBuilding(id);
     this.state.buildings.delete(id);
-    for (const t of footprintTiles(b.type, b.x, b.y, b.rot)) this.occupancy.delete(key(t.x, t.y));
+    for (const t of footprintTiles(b.type, b.x, b.y, b.rot, b.mirror))
+      this.occupancy.delete(key(t.x, t.y));
     for (const p of this.buildingPorts.get(id) ?? [])
       this.ports.delete(portKey(key(p.x, p.y), p.face));
     this.buildingPorts.delete(id);
@@ -318,9 +506,9 @@ export class World {
   }
 
   private indexBuilding(b: Building): void {
-    for (const t of footprintTiles(b.type, b.x, b.y, b.rot))
+    for (const t of footprintTiles(b.type, b.x, b.y, b.rot, b.mirror))
       this.occupancy.set(key(t.x, t.y), b.id);
-    const faces = portFaces(b.type, b.x, b.y, b.rot);
+    const faces = portFaces(b.type, b.x, b.y, b.rot, b.mirror);
     this.buildingPorts.set(b.id, faces);
     for (const p of faces) this.ports.set(portKey(key(p.x, p.y), p.face), { building: b, port: p });
     const { cx, cy } = chunkOf(b.x, b.y);

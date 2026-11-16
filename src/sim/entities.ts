@@ -6,9 +6,9 @@ import {
   key,
   normalizeRot,
   type Rot,
-  rotateDir,
   rotatedSize,
-  rotateLocal,
+  transformDir,
+  transformLocal,
 } from '../core/grid';
 
 /** An item on a belt. `progress` ∈ [0, 1] along the tile (PLAN §6.4). */
@@ -70,6 +70,12 @@ export interface Building {
   x: number;
   y: number;
   rot: Rot;
+  /**
+   * Horizontal mirror applied before the rotation (pasting with `F`, PLAN §8.2). Ports keep
+   * their role: a mirrored subtractor still computes A − B, only the positions change.
+   * Absent means false.
+   */
+  mirror?: boolean;
   /** Round-robin index over output ports. */
   rrOut: number;
   /** Prioritised output face (port key: tile key × 4 + face), or null (PLAN §6.6). */
@@ -132,16 +138,20 @@ export function dirMask(d: Dir): number {
   return 1 << d;
 }
 
-/** World tiles covered by a building of `type` at origin `(x, y)` with rotation `rot`. */
+/**
+ * World tiles covered by a building of `type` at origin `(x, y)` with rotation `rot`
+ * (and optional mirror, applied first).
+ */
 export function footprintTiles(
   type: BuildingType,
   x: number,
   y: number,
   rot: number,
+  mirror = false,
 ): { x: number; y: number; role: PortRole }[] {
   const def = BUILDINGS[type];
   return def.tiles.map((t) => {
-    const p = rotateLocal(t.x, t.y, def.w, def.h, rot);
+    const p = transformLocal(t.x, t.y, def.w, def.h, rot, mirror);
     return { x: x + p.x, y: y + p.y, role: t.role };
   });
 }
@@ -162,17 +172,24 @@ function kindOf(role: PortRole, anyRole: 'input' | 'output' | 'dynamic' | undefi
  * Port faces of a building in world coordinates, in a deterministic order
  * (footprint order, then N, E, S, W). Only faces that lead outside the building count.
  */
-export function portFaces(type: BuildingType, x: number, y: number, rot: number): PortFace[] {
+export function portFaces(
+  type: BuildingType,
+  x: number,
+  y: number,
+  rot: number,
+  mirror = false,
+): PortFace[] {
   const def = BUILDINGS[type];
   const r = normalizeRot(rot);
-  const tiles = footprintTiles(type, x, y, r);
+  const tiles = footprintTiles(type, x, y, r, mirror);
   const inside = new Set(tiles.map((t) => key(t.x, t.y)));
   const out: PortFace[] = [];
   def.tiles.forEach((t, i) => {
     if (t.role === 'body') return;
     const world = tiles[i];
     if (!world) return;
-    const faces: Dir[] = t.faces === 'outward' ? [0, 1, 2, 3] : t.faces.map((f) => rotateDir(f, r));
+    const faces: Dir[] =
+      t.faces === 'outward' ? [0, 1, 2, 3] : t.faces.map((f) => transformDir(f, r, mirror));
     faces.sort((a, b) => a - b);
     for (const face of faces) {
       if (inside.has(key(world.x + DX[face], world.y + DY[face]))) continue;

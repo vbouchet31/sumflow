@@ -4,16 +4,22 @@ Jeu d'usine à nombres pour navigateur : extraire des nombres, les transporter s
 
 > Projet de fan, inspiré par Beltmatic de Notional Games. Code et visuels originaux.
 
-État : jalon **M4** (progression des niveaux et récompenses). Version jouable en ligne : https://vbouchet31.github.io/sumflow/ (ajouter `?debug=1` pour le panneau debug, `?seed=42` pour fixer la carte). Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
+État : jalon **M9** (outils d'édition : zones, copier-coller, marqueurs, annuler). Version jouable en ligne : https://vbouchet31.github.io/sumflow/ (ajouter `?debug=1` pour le panneau debug, `?seed=42` pour fixer la carte). Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ## Commandes (état actuel)
 
-| Action               | Entrée                                                                            |
-| -------------------- | --------------------------------------------------------------------------------- |
-| Déplacer la caméra   | `W A S D` (touches physiques, donc `Z Q S D` en AZERTY) ou flèches ; `Shift` = ×3 |
-| Déplacer à la souris | clic droit ou molette maintenus + glisser                                         |
-| Zoom                 | molette, centré sur le curseur                                                    |
-| Retour au Hub        | `H`                                                                               |
+| Action                   | Entrée                                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Déplacer la caméra       | `W A S D` (touches physiques, donc `Z Q S D` en AZERTY) ou flèches ; `Shift` = ×3                                  |
+| Déplacer à la souris     | clic droit ou molette maintenus + glisser                                                                          |
+| Zoom                     | molette, centré sur le curseur                                                                                     |
+| Retour au Hub            | `H`                                                                                                                |
+| Bâtiments                | `1` à `9` (tapis, extracteur, opérateurs, stockage, pont), `P` priorité, `R` / `Shift+R` pivoter                   |
+| Démolir / vider          | `X` / `C` puis glisser une zone (clic = un objet) ; `Suppr` = démolir l'objet survolé                              |
+| Copier / couper / coller | `Ctrl+C` / `Ctrl+X` puis glisser ; `Ctrl+V` : clic ou glisser, `R` pivoter, `F` miroir, `Shift+molette` historique |
+| Marqueur, pipette        | `B` puis clic ; `E` sur un objet                                                                                   |
+| Annuler / rétablir       | `Ctrl+Z` / `Ctrl+Y` (ou `Ctrl+Shift+Z`)                                                                            |
+| Pause                    | `Espace`                                                                                                           |
 
 ## Développement
 

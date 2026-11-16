@@ -12,6 +12,8 @@ export interface MouseHandlers {
   onDown: (tx: number, ty: number, mods: PointerMods) => void;
   onMove: (tx: number, ty: number, mods: PointerMods) => void;
   onUp: (tx: number, ty: number, mods: PointerMods) => void;
+  /** Wheel; return true to consume it (no zoom). `delta` > 0 = scroll down. */
+  onWheel?: (delta: number, mods: PointerMods) => boolean;
 }
 
 /**
@@ -115,6 +117,9 @@ export class Mouse {
 
   private onWheel(e: WheelEvent): void {
     e.preventDefault();
+    // Shift+wheel often arrives as a horizontal scroll.
+    const delta = e.deltaY !== 0 ? e.deltaY : e.deltaX;
+    if (this.handlers.onWheel?.(delta, this.mods(e))) return;
     // Normalise line/page deltas to pixels.
     const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? this.camera.viewH : 1;
     const p = this.local(e);

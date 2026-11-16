@@ -1,19 +1,30 @@
 # Avancement
 
-| Jalon                                            | État              | Notes                                                                |
-| ------------------------------------------------ | ----------------- | -------------------------------------------------------------------- |
-| M0 Squelette et déploiement                      | ✅ terminé (code) | Déploiement Pages à valider après merge sur `main` (voir ci-dessous) |
-| M1 Grille, caméra, Hub                           | ⏳ à faire        |                                                                      |
-| M2 Carte procédurale                             | ⏳ à faire        |                                                                      |
-| M3 Tapis, extracteur, livraison                  | ⏳ à faire        |                                                                      |
-| M4 Progression des niveaux                       | ⏳ à faire        |                                                                      |
-| M5 Opérateurs                                    | ⏳ à faire        |                                                                      |
-| M6 Jonctions, priorités, ponts                   | ⏳ à faire        |                                                                      |
-| M7 Améliorations et statistiques                 | ⏳ à faire        |                                                                      |
-| M8 Stockage                                      | ⏳ à faire        |                                                                      |
-| M9 Outils d'édition                              | ⏳ à faire        |                                                                      |
-| M10 Sauvegarde, options, i18n, menu, aide, audio | ⏳ à faire        |                                                                      |
-| M11 Performance et finition                      | ⏳ à faire        |                                                                      |
+| Jalon                                            | État              | Notes                                              |
+| ------------------------------------------------ | ----------------- | -------------------------------------------------- |
+| M0 Squelette et déploiement                      | ✅ terminé        |                                                    |
+| M1 Grille, caméra, Hub                           | ✅ terminé        |                                                    |
+| M2 Carte procédurale                             | ✅ terminé        |                                                    |
+| M3 Tapis, extracteur, livraison                  | ✅ terminé        |                                                    |
+| M4 Progression des niveaux                       | ✅ terminé        |                                                    |
+| M5 Opérateurs                                    | ✅ terminé        |                                                    |
+| M6 Jonctions, priorités, ponts                   | ✅ terminé        |                                                    |
+| M7 Améliorations et statistiques                 | ✅ terminé        |                                                    |
+| M8 Stockage                                      | ✅ terminé        |                                                    |
+| M9 Outils d'édition                              | ✅ terminé (code) | CI et déploiement à valider après merge sur `main` |
+| M10 Sauvegarde, options, i18n, menu, aide, audio | ⏳ à faire        |                                                    |
+| M11 Performance et finition                      | ⏳ à faire        |                                                    |
+
+## M9 : détail
+
+- [x] Démolir une zone (`X` + glisser ; clic = un objet), Hub ignoré.
+- [x] Vider une zone (`C` + glisser) : items des tapis et ponts, tampons et cycles des opérateurs, stock des stockages ; bâtiments gardés.
+- [x] Copier / couper (`Ctrl+C` / `Ctrl+X` + glisser), coller (`Ctrl+V`) : clic = poser, glisser = rangée de copies, `R` pivote, `F` miroir horizontal.
+- [x] Historique du presse-papiers (20 entrées), `Maj+molette` pour naviguer, `Suppr` pour retirer l'entrée affichée.
+- [x] Marqueurs (`B` + clic, saisie, clic sur un marqueur = éditer / supprimer), texte à taille écran constante.
+- [x] Pipette (`E`), annuler / rétablir (`Ctrl+Z`, `Ctrl+Y`, `Ctrl+Maj+Z`, boutons en haut à droite), pile de 100.
+- [x] Bandeau d'aide au-dessus de la barre (outil en cours, taille de la zone), outils d'édition dans la barre de construction.
+- [x] Tests : copier-coller-annuler restaure exactement l'état des bâtiments (et rétablir le rejoue) ; miroir : un soustracteur reste A − B, seules les positions changent ; cohérence empreintes et ports pour tous les bâtiments × 8 orientations × 8 transformations ; zone max 128×128 ; e2e souris + clavier (copier, miroir, coller, annuler) et marqueurs.
 
 ## M4 : détail
 

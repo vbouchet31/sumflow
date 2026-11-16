@@ -12,6 +12,7 @@ import { drawDeposits } from './layers/deposits';
 import { drawGhosts } from './layers/ghosts';
 import { drawGrid } from './layers/grid';
 import { drawItems } from './layers/items';
+import { drawMarkers } from './layers/markers';
 import { drawWave } from './layers/wave';
 
 /** Maximum device pixel ratio honoured by the canvas (PLAN §10.4). */
@@ -69,6 +70,7 @@ export class Renderer {
     drawItems(ctx, camera, belts);
     drawPriorities(ctx, camera, priorityTiles(world));
     drawGhosts(ctx, camera, ghost);
+    drawMarkers(ctx, camera, state.markers.values());
     if (this.waveStart !== null && !this.reducedMotion)
       drawWave(ctx, camera, nowMs - this.waveStart);
   }

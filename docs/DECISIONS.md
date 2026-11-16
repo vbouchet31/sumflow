@@ -99,3 +99,20 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Valeur refusée** : l'item attend à `progress = 1` sur le tapis (comme une entrée pleine).
 - **Pose** : même outil générique que les opérateurs (fantôme centré, rangée au glisser), touche `8`. Le stockage ne pivote pas.
 - **Rendu** : bloc gris acier, valeur (« — » si vide), barre et compteur `n / 10k`.
+
+## M9
+
+- **Annuler par journal** : `World.beginChange()` / `endChange()` notent l'état _avant_ de chaque emplacement touché (tuile pour tapis et ponts, id pour un bâtiment, tuile pour un marqueur), puis l'état _après_ à la fin de l'action. Annuler remet l'état avant, rétablir l'état après. Une action sans effet sur la disposition n'entre pas dans la pile.
+- **Ce que l'annulation restaure** : la disposition (type, position, rotation, miroir, sorties, voies de pont, priorités, marqueurs). Un objet qui existe toujours garde ses items. Un objet recréé revient vide, avec **le même id**. Les items détruits ne reviennent jamais (§8.2).
+- **Vider une zone** ne change pas la disposition : l'action n'entre pas dans la pile (l'annuler ne ferait rien de visible).
+- **Miroir des bâtiments** : nouveau champ `mirror` (absent = faux, donc les sauvegardes futures restent compatibles). L'empreinte est d'abord retournée (`x → w-1-x`, faces E et O échangées), puis tournée. Les ports gardent leur rôle : un soustracteur en miroir calcule toujours A − B. C'est le seul moyen d'obtenir ce miroir (le soustracteur en L n'a pas de rotation équivalente qui garde A et B à leur place).
+- **Transformation du collage** : stockée comme « miroir puis rotation ». `R` ajoute un quart de tour ; `F` retourne l'aperçu tel qu'il est affiché, donc le miroir s'inverse et la rotation devient `-r`. Pour un bâtiment, l'orientation se compose dans le même groupe (testé sur toutes les combinaisons).
+- **Sélection** : un bâtiment fait partie d'une zone dès qu'une de ses tuiles y est. Zone plafonnée à 128×128 : le coin sous le curseur s'arrête de suivre au-delà. Un clic simple = zone 1×1.
+- **Presse-papiers** : stocké dans `state.clipboard` (sauvegardé en M10), entrée la plus récente en tête. Coordonnées relatives à la boîte englobante serrée de ce qui a été copié. Les marqueurs ne sont pas copiés. Après une copie ou une coupe, l'outil passe en mode Coller sur la nouvelle entrée.
+- **Collage** : l'aperçu est centré sur le curseur. Un tapis ou pont collé remplace ce qui est sur la tuile ; il est refusé (rouge) sur un bâtiment. Un bâtiment collé est refusé s'il touche un bâtiment, sort de la grille ou n'est pas débloqué ; un extracteur seulement s'il tombe exactement sur un gisement extractible (il prend la valeur de ce gisement). Rangée au glisser : copies espacées de la taille du presse-papiers, **32 copies au plus**.
+- **`Suppr` en mode Coller** retire l'entrée affichée de l'historique (au lieu de démolir l'objet survolé). `Maj+molette` change d'entrée (pas de 50 px de molette cumulés, pour les pavés tactiles) et remet la rotation et le miroir à zéro.
+- **Marqueurs** : un par tuile au plus (`state.markers`, clé de tuile), 40 caractères max, texte vide = suppression. Clic sur un marqueur sans outil, ou avec l'outil Marqueur, ouvre l'éditeur (Entrée valide, Échap annule). Création, modification et suppression sont annulables.
+- **Pipette (`E`)** : prend le type et la rotation du bâtiment survolé, ou l'outil Tapis orienté comme le tapis survolé, ou l'outil Pont. Rien sur le Hub.
+- **Barre de construction** : les outils d'édition forment un second groupe, en icônes seules (nom dans l'info-bulle) pour que la barre tienne en 1280 px. Coller reste visible mais grisé tant que le presse-papiers est vide.
+- **Barre du haut** : Annuler, Rétablir (grisés si la pile est vide), Retour au Hub, Marqueur, puis les panneaux. Le Menu arrive en M10.
+- **API debug** : `undo`, `redo`, `copy(x0, y0, x1, y1, cut?)`, `paste(x, y, rot?, mirror?, index?)` (coin haut gauche), `demolishArea`, `clearArea`, `setMarker`, `layout()` (texte canonique de la disposition, pour comparer). `place` et `beltPath` passent désormais par l'historique.

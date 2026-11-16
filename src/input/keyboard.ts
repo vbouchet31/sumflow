@@ -1,4 +1,4 @@
-import { ACTION_KEYS, PAN_KEYS, SPECIAL_KEYS, TOOL_CODES } from '../config/keymap';
+import { ACTION_KEYS, CTRL_KEYS, PAN_KEYS, SPECIAL_KEYS, TOOL_CODES } from '../config/keymap';
 
 /** True when keyboard shortcuts must be ignored (a text field has focus). */
 export function isTypingTarget(target: EventTarget | null): boolean {
@@ -15,7 +15,13 @@ export type ToolKey = (typeof TOOL_CODES)[keyof typeof TOOL_CODES];
 
 export interface KeyboardHandlers {
   onHome: () => void;
-  onTool: (tool: ToolKey | 'demolish' | 'priority') => void;
+  onTool: (
+    tool: ToolKey | 'demolish' | 'priority' | 'clear' | 'marker' | 'copy' | 'cut' | 'paste',
+  ) => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  onPick: () => void;
+  onMirror: () => void;
   onRotate: (delta: 1 | -1) => void;
   onCancel: () => void;
   onQuickDemolish: () => void;
@@ -58,6 +64,10 @@ export class Keyboard {
       this.handlers.onCancel();
       return;
     }
+    if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+      if (this.onCtrlKey(e.key.toLowerCase(), e.shiftKey, e.repeat)) e.preventDefault();
+      return;
+    }
     if (e.ctrlKey || e.altKey || e.metaKey) return;
     this.held.add(e.code);
     if (e.repeat) return;
@@ -89,6 +99,18 @@ export class Keyboard {
       case ACTION_KEYS.delivered:
         this.handlers.onDelivered();
         break;
+      case ACTION_KEYS.clear:
+        this.handlers.onTool('clear');
+        break;
+      case ACTION_KEYS.marker:
+        this.handlers.onTool('marker');
+        break;
+      case ACTION_KEYS.pick:
+        this.handlers.onPick();
+        break;
+      case ACTION_KEYS.mirror:
+        this.handlers.onMirror();
+        break;
       case SPECIAL_KEYS.quickDemolish.toLowerCase():
         this.handlers.onQuickDemolish();
         break;
@@ -99,6 +121,30 @@ export class Keyboard {
         return;
     }
     e.preventDefault();
+  }
+
+  /** Ctrl (or Cmd) shortcuts. Returns true when handled. Undo / redo repeat when held. */
+  private onCtrlKey(k: string, shift: boolean, repeat: boolean): boolean {
+    switch (k) {
+      case CTRL_KEYS.undo:
+        if (shift) this.handlers.onRedo();
+        else this.handlers.onUndo();
+        return true;
+      case CTRL_KEYS.redo:
+        this.handlers.onRedo();
+        return true;
+      case CTRL_KEYS.copy:
+        if (!repeat) this.handlers.onTool('copy');
+        return true;
+      case CTRL_KEYS.cut:
+        if (!repeat) this.handlers.onTool('cut');
+        return true;
+      case CTRL_KEYS.paste:
+        if (!repeat) this.handlers.onTool('paste');
+        return true;
+      default:
+        return false;
+    }
   }
 
   private onKeyUp(e: KeyboardEvent): void {
