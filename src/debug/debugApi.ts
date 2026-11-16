@@ -13,6 +13,8 @@ import { runTicks } from '../sim/tick';
 import { setUpgradeLevel } from '../sim/upgrades';
 import type { World } from '../sim/world';
 import { layoutString } from '../sim/layout';
+import type { SaveManager } from '../save/manager';
+import { stateHash } from '../save/serialize';
 import type { Deposit } from '../world/deposits';
 
 export interface DebugContext {
@@ -20,6 +22,7 @@ export interface DebugContext {
   camera: Camera;
   loop: SimLoop;
   tools: ToolController;
+  saves: SaveManager;
 }
 
 export interface DebugSnapshot {
@@ -82,6 +85,10 @@ export interface DebugApi {
   setMarker: (x: number, y: number, text: string) => void;
   /** Layout of every building except the hub, sorted (for comparisons in tests). */
   layout: () => string;
+  /** Save now (compressed) and report the result. */
+  save: () => Promise<string>;
+  /** Hash of everything saved: equal before a save and after reloading it. */
+  stateHash: () => string;
 }
 
 declare global {
@@ -96,7 +103,7 @@ export function isDebugEnabled(search: string): boolean {
 
 /** Expose `window.__sumflow` (PLAN §13.4). Grows with each milestone. */
 export function installDebugApi(ctx: DebugContext): void {
-  const { world, camera, loop, tools } = ctx;
+  const { world, camera, loop, tools, saves } = ctx;
   const { history } = tools;
   const rect = (x0: number, y0: number, x1: number, y1: number) =>
     selectionRect({ x: x0, y: y0 }, { x: x1, y: y1 });
@@ -161,6 +168,8 @@ export function installDebugApi(ctx: DebugContext): void {
     clearArea: (x0, y0, x1, y1) => clearArea(world, rect(x0, y0, x1, y1)),
     setMarker: (x, y, text) => tools.setMarker(x, y, text),
     layout: () => layoutString(world),
+    save: () => saves.save(),
+    stateHash: () => stateHash(world, camera),
     step: (seconds) => runTicks(world, Math.round(seconds * TICK_RATE)),
     setTimeScale: (x) => {
       loop.timeScale = Math.min(50, Math.max(1, x));

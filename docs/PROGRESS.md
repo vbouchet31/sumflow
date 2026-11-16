@@ -11,9 +11,21 @@
 | M6 Jonctions, priorités, ponts                   | ✅ terminé        |                                                    |
 | M7 Améliorations et statistiques                 | ✅ terminé        |                                                    |
 | M8 Stockage                                      | ✅ terminé        |                                                    |
-| M9 Outils d'édition                              | ✅ terminé (code) | CI et déploiement à valider après merge sur `main` |
-| M10 Sauvegarde, options, i18n, menu, aide, audio | ⏳ à faire        |                                                    |
+| M9 Outils d'édition                              | ✅ terminé        |                                                    |
+| M10 Sauvegarde, options, i18n, menu, aide, audio | ✅ terminé (code) | CI et déploiement à valider après merge sur `main` |
 | M11 Performance et finition                      | ⏳ à faire        |                                                    |
+
+## M10 : détail
+
+- [x] Sauvegarde `localStorage` (`sumflow.save.v1`) compressée (`deflate-raw` + base64, repli JSON), auto selon l'option (60 s par défaut), à `visibilitychange → hidden` et à `beforeunload`.
+- [x] Export `sumflow-AAAAMMJJ-HHMM.json` lisible ; import des deux formats avec validation de schéma, rien n'est écrasé en cas d'erreur ; toast si le stockage est plein.
+- [x] Migrations (`src/save/migrations.ts`) : moteur ordonné `vN → vN+1`, version 1 actuelle.
+- [x] Menu (`Échap` ou bouton) : Reprendre, Nouvelle partie (graine aléatoire ou saisie), Sauvegarder, Exporter, Importer, Options, Aide, À propos.
+- [x] Options (`sumflow.settings`) : langue, volume, grille, valeurs sur les items, intervalle de sauvegarde, achat auto, réduire les animations, liste des commandes.
+- [x] Bulles d'aide (§7.5), une à la fois, masquables, réaffichables depuis l'Aide.
+- [x] Sons WebAudio : pose, démolition, clic UI, amélioration prête, niveau terminé, erreur ; volume réglable.
+- [x] Barre d'état : pause, « Sauvegardé il y a 12 s », coordonnées du curseur.
+- [x] Tests : aller-retour sauvegarde → chargement au même hash d'état (compressé ou non) ; partie rechargée qui continue comme l'originale ; imports invalides sans effet ; migrations ; clés i18n identiques FR/EN ; aucune chaîne en dur dans `src/ui` (test par motifs) ; e2e sauvegarde + rechargement, import invalide, changement de langue, nouvelle partie, bulle d'aide.
 
 ## M9 : détail
 

@@ -30,9 +30,28 @@ import { ToolHint } from './ui/toolHint';
 import { describeTile, Tooltip } from './ui/tooltip';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
+import { setAutoBuy } from './sim/progression';
+import type { GameState } from './sim/state';
+import { SaveManager } from './save/manager';
+import {
+  decodeSave,
+  encodeSaveSync,
+  exportFileName,
+  exportText,
+  importSave,
+  readStorage,
+  SAVE_KEY,
+  writeStorage,
+} from './save/persist';
+import { type CameraState, deserialize, serialize } from './save/serialize';
+import { defaultSettings, loadSettings, storeSettings } from './save/settings';
+import { HelpBubble, knownTips } from './ui/help';
+import { GameMenu } from './ui/menu';
 
 /** Longest frame delta honoured, in seconds (avoids a jump after a hitch). */
 const MAX_FRAME_DT = 0.25;
+/** Where an unreadable save is kept instead of being overwritten. */
+const CORRUPT_KEY = 'sumflow.save.v1.corrupt';
 /** Wheel pixels per clipboard step with Shift+wheel in paste mode. */
 const WHEEL_STEP = 50;
 
@@ -43,22 +62,51 @@ function initialSeed(search: string): number {
   return Number.isFinite(parsed) ? toSeed(parsed) : toSeed(Math.random() * 2 ** 32);
 }
 
-function bootstrap(): void {
+type Loaded = { state: GameState; camera: CameraState | null; error: boolean };
+
+/** The saved game if there is a readable one, else a new game (PLAN §11.3). */
+async function loadGame(search: string): Promise<Loaded> {
+  const text = readStorage(SAVE_KEY);
+  if (text) {
+    try {
+      const { state, camera } = deserialize(await decodeSave(text));
+      return { state, camera, error: false };
+    } catch {
+      // Keep the unreadable save aside rather than overwrite it.
+      writeStorage(CORRUPT_KEY, text);
+      return { state: createInitialState(initialSeed(search)), camera: null, error: true };
+    }
+  }
+  return { state: createInitialState(initialSeed(search)), camera: null, error: false };
+}
+
+async function bootstrap(): Promise<void> {
   const canvas = document.getElementById('world');
   const uiRoot = document.getElementById('ui-root');
   if (!(canvas instanceof HTMLCanvasElement) || !uiRoot) {
     throw new Error('Missing #world canvas or #ui-root');
   }
 
-  setLocale(detectLocale(navigator.language));
+  const systemReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let settings = loadSettings(
+    defaultSettings(detectLocale(navigator.language), systemReducedMotion),
+  );
+  setLocale(settings.locale);
   document.documentElement.lang = getLocale();
 
-  const state = createInitialState(initialSeed(location.search));
+  const loaded = await loadGame(location.search);
+  const { state } = loaded;
   const world = new World(state, new DepositMap(state.seed));
   const loop = new SimLoop(world);
   const camera = new Camera();
+  if (loaded.camera) {
+    camera.x = loaded.camera.x;
+    camera.y = loaded.camera.y;
+    camera.zoom = Math.min(CAMERA.maxZoom, Math.max(CAMERA.minZoom, loaded.camera.zoom));
+  }
   const renderer = new Renderer(canvas, camera);
   const sfx = new Sfx();
+  const saves = new SaveManager(world, camera);
   let markerEditor: MarkerEditor | null = null;
   const tools = new ToolController(world, {
     onBuild: () => sfx.place(),
@@ -73,7 +121,14 @@ function bootstrap(): void {
       });
     },
   });
-  renderer.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const applySettings = (): void => {
+    renderer.reducedMotion = settings.reduceMotion;
+    renderer.showGrid = settings.showGrid;
+    renderer.itemValuesAlways = settings.itemValues === 'always';
+    sfx.volume = settings.volume / 100;
+    saves.setInterval(settings.autosave);
+  };
+  applySettings();
 
   const hud = new Hud(uiRoot);
   const goHome = (): void => camera.centerOn(0, 0);
@@ -100,6 +155,7 @@ function bootstrap(): void {
     delivered: () => deliveredPanel.toggle(),
     levels: () => levelsPanel.toggle(),
     upgrades: toggleUpgrades,
+    menu: () => menu.toggle(),
   });
   const tooltip = new Tooltip(uiRoot);
   const buildBar = new BuildBar(uiRoot, tools);
@@ -108,6 +164,79 @@ function bootstrap(): void {
   const endScreen = new EndScreen(uiRoot);
   const toolHint = new ToolHint(uiRoot, tools);
   markerEditor = new MarkerEditor(uiRoot);
+  const help = new HelpBubble(uiRoot, state);
+
+  /** Replace the save and reload: the page starts again on the new game. */
+  const reloadWith = (text: string | null): void => {
+    saves.suspend();
+    if (text !== null) writeStorage(SAVE_KEY, text);
+    location.reload();
+  };
+  const menu = new GameMenu(uiRoot, {
+    newGame: (seed) => {
+      const fresh = new World(
+        createInitialState(seed ?? toSeed(Math.random() * 2 ** 32)),
+        new DepositMap(0),
+      );
+      reloadWith(encodeSaveSync(serialize(fresh, { x: 0, y: 0, zoom: 1 })));
+    },
+    save: () => void saves.save(true),
+    exportGame: () => {
+      const name = exportFileName(new Date());
+      const blob = new Blob([exportText(serialize(world, camera, new Date().toISOString()))], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toasts.show(t('toast.exported', { file: name }));
+    },
+    importGame: (file) => {
+      void file
+        .text()
+        .then((text) => importSave(text))
+        .then(() => reloadWith(null))
+        .catch(() => {
+          sfx.error();
+          toasts.show(t('toast.importError'));
+        });
+    },
+    settings: () => settings,
+    changeSettings: (next) => {
+      const localeChanged = next.locale !== settings.locale;
+      settings = next;
+      storeSettings(settings);
+      applySettings();
+      if (localeChanged) {
+        saves.saveSync();
+        reloadWith(null);
+      }
+    },
+    autoBuy: () => state.autoBuyUpgrades,
+    setAutoBuy: (on) => setAutoBuy(state, on, world.emit),
+    knownTips: () => knownTips(state),
+    reshowHelp: () => {
+      state.helpSeen.length = 0;
+    },
+  });
+
+  saves.events.on('saved', ({ result, manual }) => {
+    if (result === 'quota') toasts.show(t('toast.saveQuota'));
+    else if (result === 'unavailable') toasts.show(t('toast.saveFailed'));
+    else if (manual) toasts.show(t('toast.saved'));
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') void saves.save();
+  });
+  window.addEventListener('beforeunload', () => saves.saveSync());
+  if (loaded.error) toasts.show(t('toast.loadError'));
+  // Soft click on every UI button (PLAN §12).
+  uiRoot.addEventListener('click', (e) => {
+    if (e.target instanceof Element && e.target.closest('button')) sfx.click();
+  });
 
   world.events.on('levelCompleted', ({ level, reward, final }) => {
     renderer.waveStart = performance.now();
@@ -131,32 +260,37 @@ function bootstrap(): void {
   window.addEventListener('pointerdown', unlockAudio, { once: true });
   window.addEventListener('keydown', unlockAudio, { once: true });
 
-  const keyboard = new Keyboard(window, {
-    onHome: goHome,
-    onLevels: () => levelsPanel.toggle(),
-    onUpgrades: toggleUpgrades,
-    onDelivered: () => deliveredPanel.toggle(),
-    onTool: (tool) => {
-      if (tool === 'paste' && !tools.isAvailable('paste')) sfx.error();
-      else tools.setTool(tool);
+  const keyboard = new Keyboard(
+    window,
+    {
+      onHome: goHome,
+      onLevels: () => levelsPanel.toggle(),
+      onUpgrades: toggleUpgrades,
+      onDelivered: () => deliveredPanel.toggle(),
+      onTool: (tool) => {
+        if (tool === 'paste' && !tools.isAvailable('paste')) sfx.error();
+        else tools.setTool(tool);
+      },
+      onRotate: (delta) => tools.rotate(delta),
+      onMirror: () => tools.mirror(),
+      onPick: () => tools.pick(),
+      onUndo: undo,
+      onRedo: redo,
+      onCancel: () => {
+        const open = panels.find((p) => p.isOpen);
+        if (endScreen.isOpen) endScreen.hide();
+        else if (open) open.close();
+        else if (tools.tool !== 'none') tools.cancel();
+        else menu.open();
+      },
+      onQuickDemolish: () => tools.deletePressed(),
+      onTogglePause: () => {
+        loop.paused = !loop.paused;
+        statusBar.setPaused(loop.paused);
+      },
     },
-    onRotate: (delta) => tools.rotate(delta),
-    onMirror: () => tools.mirror(),
-    onPick: () => tools.pick(),
-    onUndo: undo,
-    onRedo: redo,
-    onCancel: () => {
-      const open = panels.find((p) => p.isOpen);
-      if (endScreen.isOpen) endScreen.hide();
-      else if (open) open.close();
-      else tools.cancel();
-    },
-    onQuickDemolish: () => tools.deletePressed(),
-    onTogglePause: () => {
-      loop.paused = !loop.paused;
-      statusBar.setPaused(loop.paused);
-    },
-  });
+    () => menu.isOpen || endScreen.isOpen || (markerEditor?.isOpen ?? false),
+  );
   const mouse = new Mouse(canvas, camera, {
     onDown: (x, y, mods) => tools.pointerDown(x, y, mods),
     onMove: (x, y, mods) => tools.pointerMove(x, y, mods),
@@ -176,7 +310,7 @@ function bootstrap(): void {
   let wheelAcc = 0;
   const debug = isDebugEnabled(location.search);
   const debugPanel = debug ? new DebugPanel(uiRoot) : null;
-  if (debug) installDebugApi({ world, camera, loop, tools });
+  if (debug) installDebugApi({ world, camera, loop, tools, saves });
 
   const resize = (): void => {
     renderer.resize(window.innerWidth, window.innerHeight, window.devicePixelRatio);
@@ -219,6 +353,12 @@ function bootstrap(): void {
     topBar.setEnabled('redo', tools.history.canRedo);
     topBar.setPressed('marker', tools.tool === 'marker');
     toolHint.update();
+    help.update();
+    saves.update();
+    statusBar.update(
+      saves.lastSavedAt === null ? null : now - saves.lastSavedAt,
+      mouse.inside ? hover : null,
+    );
     tooltip.update(mouse.inside ? describeTile(world, hover.x, hover.y) : []);
     debugPanel?.update({
       seed: state.seed,
@@ -233,4 +373,4 @@ function bootstrap(): void {
   requestAnimationFrame(frame);
 }
 
-bootstrap();
+void bootstrap();

@@ -1,9 +1,10 @@
 import { type MessageKey, t } from '../i18n';
 import { el } from './dom';
 
-export type TopAction = 'undo' | 'redo' | 'home' | 'marker' | 'delivered' | 'levels' | 'upgrades';
+export type TopAction =
+  'undo' | 'redo' | 'home' | 'marker' | 'delivered' | 'levels' | 'upgrades' | 'menu';
 
-/** Top-right buttons (PLAN §9.1). The menu comes in M10. */
+/** Top-right buttons (PLAN §9.1). */
 export class TopBar {
   private readonly buttons = new Map<TopAction, HTMLButtonElement>();
 
@@ -29,6 +30,7 @@ export class TopBar {
     add('delivered', 'btn.delivered', '∑');
     add('levels', 'btn.levels', '☰');
     add('upgrades', 'btn.upgrades', '⇧');
+    add('menu', 'btn.menu', '⋮');
     root.append(bar);
   }
 

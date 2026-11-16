@@ -1,6 +1,6 @@
 /**
  * Synthesised sound effects (PLAN §12): oscillators and envelopes, no files. The audio
- * context is created on the first user gesture. Placeholder set for now (M10 completes it).
+ * context is created on the first user gesture. `volume` (0 to 1) comes from the options.
  */
 export class Sfx {
   private ctx: AudioContext | null = null;
@@ -55,6 +55,11 @@ export class Sfx {
 
   demolish(): void {
     this.tone(180, 0, 0.1, 'sawtooth', 0.05);
+  }
+
+  /** Short soft tick for UI buttons. */
+  click(): void {
+    this.tone(1200, 0, 0.03, 'sine', 0.04);
   }
 
   error(): void {

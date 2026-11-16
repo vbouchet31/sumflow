@@ -23,6 +23,9 @@ export class Renderer {
   /** Time (ms, same clock as `draw`'s `nowMs`) of the last level-complete wave. */
   waveStart: number | null = null;
   reducedMotion = false;
+  /** Options (PLAN §9.4). */
+  showGrid = true;
+  itemValuesAlways = false;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -51,7 +54,7 @@ export class Renderer {
     const { state } = world;
     ctx.fillStyle = COLORS.background;
     ctx.fillRect(0, 0, camera.viewW, camera.viewH);
-    drawGrid(ctx, camera);
+    if (this.showGrid) drawGrid(ctx, camera);
     drawDeposits(ctx, camera, world.deposits, state);
     const v = camera.visibleTiles(1);
     const belts = [...world.beltsInRect(v.x0, v.y0, v.x1, v.y1)];
@@ -67,7 +70,7 @@ export class Renderer {
       state,
       this.reducedMotion,
     );
-    drawItems(ctx, camera, belts);
+    drawItems(ctx, camera, belts, this.itemValuesAlways);
     drawPriorities(ctx, camera, priorityTiles(world));
     drawGhosts(ctx, camera, ghost);
     drawMarkers(ctx, camera, state.markers.values());

@@ -52,6 +52,8 @@ export interface GameState {
   totalDelivered: number;
   /** Text markers by tile key (PLAN §8.2). */
   markers: Map<number, Marker>;
+  /** Help bubbles already shown and dismissed (PLAN §7.5). */
+  helpSeen: string[];
   /** Clipboard history, most recent first, at most `EDIT.clipboardSize` entries (PLAN §8.2). */
   clipboard: Clip[];
 }
@@ -97,6 +99,7 @@ export function createInitialState(seed: number): GameState {
     nextBuildingId: HUB_ID + 1,
     totalDelivered: 0,
     markers: new Map(),
+    helpSeen: [],
     clipboard: [],
   };
   state.levelRequirement = requirementFor(state, 1);

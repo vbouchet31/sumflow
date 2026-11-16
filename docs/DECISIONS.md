@@ -116,3 +116,20 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Barre de construction** : les outils d'édition forment un second groupe, en icônes seules (nom dans l'info-bulle) pour que la barre tienne en 1280 px. Coller reste visible mais grisé tant que le presse-papiers est vide.
 - **Barre du haut** : Annuler, Rétablir (grisés si la pile est vide), Retour au Hub, Marqueur, puis les panneaux. Le Menu arrive en M10.
 - **API debug** : `undo`, `redo`, `copy(x0, y0, x1, y1, cut?)`, `paste(x, y, rot?, mirror?, index?)` (coin haut gauche), `demolishArea`, `clearArea`, `setMarker`, `layout()` (texte canonique de la disposition, pour comparer). `place` et `beltPath` passent désormais par l'historique.
+
+## M10
+
+- **Format compressé** : préfixe `Z1:` puis `deflate-raw` en base64. Un texte qui commence par `{` est du JSON brut. Les deux sont acceptés au chargement et à l'import.
+- **Sauvegarde à la fermeture** : `beforeunload` écrit en JSON brut, car la compression est asynchrone et la page pourrait se fermer avant la fin. Les autres sauvegardes (auto, onglet masqué, menu) sont compressées.
+- **Champs non sauvegardés** : marques de tick des items, `vacatedTick` / `vacatedCarry` des tapis, flash des opérateurs, statistiques de livraison, historique d'annulation. Une partie rechargée peut donc différer d'au plus un item sur la suite (testé). La caméra, le presse-papiers, les marqueurs et les bulles déjà vues sont sauvegardés.
+- **Validation** : validateur écrit à la main (`src/save/schema.ts`), plus une reconstruction de l'état pour détecter les chevauchements. Champs inconnus ignorés. Version plus récente que le jeu = refusée.
+- **Sauvegarde illisible au démarrage** : elle est copiée sous `sumflow.save.v1.corrupt` (jamais écrasée), une nouvelle partie démarre et un toast le signale.
+- **`?seed=N`** ne sert que quand il n'y a pas de sauvegarde. Sinon la sauvegarde est chargée (le menu Nouvelle partie permet de choisir une graine).
+- **Nouvelle partie, import, changement de langue** : on écrit la nouvelle sauvegarde (ou les options) puis on **recharge la page**. Toute l'UI est reconstruite proprement, sans code de réinitialisation. Les sauvegardes sont suspendues juste avant pour ne pas écraser le résultat.
+- **Options dans `sumflow.settings`**, à part de la partie. Valeurs invalides ignorées. « Réduire les animations » prend la préférence du système par défaut. « Achat automatique » reste une donnée de la partie (comme en M7) et apparaît aussi dans Options.
+- **« Valeurs sur les items : toujours »** affiche le nombre sur chaque disque dès le zoom 0,3 (au lieu de 0,6). En dessous, les items sont des points, sans texte.
+- **Échap** : ferme l'écran de fin, un panneau, puis quitte l'outil, puis ouvre le menu. Dans le menu, Échap revient à la vue principale, puis ferme. Les raccourcis sont ignorés tant qu'une fenêtre modale est ouverte.
+- **Bulles d'aide** : `state.helpSeen` (sauvegardé). La première bulle encore non vue et déjà pertinente s'affiche sous le HUD. « Réafficher les bulles » vide la liste.
+- **Commandes** : texte des touches traduit aussi (« flèches », « molette »…), dans un tableau en lecture seule.
+- **Aucune chaîne en dur** : test par motifs sur `src/ui` (`textContent`, `title`, `aria-label`, `placeholder`, troisième argument de `el()`, `append('…')`, `innerHTML`). Les interpolations `${…}` et les symboles (icônes) sont permis.
+- **À propos** : lien Steam vérifié (`store.steampowered.com/app/2674590/Beltmatic/`) et lien vers le dépôt, dans `src/config/links.ts`.
