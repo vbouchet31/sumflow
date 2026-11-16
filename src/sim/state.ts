@@ -34,6 +34,12 @@ export interface GameState {
   unlockedFeatures: Feature[];
   /** Upgrade level per track (1 = initial). */
   upgrades: Record<Track, number>;
+  /** Generated number sequences t1, t2, … per track (PLAN §7.3). */
+  upgradeSeqs: Record<Track, number[]>;
+  /** Active requirements of each track's next upgrade (empty if locked or maxed). */
+  upgradeReqs: Record<Track, Requirement[]>;
+  /** Buy upgrades automatically when ready (option, off by default). */
+  autoBuyUpgrades: boolean;
   /** Belts by tile key. */
   belts: Map<number, Belt>;
   /** Bridges by tile key (a tile holds a belt or a bridge, never both). */
@@ -77,6 +83,9 @@ export function createInitialState(seed: number): GameState {
     unlockedBuildings: [...START_BUILDINGS],
     unlockedFeatures: [],
     upgrades: { belt: 1, extractor: 1, adder: 1, multiplier: 1, subdiv: 1, exponent: 1 },
+    upgradeSeqs: { belt: [], extractor: [], adder: [], multiplier: [], subdiv: [], exponent: [] },
+    upgradeReqs: { belt: [], extractor: [], adder: [], multiplier: [], subdiv: [], exponent: [] },
+    autoBuyUpgrades: false,
     belts: new Map(),
     bridges: new Map(),
     buildings,

@@ -1,27 +1,41 @@
 import { type MessageKey, t } from '../i18n';
 import { el } from './dom';
 
-export interface TopBarActions {
-  home: () => void;
-  levels: () => void;
-}
+export type TopAction = 'home' | 'delivered' | 'levels' | 'upgrades';
 
-/** Top-right buttons (PLAN §9.1). Undo/redo, markers, upgrades and menu come later. */
-export function mountTopBar(root: HTMLElement, actions: TopBarActions): void {
-  const bar = el('nav', 'top-bar');
-  const add = (label: MessageKey, icon: string, action: () => void, id: string): void => {
-    const btn = el('button', 'top-btn', icon);
-    btn.type = 'button';
-    btn.title = t(label);
-    btn.setAttribute('aria-label', t(label));
-    btn.dataset['action'] = id;
-    btn.addEventListener('click', () => {
-      action();
-      btn.blur();
-    });
-    bar.append(btn);
-  };
-  add('btn.home', '⌂', actions.home, 'home');
-  add('btn.levels', '☰', actions.levels, 'levels');
-  root.append(bar);
+/** Top-right buttons (PLAN §9.1). Undo/redo, markers and menu come later. */
+export class TopBar {
+  private readonly buttons = new Map<TopAction, HTMLButtonElement>();
+
+  constructor(root: HTMLElement, actions: Record<TopAction, () => void>) {
+    const bar = el('nav', 'top-bar');
+    const add = (id: TopAction, label: MessageKey, icon: string): void => {
+      const btn = el('button', 'top-btn', icon);
+      btn.type = 'button';
+      btn.title = t(label);
+      btn.setAttribute('aria-label', t(label));
+      btn.dataset['action'] = id;
+      btn.addEventListener('click', () => {
+        actions[id]();
+        btn.blur();
+      });
+      bar.append(btn);
+      this.buttons.set(id, btn);
+    };
+    add('home', 'btn.home', '⌂');
+    add('delivered', 'btn.delivered', '∑');
+    add('levels', 'btn.levels', '☰');
+    add('upgrades', 'btn.upgrades', '⇧');
+    root.append(bar);
+  }
+
+  setVisible(id: TopAction, visible: boolean): void {
+    const btn = this.buttons.get(id);
+    if (btn) btn.hidden = !visible;
+  }
+
+  /** Green badge (an upgrade is ready, PLAN §7.3). */
+  setBadge(id: TopAction, on: boolean): void {
+    this.buttons.get(id)?.classList.toggle('has-badge', on);
+  }
 }

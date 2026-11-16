@@ -7,6 +7,7 @@ import { dirMask, type OperatorType } from '../sim/entities';
 import type { SimLoop } from '../sim/loop';
 import { applyReward, deliver, setLevel } from '../sim/progression';
 import { runTicks } from '../sim/tick';
+import { setUpgradeLevel } from '../sim/upgrades';
 import type { World } from '../sim/world';
 import type { Deposit } from '../world/deposits';
 
@@ -114,7 +115,7 @@ export function installDebugApi(ctx: DebugContext): void {
       loop.timeScale = Math.min(50, Math.max(1, x));
     },
     setUpgrade: (track, level) => {
-      if (TRACKS.includes(track)) world.state.upgrades[track] = Math.max(1, Math.floor(level));
+      if (TRACKS.includes(track)) setUpgradeLevel(world.state, track, level);
     },
     unlockAll: () => {
       for (const building of [

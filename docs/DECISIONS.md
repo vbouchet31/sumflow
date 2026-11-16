@@ -79,3 +79,14 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Outil Priorité** : `P`, ou `Alt+clic` en mode Tapis. Visible quand la fonction est débloquée (niveau 10).
 - **Rendu du pont** : voie verticale et ses items dessous, tablier horizontal avec rails clairs, items horizontaux dessus.
 - **Info-bulle remontée** au-dessus de la barre de construction, qui s'élargit avec les déblocages.
+
+## M7
+
+- **Suites `t_k`** : générées paresseusement et stockées dans `state.upgradeSeqs` (sauvegardées en M10). Un tirage par terme, `mulberry32(hash2(seed ^ "UPGR", indexPiste, k))`, donc le résultat ne dépend pas de l'ordre de génération (testé). Une valeur qui tombe sur 10 devient 11. Une suite strictement croissante n'a jamais de doublon dans sa fenêtre.
+- **Exigences actives** : `state.upgradeReqs[piste]` (vide si la piste est verrouillée ou au max). Elles sont recréées à `delivered = 0` après chaque achat et à chaque déblocage de piste.
+- **Arrondi des quantités** au multiple de 50 le plus proche (minimum 50). Exemple : additionneur L = 3 : 4 800, 3 850, 2 900.
+- **Max d'une piste** : extracteur au niveau 12, plafond doux atteint (tapis 20, additionneur 4, autres 3 op/s), **ou** terme `t_L` > 2 000 000 000. En pratique, la suite du Tapis dépasse 2 000 000 000 vers L ≈ 70 (environ 14 tuiles/s), avant le plafond de 20. Le plan énonce les deux règles et les deux sont appliquées.
+- **Achat automatique** : `state.autoBuyUpgrades` (option de la partie, sauvegardée). L'activer achète tout ce qui est déjà prêt. La case est dans le panneau Améliorations ; elle sera aussi dans Options en M10.
+- **Panneaux** : base `Panel` commune (titre, fermer, `Échap`). Un seul panneau ouvert à la fois. `U` Améliorations (bouton visible dès que la fonction est débloquée, badge vert si une amélioration est prête), `N` Nombres livrés, `L` Niveaux.
+- **Nombres livrés** : liste les valeurs livrées dans la dernière minute, plus la cible et les nombres d'amélioration même à 0. Tri : cible, puis amélioration, puis autres, puis débit décroissant. Rafraîchie toutes les 500 ms.
+- **Son « amélioration prête »** : deux notes douces, avec un toast. Pas de son ni de toast si l'achat automatique est actif (seul le toast « niveau N » s'affiche).
