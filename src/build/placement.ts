@@ -1,6 +1,6 @@
 import type { BuildingType } from '../config/buildings';
 import { isInBounds, key, type Rot } from '../core/grid';
-import { buildingSize, footprintTiles, type OperatorType } from '../sim/entities';
+import { buildingSize, footprintTiles, type FreeBuildingType } from '../sim/entities';
 import type { Building } from '../sim/entities';
 import { isBuildingUnlocked } from '../sim/state';
 import { HUB_ID } from '../sim/state';
@@ -43,10 +43,10 @@ export function centredOrigin(
   return { x: tx - Math.floor((size.w - 1) / 2), y: ty - Math.floor((size.h - 1) / 2) };
 }
 
-/** Operator ghost at origin `(x, y)`: valid if unlocked, in bounds and free of buildings. */
+/** Operator or storage ghost at origin `(x, y)`: valid if unlocked, in bounds and free of buildings. */
 export function planOperator(
   world: World,
-  type: OperatorType,
+  type: FreeBuildingType,
   x: number,
   y: number,
   rot: Rot,
@@ -64,7 +64,7 @@ export function planOperator(
  */
 export function planOperatorRow(
   world: World,
-  type: OperatorType,
+  type: FreeBuildingType,
   from: { x: number; y: number },
   to: { x: number; y: number },
   rot: Rot,

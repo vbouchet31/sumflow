@@ -278,6 +278,10 @@ export class World {
       b.extractValue = extra.extractValue;
       b.extractAcc = 0;
     }
+    if (type === 'storage') {
+      b.storeValue = null;
+      b.storeCount = 0;
+    }
     if (isOperator(type)) {
       b.inA = [];
       b.inB = [];

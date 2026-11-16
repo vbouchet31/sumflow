@@ -1,5 +1,5 @@
 import { type Dir, normalizeRot, type Rot, rotateDir } from '../core/grid';
-import { isOperator, type OperatorType } from '../sim/entities';
+import { type FreeBuildingType, isFreeBuilding } from '../sim/entities';
 import { togglePriorityAt } from '../sim/priority';
 import { isBuildingUnlocked, isFeatureUnlocked } from '../sim/state';
 import type { World } from '../sim/world';
@@ -21,7 +21,7 @@ import {
 } from './placement';
 
 export type ToolId =
-  'none' | 'belt' | 'extractor' | 'demolish' | 'bridge' | 'priority' | OperatorType;
+  'none' | 'belt' | 'extractor' | 'demolish' | 'bridge' | 'priority' | FreeBuildingType;
 
 export interface Modifiers {
   ctrl: boolean;
@@ -76,7 +76,7 @@ export class ToolController {
   /** Locked buildings and features cannot be selected. */
   isAvailable(tool: ToolId): boolean {
     const { state } = this.world;
-    if (isOperator(tool) || tool === 'bridge') return isBuildingUnlocked(state, tool);
+    if (isFreeBuilding(tool) || tool === 'bridge') return isBuildingUnlocked(state, tool);
     if (tool === 'priority') return isFeatureUnlocked(state, 'priorities');
     return true;
   }
@@ -105,7 +105,7 @@ export class ToolController {
     this.hover = { x, y };
     this.ctrl = mods.ctrl;
     if (this.tool === 'belt' && mods.alt) return; // Alt+click = priority (on release)
-    if (this.tool === 'belt' || isOperator(this.tool)) this.drag = { x, y, moved: false };
+    if (this.tool === 'belt' || isFreeBuilding(this.tool)) this.drag = { x, y, moved: false };
   }
 
   pointerUp(x: number, y: number, mods: Modifiers): void {
@@ -135,7 +135,7 @@ export class ToolController {
       else this.events.onError?.();
     } else if (tool === 'demolish') {
       if (demolishAt(this.world, x, y)) this.events.onDemolish?.();
-    } else if (isOperator(tool)) {
+    } else if (isFreeBuilding(tool)) {
       const plans = this.currentOperatorPlans(tool);
       this.drag = null;
       let placed = 0;
@@ -173,7 +173,7 @@ export class ToolController {
     return planSingleBelt(this.world, at.x, at.y, this.beltDir);
   }
 
-  private currentOperatorPlans(type: OperatorType): BuildingPlan[] {
+  private currentOperatorPlans(type: FreeBuildingType): BuildingPlan[] {
     if (!this.hover) return [];
     const from = this.drag ?? this.hover;
     const to = this.drag?.moved ? this.hover : from;
@@ -193,7 +193,7 @@ export class ToolController {
         ? { ...empty, demolish: { ...this.hover } }
         : empty;
     }
-    if (isOperator(tool)) return { ...empty, buildings: this.currentOperatorPlans(tool) };
+    if (isFreeBuilding(tool)) return { ...empty, buildings: this.currentOperatorPlans(tool) };
     if (tool === 'bridge') {
       const { x, y } = this.hover;
       const plan = planManualBridge(this.world, x, y, this.beltDir);

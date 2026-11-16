@@ -88,6 +88,9 @@ export interface Building {
   cycle?: number;
   /** Tick of the last completed cycle (drawing the flash; runtime only). */
   flashTick?: number;
+  /** Storage: stored value (null when empty) and count (PLAN §6.3). */
+  storeValue?: number | null;
+  storeCount?: number;
 }
 
 export type OperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent';
@@ -102,6 +105,13 @@ export const OPERATOR_TYPES: readonly OperatorType[] = [
 
 export function isOperator(type: string): type is OperatorType {
   return (OPERATOR_TYPES as readonly string[]).includes(type);
+}
+
+/** Buildings placed freely with the generic tool (centred ghost, rows by dragging). */
+export type FreeBuildingType = OperatorType | 'storage';
+
+export function isFreeBuilding(type: string): type is FreeBuildingType {
+  return type === 'storage' || isOperator(type);
 }
 
 export type PortKind = 'A' | 'B' | 'O' | 'Q' | 'R' | 'in' | 'out' | 'dynamic';

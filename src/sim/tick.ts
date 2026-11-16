@@ -1,11 +1,12 @@
 import { stepBelts } from './belts';
 import { stepExtractors } from './extractor';
 import { stepOperators, stepOutputs } from './operators';
+import { stepStorages } from './storage';
 import type { World } from './world';
 
 /**
- * One fixed simulation step of 1/60 s (PLAN §11.2). Storage arrives in M8; the hub
- * consumes instantly when belts deliver; stats advance first.
+ * One fixed simulation step of 1/60 s (PLAN §11.2). The hub consumes instantly when
+ * belts deliver; stats advance first.
  */
 export function tick(world: World): void {
   world.state.tick += 1;
@@ -14,6 +15,7 @@ export function tick(world: World): void {
   stepBelts(world);
   stepOutputs(world);
   stepOperators(world);
+  stepStorages(world);
 }
 
 /** Run `n` ticks. */

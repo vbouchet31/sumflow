@@ -28,6 +28,7 @@ export const TOOL_CODES = {
   Digit5: 'subtractor',
   Digit6: 'divider',
   Digit7: 'exponent',
+  Digit8: 'storage',
   Digit9: 'bridge',
 } as const;
 

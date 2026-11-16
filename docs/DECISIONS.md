@@ -90,3 +90,12 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Panneaux** : base `Panel` commune (titre, fermer, `Échap`). Un seul panneau ouvert à la fois. `U` Améliorations (bouton visible dès que la fonction est débloquée, badge vert si une amélioration est prête), `N` Nombres livrés, `L` Niveaux.
 - **Nombres livrés** : liste les valeurs livrées dans la dernière minute, plus la cible et les nombres d'amélioration même à 0. Tri : cible, puis amélioration, puis autres, puis débit décroissant. Rafraîchie toutes les 500 ms.
 - **Son « amélioration prête »** : deux notes douces, avec un toast. Pas de son ni de toast si l'achat automatique est actif (seul le toast « niveau N » s'affiche).
+
+## M8
+
+- **Faces du stockage** : n'importe quelle face accepte ce qui la pousse (un tapis qui pointe vers elle, ou une face de sortie de bâtiment collée, limitée à la vitesse des tapis comme toute connexion directe). En sortie, le stockage ne remplit que les **tapis** adjacents qui ne pointent pas vers lui, jamais un bâtiment directement. C'est la lecture la plus simple de §6.3.
+- **Sortie saturée** : à chaque tick, chaque face de sortie dont la tuile est libre reçoit un item, avec la même reprise d'avance que l'extracteur. Le débit vaut exactement la vitesse des tapis (testé à 1 et 4).
+- **Ordre des faces** : déterministe (empreinte puis N, E, S, O). Pas de tourniquet nécessaire, chaque face libre est servie à chaque tick.
+- **Valeur refusée** : l'item attend à `progress = 1` sur le tapis (comme une entrée pleine).
+- **Pose** : même outil générique que les opérateurs (fantôme centré, rangée au glisser), touche `8`. Le stockage ne pivote pas.
+- **Rendu** : bloc gris acier, valeur (« — » si vide), barre et compteur `n / 10k`.

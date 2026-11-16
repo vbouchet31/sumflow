@@ -116,4 +116,8 @@ export const en: Record<MessageKey, string> = {
   'deliv.unit.min': '/min',
   'deliv.unit.h': '/h',
   'deliv.unitToggle': 'Change rate unit',
+  'tool.storage': 'Storage',
+  'tip.storeValue': 'Holds: {value}',
+  'tip.storeEmpty': 'Empty (takes the first value received)',
+  'tip.storeFill': 'Fill: {n} / {max}',
 };
