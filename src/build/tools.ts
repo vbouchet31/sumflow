@@ -1,12 +1,14 @@
 import { type Dir, normalizeRot, type Rot, rotateDir } from '../core/grid';
 import { isOperator, type OperatorType } from '../sim/entities';
-import { isBuildingUnlocked } from '../sim/state';
+import { togglePriorityAt } from '../sim/priority';
+import { isBuildingUnlocked, isFeatureUnlocked } from '../sim/state';
 import type { World } from '../sim/world';
 import {
   applyBeltPlan,
   computeLPath,
   type PlannedBelt,
   planBeltPath,
+  planManualBridge,
   planSingleBelt,
 } from './beltPath';
 import {
@@ -18,7 +20,8 @@ import {
   planOperatorRow,
 } from './placement';
 
-export type ToolId = 'none' | 'belt' | 'extractor' | 'demolish' | OperatorType;
+export type ToolId =
+  'none' | 'belt' | 'extractor' | 'demolish' | 'bridge' | 'priority' | OperatorType;
 
 export interface Modifiers {
   ctrl: boolean;
@@ -64,10 +67,18 @@ export class ToolController {
 
   /** Select a tool (selecting the active one again deselects it). Locked tools are ignored. */
   setTool(tool: ToolId): void {
-    if (isOperator(tool) && !isBuildingUnlocked(this.world.state, tool)) return;
+    if (!this.isAvailable(tool)) return;
     this.tool = this.tool === tool ? 'none' : tool;
     this.drag = null;
     for (const fn of this.listeners) fn();
+  }
+
+  /** Locked buildings and features cannot be selected. */
+  isAvailable(tool: ToolId): boolean {
+    const { state } = this.world;
+    if (isOperator(tool) || tool === 'bridge') return isBuildingUnlocked(state, tool);
+    if (tool === 'priority') return isFeatureUnlocked(state, 'priorities');
+    return true;
   }
 
   cancel(): void {
@@ -93,6 +104,7 @@ export class ToolController {
   pointerDown(x: number, y: number, mods: Modifiers): void {
     this.hover = { x, y };
     this.ctrl = mods.ctrl;
+    if (this.tool === 'belt' && mods.alt) return; // Alt+click = priority (on release)
     if (this.tool === 'belt' || isOperator(this.tool)) this.drag = { x, y, moved: false };
   }
 
@@ -100,6 +112,19 @@ export class ToolController {
     this.hover = { x, y };
     this.ctrl = mods.ctrl;
     const tool = this.tool;
+    if (tool === 'priority' || (tool === 'belt' && mods.alt && !this.drag)) {
+      if (togglePriorityAt(this.world, x, y) !== 'none') this.events.onBuild?.();
+      else this.events.onError?.();
+      return;
+    }
+    if (tool === 'bridge') {
+      const plan = planManualBridge(this.world, x, y, this.beltDir);
+      if (plan) {
+        this.world.setBridge(x, y, plan.h, plan.v);
+        this.events.onBuild?.();
+      } else this.events.onError?.();
+      return;
+    }
     if (tool === 'belt') {
       const plan = this.currentBeltPlan();
       this.drag = null;
@@ -169,6 +194,16 @@ export class ToolController {
         : empty;
     }
     if (isOperator(tool)) return { ...empty, buildings: this.currentOperatorPlans(tool) };
+    if (tool === 'bridge') {
+      const { x, y } = this.hover;
+      const plan = planManualBridge(this.world, x, y, this.beltDir);
+      return {
+        ...empty,
+        belts: [
+          { x, y, dir: plan?.h ?? this.beltDir, status: plan ? 'bridge' : 'blocked', outputs: 0 },
+        ],
+      };
+    }
     return empty;
   }
 }

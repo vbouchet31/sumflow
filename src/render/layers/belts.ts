@@ -33,6 +33,7 @@ export function drawBelts(
   cam: Camera,
   belts: Iterable<Belt>,
   phase: number,
+  withBase = true,
 ): void {
   const s = cam.scale;
   const list = [...belts];
@@ -55,13 +56,15 @@ export function drawBelts(
   }
 
   const inset = 0.06 * s;
-  ctx.fillStyle = BELT_COLORS.base;
-  ctx.beginPath();
-  for (const b of list) {
-    const p = cam.worldToScreen(b.x, b.y);
-    ctx.roundRect(p.x + inset, p.y + inset, s - 2 * inset, s - 2 * inset, 0.15 * s);
+  if (withBase) {
+    ctx.fillStyle = BELT_COLORS.base;
+    ctx.beginPath();
+    for (const b of list) {
+      const p = cam.worldToScreen(b.x, b.y);
+      ctx.roundRect(p.x + inset, p.y + inset, s - 2 * inset, s - 2 * inset, 0.15 * s);
+    }
+    ctx.fill();
   }
-  ctx.fill();
 
   const animated = cam.zoom >= LOD.full;
   ctx.strokeStyle = BELT_COLORS.chevron;

@@ -27,6 +27,7 @@ export interface DebugSnapshot {
   finished: boolean;
   upgrades: Record<Track, number>;
   belts: number;
+  bridges: number;
   buildings: number;
   items: number;
   totalDelivered: number;
@@ -85,6 +86,7 @@ export function installDebugApi(ctx: DebugContext): void {
         finished: s.finishedAtTick !== null,
         upgrades: { ...s.upgrades },
         belts: s.belts.size,
+        bridges: s.bridges.size,
         buildings: s.buildings.size,
         items,
         totalDelivered: s.totalDelivered,

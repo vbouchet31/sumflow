@@ -37,6 +37,32 @@ export interface Belt {
   vacatedCarry: number;
 }
 
+/** Axis of a lane: 0 = horizontal (E/W), 1 = vertical (N/S). */
+export type Axis = 0 | 1;
+
+export function axisOf(d: Dir): Axis {
+  return d % 2 === 1 ? 0 : 1;
+}
+
+/**
+ * Bridge (PLAN §6.7): one tile with two independent straight lanes. Each lane behaves like
+ * a single-output belt; a lane is null when it has no direction yet.
+ */
+export interface Bridge {
+  x: number;
+  y: number;
+  h: Belt | null;
+  v: Belt | null;
+}
+
+/**
+ * Network node key. Plain belts use their tile key (≥ 0); bridge lanes use a negative key
+ * derived from the tile key and the axis.
+ */
+export function laneNode(tileKey: number, axis: Axis): number {
+  return -(2 * tileKey + axis) - 1;
+}
+
 export interface Building {
   id: number;
   type: BuildingType;
@@ -46,6 +72,7 @@ export interface Building {
   rot: Rot;
   /** Round-robin index over output ports. */
   rrOut: number;
+  /** Prioritised output face (port key: tile key × 4 + face), or null (PLAN §6.6). */
   priority: number | null;
   /** Extractor: value produced and fractional production accumulator. */
   extractValue?: number;

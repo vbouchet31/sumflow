@@ -15,7 +15,7 @@ export type ToolKey = (typeof TOOL_CODES)[keyof typeof TOOL_CODES];
 
 export interface KeyboardHandlers {
   onHome: () => void;
-  onTool: (tool: ToolKey | 'demolish') => void;
+  onTool: (tool: ToolKey | 'demolish' | 'priority') => void;
   onRotate: (delta: 1 | -1) => void;
   onCancel: () => void;
   onQuickDemolish: () => void;
@@ -74,6 +74,9 @@ export class Keyboard {
         break;
       case ACTION_KEYS.demolish:
         this.handlers.onTool('demolish');
+        break;
+      case ACTION_KEYS.priority:
+        this.handlers.onTool('priority');
         break;
       case ACTION_KEYS.levels:
         this.handlers.onLevels();

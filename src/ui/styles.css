@@ -57,7 +57,7 @@ body {
 .tooltip {
   position: absolute;
   left: 12px;
-  bottom: 12px;
+  bottom: 84px;
   min-width: 160px;
   max-width: 320px;
   padding: 8px 12px;

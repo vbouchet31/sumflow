@@ -8,7 +8,7 @@ import {
   type Track,
 } from '../config/balance';
 import { toSeed } from '../core/rng';
-import type { Belt, Building } from './entities';
+import type { Belt, Bridge, Building } from './entities';
 import { ensureLevels, type GeneratedLevel } from './levels';
 
 export interface Requirement {
@@ -36,6 +36,8 @@ export interface GameState {
   upgrades: Record<Track, number>;
   /** Belts by tile key. */
   belts: Map<number, Belt>;
+  /** Bridges by tile key (a tile holds a belt or a bridge, never both). */
+  bridges: Map<number, Bridge>;
   /** Buildings by id. The hub is id 0. */
   buildings: Map<number, Building>;
   nextBuildingId: number;
@@ -76,6 +78,7 @@ export function createInitialState(seed: number): GameState {
     unlockedFeatures: [],
     upgrades: { belt: 1, extractor: 1, adder: 1, multiplier: 1, subdiv: 1, exponent: 1 },
     belts: new Map(),
+    bridges: new Map(),
     buildings,
     nextBuildingId: HUB_ID + 1,
     totalDelivered: 0,

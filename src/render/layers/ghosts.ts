@@ -15,7 +15,9 @@ export function drawGhosts(ctx: CanvasRenderingContext2D, cam: Camera, ghost: Gh
         ? GHOST_COLORS.blocked
         : t.status === 'new'
           ? GHOST_COLORS.new
-          : GHOST_COLORS.replace;
+          : t.status === 'bridge'
+            ? GHOST_COLORS.bridge
+            : GHOST_COLORS.replace;
     ctx.fillRect(p.x + 1, p.y + 1, s - 2, s - 2);
     if (t.status === 'blocked') continue;
     // Arrow toward the output.

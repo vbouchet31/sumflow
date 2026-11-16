@@ -1,74 +1,74 @@
-import { DIRS, DX, DY, key, opposite } from '../core/grid';
-import { type Belt, hasOutput } from './entities';
+import { DIRS, DX, DY } from '../core/grid';
+import { axisOf, type Belt, hasOutput } from './entities';
+import { opposite } from '../core/grid';
 
 export interface BeltNetwork {
-  /** Belt keys, downstream first (PLAN §6.4). */
+  /** Node keys (belts and bridge lanes), downstream first (PLAN §6.4). */
   order: number[];
-  /** Incoming belt neighbours of each belt, in N, E, S, W order (merge sources). */
+  /** Incoming neighbour nodes of each node, in N, E, S, W order (merge sources). */
   inputs: Map<number, number[]>;
 }
 
+/** What the network needs from the world. */
+export interface NetworkSource {
+  nodes(): Iterable<[number, Belt]>;
+  laneAt(x: number, y: number, axis: 0 | 1): { belt: Belt; node: number } | null;
+}
+
 /**
- * Belt `t` receives from neighbour `u` if `u` outputs toward `t` and `t` does not output
- * toward `u` (implicit inputs, PLAN §6.4).
+ * Node `t` receives from neighbour `u` if `u` outputs toward `t` and `t` does not output
+ * toward `u` (implicit inputs, PLAN §6.4). Bridge lanes are reached along their axis.
  */
-function downstreamOf(belts: Map<number, Belt>, b: Belt): number[] {
+function downstreamOf(src: NetworkSource, b: Belt): number[] {
   const out: number[] = [];
   for (const d of DIRS) {
     if (!hasOutput(b, d)) continue;
-    const nk = key(b.x + DX[d], b.y + DY[d]);
-    const n = belts.get(nk);
-    if (n && !hasOutput(n, opposite(d))) out.push(nk);
+    const n = src.laneAt(b.x + DX[d], b.y + DY[d], axisOf(d));
+    if (n && !hasOutput(n.belt, opposite(d))) out.push(n.node);
   }
   return out;
 }
 
 /**
- * Downstream-first processing order: iterative DFS post-order, starting from belts in
+ * Downstream-first processing order: iterative DFS post-order, starting from nodes in
  * increasing key order. Cycles are broken deterministically: in a pure loop, the smallest
  * key is processed last, i.e. the edge into it is the one cut.
  */
-export function computeNetwork(belts: Map<number, Belt>): BeltNetwork {
-  const keys = [...belts.keys()].sort((a, b) => a - b);
-  const inputs = new Map<number, number[]>();
+export function computeNetwork(src: NetworkSource): BeltNetwork {
+  const all = [...src.nodes()].sort((a, b) => a[0] - b[0]);
   const edges = new Map<number, number[]>();
-  for (const k of keys) {
-    const b = belts.get(k);
-    if (!b) continue;
-    const down = downstreamOf(belts, b);
-    edges.set(k, down);
-  }
-  // Inputs in N, E, S, W order of the receiving belt, for a stable merge round-robin.
-  for (const k of keys) {
-    const b = belts.get(k);
-    if (!b) continue;
+  for (const [k, b] of all) edges.set(k, downstreamOf(src, b));
+
+  // Inputs, listed in the N, E, S, W order of the receiving node for a stable round-robin.
+  const inputs = new Map<number, number[]>();
+  const byNode = new Map(all);
+  for (const [k, b] of all) {
     const ins: number[] = [];
     for (const d of DIRS) {
-      const nk = key(b.x + DX[d], b.y + DY[d]);
-      if (edges.get(nk)?.includes(k)) ins.push(nk);
+      const n = src.laneAt(b.x + DX[d], b.y + DY[d], axisOf(d));
+      if (n && edges.get(n.node)?.includes(k)) ins.push(n.node);
     }
     if (ins.length > 0) inputs.set(k, ins);
   }
 
   const order: number[] = [];
-  const state = new Map<number, 1 | 2>(); // 1 = on stack, 2 = done
-  for (const root of keys) {
-    if (state.has(root)) continue;
+  const seen = new Set<number>();
+  for (const [root] of all) {
+    if (seen.has(root)) continue;
     const stack: { k: number; i: number }[] = [{ k: root, i: 0 }];
-    state.set(root, 1);
+    seen.add(root);
     while (stack.length > 0) {
       const top = stack[stack.length - 1];
       if (!top) break;
       const next = edges.get(top.k) ?? [];
       if (top.i < next.length) {
         const child = next[top.i++];
-        if (child !== undefined && !state.has(child)) {
-          state.set(child, 1);
+        if (child !== undefined && !seen.has(child) && byNode.has(child)) {
+          seen.add(child);
           stack.push({ k: child, i: 0 });
         }
       } else {
         stack.pop();
-        state.set(top.k, 2);
         order.push(top.k);
       }
     }

@@ -53,6 +53,15 @@ export function describeTile(world: World, x: number, y: number): string[] {
     );
     return lines;
   }
+  const bridge = world.bridgeAt(x, y);
+  if (bridge) {
+    const lane = (l: typeof bridge.h): string => (l?.item ? num(l.item.value) : t('tip.none'));
+    return [
+      t('tip.bridge'),
+      t('tip.laneH', { item: lane(bridge.h) }),
+      t('tip.laneV', { item: lane(bridge.v) }),
+    ];
+  }
   const belt = world.beltAt(x, y);
   if (belt) {
     const lines = [t('tip.belt')];
