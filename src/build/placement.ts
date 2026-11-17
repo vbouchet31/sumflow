@@ -1,4 +1,5 @@
 import type { BuildingType } from '../config/buildings';
+import { RELAY_MAX } from '../config/balance';
 import { isInBounds, key, type Rot } from '../core/grid';
 import { buildingSize, footprintTiles, type FreeBuildingType } from '../sim/entities';
 import type { Building } from '../sim/entities';
@@ -34,6 +35,13 @@ export function planExtractor(world: World, tx: number, ty: number): BuildingPla
   return { type: 'extractor', x, y, rot: 0, ok, value: d.value };
 }
 
+/** Relays standing on the map (proposal 10). */
+export function relayCount(world: World): number {
+  let n = 0;
+  for (const b of world.state.buildings.values()) if (b.type === 'relay') n++;
+  return n;
+}
+
 /** Origin that centres a rotated footprint on the cursor tile. */
 export function centredOrigin(
   type: BuildingType,
@@ -55,6 +63,7 @@ export function planOperator(
 ): BuildingPlan {
   const ok =
     isBuildingUnlocked(world.state, type) &&
+    (type !== 'relay' || relayCount(world) < RELAY_MAX) &&
     footprintTiles(type, x, y, rot).every((t) => isInBounds(t.x, t.y)) &&
     world.isFootprintFree(type, x, y, rot);
   return { type, x, y, rot, ok };

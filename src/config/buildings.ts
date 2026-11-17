@@ -2,7 +2,15 @@ import type { Dir } from '../core/grid';
 
 /** Building kinds that occupy tiles (belts and bridges are handled separately). */
 export type BuildingType =
-  'hub' | 'extractor' | 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent' | 'storage';
+  | 'hub'
+  | 'extractor'
+  | 'adder'
+  | 'multiplier'
+  | 'subtractor'
+  | 'divider'
+  | 'exponent'
+  | 'storage'
+  | 'relay';
 
 /** Role of a footprint tile (PLAN §6.1). `any` ports follow the building's `anyRole`. */
 export type PortRole = 'A' | 'B' | 'O' | 'Q' | 'R' | 'any' | 'body';
@@ -86,6 +94,8 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
       { x: 1, y: 1, role: 'R', faces: [S, E] },
     ],
   },
+  // Delivery relay: a small remote hub, every face delivers to the hub.
+  relay: { w: 2, h: 2, tiles: block(2), anyRole: 'input', rotatable: false },
   exponent: {
     w: 2,
     h: 2,

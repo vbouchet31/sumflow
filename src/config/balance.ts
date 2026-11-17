@@ -11,7 +11,8 @@ export type PlaceableType =
   | 'divider'
   | 'exponent'
   | 'storage'
-  | 'bridge';
+  | 'bridge'
+  | 'relay';
 
 export type Feature = 'upgrades' | 'priorities';
 
@@ -47,7 +48,7 @@ export const LEVEL_TABLE: readonly LevelDef[] = [
   { target: 174, quantity: 800, reward: x(8) },
   { target: 248, quantity: 1_000, reward: b('subtractor') },
   { target: 324, quantity: 2_000, reward: x(9) },
-  { target: 466, quantity: 3_000, reward: x(11) },
+  { target: 466, quantity: 3_000, reward: b('relay') },
   { target: 594, quantity: 4_000, reward: b('divider') },
   { target: 631, quantity: 5_000, reward: x(12) },
   { target: 727, quantity: 6_000, reward: x(13) },
@@ -86,6 +87,9 @@ export const LEVELS = {
   /** Levels listed in the Levels panel. */
   preview: 12,
 } as const;
+
+/** Delivery relays (proposal 10): how many can stand at once. */
+export const RELAY_MAX = 3;
 
 /** Hub footprint (PLAN §4.2): tiles x, y ∈ [-3, 2]. */
 export const HUB = { x: -3, y: -3, size: 6 } as const;

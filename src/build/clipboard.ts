@@ -1,5 +1,6 @@
+import { relayCount } from './placement';
 import { BUILDINGS } from '../config/buildings';
-import { EDIT } from '../config/balance';
+import { EDIT, RELAY_MAX } from '../config/balance';
 import {
   type Dir,
   isInBounds,
@@ -225,6 +226,8 @@ export function applyPaste(world: World, plan: PastePlan): number {
   for (const b of plan.buildings) {
     // Re-check: an earlier copy of a row may now be in the way.
     if (!b.ok || !world.isFootprintFree(b.type, b.x, b.y, b.rot, b.mirror)) continue;
+    // Relays stay limited when pasted (proposal 10).
+    if (b.type === 'relay' && relayCount(world) >= RELAY_MAX) continue;
     const extra: { extractValue?: number; mirror?: boolean } = { mirror: b.mirror };
     if (b.type === 'extractor') {
       if (b.value === undefined) continue;
