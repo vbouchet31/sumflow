@@ -290,4 +290,14 @@ export const fr = {
   'toast.importError': 'Import impossible : fichier invalide. Rien n’a été modifié.',
   'toast.loadError': 'Sauvegarde illisible : nouvelle partie. L’ancienne est gardée à part.',
   'toast.exported': 'Partie exportée : {file}',
+  'daily.title': 'Défi du jour',
+  'daily.body':
+    'La même carte pour tout le monde aujourd’hui. Atteins le niveau {n} le plus vite possible : ton record est gardé.',
+  'daily.start': 'Lancer le défi du jour',
+  'daily.card': 'Défi du {date}',
+  'daily.goal': 'Objectif : niveau {n}',
+  'daily.done': 'Réussi en {time}',
+  'daily.best': 'Record du jour : {time}',
+  'toast.dailyDone': 'Défi réussi en {time} !',
+  'toast.dailyRecord': 'Nouveau record du jour',
 } as const;

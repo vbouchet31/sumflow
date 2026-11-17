@@ -8,6 +8,7 @@ import {
   type Track,
 } from '../config/balance';
 import { toSeed } from '../core/rng';
+import type { ChallengeState } from './challenge';
 import type { Clip, Marker } from './clip';
 import type { Belt, Bridge, Building } from './entities';
 import { ensureLevels, type GeneratedLevel } from './levels';
@@ -56,6 +57,8 @@ export interface GameState {
   helpSeen: string[];
   /** Clipboard history, most recent first, at most `EDIT.clipboardSize` entries (PLAN §8.2). */
   clipboard: Clip[];
+  /** Daily challenge (proposal 15), or null for a normal game. */
+  challenge: ChallengeState | null;
 }
 
 export const HUB_ID = 0;
@@ -101,6 +104,7 @@ export function createInitialState(seed: number): GameState {
     markers: new Map(),
     helpSeen: [],
     clipboard: [],
+    challenge: null,
   };
   state.levelRequirement = requirementFor(state, 1);
   return state;

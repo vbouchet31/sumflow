@@ -2,10 +2,13 @@ import { LINKS } from '../config/links';
 import { LOCALES, type Locale, type MessageKey, t } from '../i18n';
 import { AUTOSAVE_CHOICES, type AutosaveSeconds, type Settings } from '../save/settings';
 import { el, releaseFocus, trapTab } from './dom';
+import { CHALLENGE_GOAL } from '../sim/challenge';
 import type { HelpTip } from './help';
 
 export interface MenuActions {
   newGame: (seed: number | null) => void;
+  /** Start today's challenge (proposal 15). */
+  dailyChallenge: () => void;
   save: () => void;
   exportGame: () => void;
   importGame: (file: File) => void;
@@ -191,6 +194,13 @@ export class GameMenu {
       el('p', 'menu-note', t('new.warning')),
       this.button('new.start', () => undefined, 'primary-btn'),
     );
+    const daily = el(
+      'div',
+      'menu-daily',
+      el('h3', undefined, t('daily.title')),
+      el('p', 'menu-note', t('daily.body', { n: CHALLENGE_GOAL })),
+      this.button('daily.start', () => this.actions.dailyChallenge(), 'secondary-btn'),
+    );
     const start = form.querySelector('button');
     if (start) start.type = 'submit';
     form.addEventListener('submit', (e) => {
@@ -199,7 +209,7 @@ export class GameMenu {
       const n = Number(text);
       this.actions.newGame(text !== '' && Number.isInteger(n) ? n : null);
     });
-    return [this.header('menu.newGame', true), form];
+    return [this.header('menu.newGame', true), form, daily];
   }
 
   private optionsView(): HTMLElement[] {

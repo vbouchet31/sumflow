@@ -2,6 +2,7 @@ import type { Feature, PlaceableType, Track } from '../config/balance';
 import { TRACKS } from '../config/balance';
 import type { BuildingType } from '../config/buildings';
 import { COORD_MAX, COORD_MIN, type Dir, type Rot } from '../core/grid';
+import type { ChallengeState } from '../sim/challenge';
 import type { Clip } from '../sim/clip';
 
 /** Current save format version (PLAN §11.3). Bump it with a migration (§11.4). */
@@ -88,6 +89,8 @@ export interface SaveData {
   markers: { x: number; y: number; text: string }[];
   clipboard: Clip[];
   helpSeen: string[];
+  /** Daily challenge (proposal 15). Optional: older saves have none. */
+  challenge?: ChallengeState | null;
   camera: { x: number; y: number; zoom: number };
 }
 
@@ -288,6 +291,18 @@ function clip(v: unknown, path: string): Clip {
  * Check that `raw` is a valid save of the current version and return a clean copy
  * (unknown fields dropped). Throws `SaveError` with the path of the first problem.
  */
+function challenge(v: unknown): ChallengeState {
+  const o = obj(v, '$.challenge');
+  const date = str(o['date'], '$.challenge.date');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fail('$.challenge.date');
+  return {
+    date,
+    goalLevel: int(o['goalLevel'], '$.challenge.goalLevel', 1),
+    startTick: int(o['startTick'], '$.challenge.startTick', 0),
+    doneTick: o['doneTick'] === null ? null : int(o['doneTick'], '$.challenge.doneTick', 0),
+  };
+}
+
 export function validateSave(raw: unknown): SaveData {
   const o = obj(raw, '$');
   const version = int(o['version'], '$.version', 1);
@@ -366,6 +381,9 @@ export function validateSave(raw: unknown): SaveData {
     }),
     clipboard: arr(o['clipboard'], '$.clipboard').map((x, i) => clip(x, `$.clipboard[${i}]`)),
     helpSeen: arr(o['helpSeen'], '$.helpSeen').map((x, i) => str(x, `$.helpSeen[${i}]`)),
+    ...(o['challenge'] === undefined || o['challenge'] === null
+      ? {}
+      : { challenge: challenge(o['challenge']) }),
     camera: {
       x: num(cam['x'], '$.camera.x'),
       y: num(cam['y'], '$.camera.y'),

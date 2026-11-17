@@ -22,6 +22,8 @@ import { PerfOverlay } from './ui/perfOverlay';
 import { DebugPanel } from './ui/debugPanel';
 import { EndScreen } from './ui/endScreen';
 import { Hud } from './ui/hud';
+import { ChallengeCard, formatChrono } from './ui/challengeCard';
+import { CHALLENGE_GOAL, challengeDay, challengeSeed } from './sim/challenge';
 import { rewardLabel } from './ui/labels';
 import { watchLayout } from './ui/layout';
 import { LevelsPanel } from './ui/panels/levels';
@@ -155,6 +157,11 @@ async function bootstrap(): Promise<void> {
   topLeft.className = 'top-left';
   uiRoot.append(topLeft);
   const hud = new Hud(topLeft);
+  const bestKey = (date: string): string => `sumflow.daily.${date}`;
+  const challengeCard = new ChallengeCard(topLeft, (date) => {
+    const v = Number(readStorage(bestKey(date)));
+    return Number.isFinite(v) && v > 0 ? v : null;
+  });
   watchLayout(document.documentElement, (layout) => hud.setCompact(layout.compact));
   const goHome = (): void => camera.centerOn(0, 0);
   const levelsPanel = new LevelsPanel(uiRoot, world);
@@ -222,6 +229,17 @@ async function bootstrap(): Promise<void> {
         createInitialState(seed ?? toSeed(Math.random() * 2 ** 32)),
         new DepositMap(0),
       );
+      reloadWith(encodeSaveSync(serialize(fresh, { x: 0, y: 0, zoom: 1 })));
+    },
+    dailyChallenge: () => {
+      const day = challengeDay(new Date());
+      const fresh = new World(createInitialState(challengeSeed(day)), new DepositMap(0));
+      fresh.state.challenge = {
+        date: day,
+        goalLevel: CHALLENGE_GOAL,
+        startTick: 0,
+        doneTick: null,
+      };
       reloadWith(encodeSaveSync(serialize(fresh, { x: 0, y: 0, zoom: 1 })));
     },
     save: () => void saves.save(true),
@@ -309,6 +327,16 @@ async function bootstrap(): Promise<void> {
       reward ? t('toast.unlocked', { reward: rewardLabel(reward) }) : undefined,
     );
     if (final) endScreen.show(world.state);
+  });
+  world.events.on('challengeDone', ({ ticks, date }) => {
+    const prev = Number(readStorage(bestKey(date)));
+    const record = !(prev > 0) || ticks < prev;
+    if (record) writeStorage(bestKey(date), String(ticks));
+    sfx.levelComplete();
+    toasts.show(
+      t('toast.dailyDone', { time: formatChrono(ticks) }),
+      record ? t('toast.dailyRecord') : undefined,
+    );
   });
   world.events.on('upgradeReady', ({ track }) => {
     if (state.autoBuyUpgrades) return;
@@ -435,6 +463,7 @@ async function bootstrap(): Promise<void> {
       });
     }
     hud.update(world);
+    challengeCard.update(state);
     for (const p of panels) p.update();
     topBar.setVisible('upgrades', upgradesAvailable());
     topBar.setBadge(

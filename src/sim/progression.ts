@@ -1,4 +1,5 @@
 import { type Reward, type Track, TRACKS } from '../config/balance';
+import { checkChallenge } from './challenge';
 import { rewardFor } from './levels';
 import { type GameState, requirementFor } from './state';
 import { buyUpgrade, isUpgradeReady, syncUpgradeRequirements } from './upgrades';
@@ -8,6 +9,7 @@ export type ProgressionEvents = {
   levelCompleted: { level: number; reward: Reward | null; final: boolean };
   upgradeReady: { track: Track };
   upgradeBought: { track: Track; level: number };
+  challengeDone: { ticks: number; date: string };
 };
 
 export type Emit = <K extends keyof ProgressionEvents>(
@@ -93,6 +95,7 @@ export function completeLevel(state: GameState, emit?: Emit): void {
     state.levelRequirement = requirementFor(state, state.level);
   }
   emit?.('levelCompleted', { level: done, reward, final });
+  checkChallenge(state, done, emit);
 }
 
 /** Debug: jump to `level`, granting every reward of the levels before it. */
