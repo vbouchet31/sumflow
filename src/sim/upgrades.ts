@@ -14,11 +14,12 @@ import {
   upgradeCost,
 } from '../config/balance';
 import { hash2, mulberry32 } from '../core/rng';
+import { boostFactor } from './contracts';
 import type { GameState, Requirement } from './state';
 
 /** Current belt speed in tiles/s. */
 export function currentBeltSpeed(state: GameState): number {
-  return beltSpeed(state.upgrades.belt);
+  return beltSpeed(state.upgrades.belt) * boostFactor(state);
 }
 
 /** Current extractor output in items/s: capacity (full belts) × belt speed (PLAN §6.3). */

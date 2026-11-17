@@ -1,4 +1,5 @@
 import { type Reward, type Track, TRACKS } from '../config/balance';
+import { deliverToContract } from './contracts';
 import { rewardFor } from './levels';
 import { type GameState, requirementFor } from './state';
 import { buyUpgrade, isUpgradeReady, syncUpgradeRequirements } from './upgrades';
@@ -8,6 +9,9 @@ export type ProgressionEvents = {
   levelCompleted: { level: number; reward: Reward | null; final: boolean };
   upgradeReady: { track: Track };
   upgradeBought: { track: Track; level: number };
+  contractOffered: { value: number; required: number };
+  contractCompleted: { value: number };
+  contractExpired: { value: number };
 };
 
 export type Emit = <K extends keyof ProgressionEvents>(
@@ -37,6 +41,7 @@ export function deliver(state: GameState, value: number, emit?: Emit): void {
       if (state.autoBuyUpgrades) purchase(state, track, emit);
     }
   }
+  deliverToContract(state, value, emit);
   const req = state.levelRequirement;
   if (req && req.value === value && req.delivered < req.required) {
     req.delivered += 1;

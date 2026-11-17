@@ -22,6 +22,7 @@ import { PerfOverlay } from './ui/perfOverlay';
 import { DebugPanel } from './ui/debugPanel';
 import { EndScreen } from './ui/endScreen';
 import { Hud } from './ui/hud';
+import { ContractCard } from './ui/contractCard';
 import { rewardLabel } from './ui/labels';
 import { watchLayout } from './ui/layout';
 import { LevelsPanel } from './ui/panels/levels';
@@ -155,6 +156,7 @@ async function bootstrap(): Promise<void> {
   topLeft.className = 'top-left';
   uiRoot.append(topLeft);
   const hud = new Hud(topLeft);
+  const contractCard = new ContractCard(topLeft);
   watchLayout(document.documentElement, (layout) => hud.setCompact(layout.compact));
   const goHome = (): void => camera.centerOn(0, 0);
   const levelsPanel = new LevelsPanel(uiRoot, world);
@@ -310,6 +312,17 @@ async function bootstrap(): Promise<void> {
     );
     if (final) endScreen.show(world.state);
   });
+  world.events.on('contractOffered', ({ value, required }) => {
+    sfx.upgradeReady();
+    toasts.show(t('toast.contractOffered', { n: required, value }));
+  });
+  world.events.on('contractCompleted', () => {
+    sfx.levelComplete();
+    toasts.show(t('toast.contractDone'));
+  });
+  world.events.on('contractExpired', ({ value }) => {
+    toasts.show(t('toast.contractExpired', { value }));
+  });
   world.events.on('upgradeReady', ({ track }) => {
     if (state.autoBuyUpgrades) return;
     sfx.upgradeReady();
@@ -435,6 +448,7 @@ async function bootstrap(): Promise<void> {
       });
     }
     hud.update(world);
+    contractCard.update(state);
     for (const p of panels) p.update();
     topBar.setVisible('upgrades', upgradesAvailable());
     topBar.setBadge(

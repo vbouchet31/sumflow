@@ -3,6 +3,7 @@ import { TRACKS } from '../config/balance';
 import type { BuildingType } from '../config/buildings';
 import { COORD_MAX, COORD_MIN, type Dir, type Rot } from '../core/grid';
 import type { Clip } from '../sim/clip';
+import type { Contract, ContractState } from '../sim/contracts';
 
 /** Current save format version (PLAN §11.3). Bump it with a migration (§11.4). */
 export const SAVE_VERSION = 1;
@@ -88,6 +89,8 @@ export interface SaveData {
   markers: { x: number; y: number; text: string }[];
   clipboard: Clip[];
   helpSeen: string[];
+  /** Hub contracts (proposal 04). Optional: older saves have none. */
+  contracts?: ContractState;
   camera: { x: number; y: number; zoom: number };
 }
 
@@ -288,6 +291,28 @@ function clip(v: unknown, path: string): Clip {
  * Check that `raw` is a valid save of the current version and return a clean copy
  * (unknown fields dropped). Throws `SaveError` with the path of the first problem.
  */
+function contracts(v: unknown): ContractState {
+  const o = obj(v, '$.contracts');
+  let current: Contract | null = null;
+  if (o['current'] !== null) {
+    const c = obj(o['current'], '$.contracts.current');
+    current = {
+      index: int(c['index'], '$.contracts.current.index', 1),
+      value: int32(c['value'], '$.contracts.current.value'),
+      required: int(c['required'], '$.contracts.current.required', 1),
+      delivered: int(c['delivered'], '$.contracts.current.delivered', 0),
+      endsAt: int(c['endsAt'], '$.contracts.current.endsAt', 0),
+    };
+  }
+  return {
+    current,
+    nextAt: int(o['nextAt'], '$.contracts.nextAt', -1),
+    boostUntil: int(o['boostUntil'], '$.contracts.boostUntil', 0),
+    completed: int(o['completed'], '$.contracts.completed', 0),
+    failed: int(o['failed'], '$.contracts.failed', 0),
+  };
+}
+
 export function validateSave(raw: unknown): SaveData {
   const o = obj(raw, '$');
   const version = int(o['version'], '$.version', 1);
@@ -366,6 +391,7 @@ export function validateSave(raw: unknown): SaveData {
     }),
     clipboard: arr(o['clipboard'], '$.clipboard').map((x, i) => clip(x, `$.clipboard[${i}]`)),
     helpSeen: arr(o['helpSeen'], '$.helpSeen').map((x, i) => str(x, `$.helpSeen[${i}]`)),
+    ...(o['contracts'] === undefined ? {} : { contracts: contracts(o['contracts']) }),
     camera: {
       x: num(cam['x'], '$.camera.x'),
       y: num(cam['y'], '$.camera.y'),

@@ -1312,3 +1312,48 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Hub contracts (proposal 04). */
+.contract-card {
+  min-width: 200px;
+  max-width: 280px;
+  padding: 10px 14px 12px;
+  border-radius: 10px;
+  background: rgb(10 14 26 / 88%);
+  border: 1px solid #b8862e;
+  pointer-events: none;
+}
+.contract-card.is-boost {
+  border-color: #48c774;
+  box-shadow: 0 0 14px rgb(72 199 116 / 35%);
+}
+.contract-title {
+  color: #f2c46d;
+  font: 700 13px var(--font-ui);
+}
+.contract-card.is-boost .contract-title {
+  color: #7fe0a2;
+  font-size: 16px;
+}
+.contract-order {
+  margin-top: 4px;
+  font: 700 15px/1.4 var(--font-num);
+  white-space: pre;
+}
+.contract-bar {
+  height: 6px;
+  margin: 6px 0;
+  border-radius: 3px;
+  background: #4a3a1c;
+  overflow: hidden;
+}
+.contract-bar-fill {
+  height: 100%;
+  width: 0;
+  background: #f2c46d;
+  transition: width 0.2s;
+}
+.contract-info {
+  color: var(--muted);
+  font: 13px/1.4 var(--font-ui);
+}
