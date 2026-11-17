@@ -2,7 +2,15 @@ import type { Dir } from '../core/grid';
 
 /** Building kinds that occupy tiles (belts and bridges are handled separately). */
 export type BuildingType =
-  'hub' | 'extractor' | 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent' | 'storage';
+  | 'hub'
+  | 'extractor'
+  | 'adder'
+  | 'multiplier'
+  | 'subtractor'
+  | 'divider'
+  | 'exponent'
+  | 'concat'
+  | 'storage';
 
 /** Role of a footprint tile (PLAN §6.1). `any` ports follow the building's `anyRole`. */
 export type PortRole = 'A' | 'B' | 'O' | 'Q' | 'R' | 'any' | 'body';
@@ -84,6 +92,19 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
       { x: 1, y: 0, role: 'B', faces: [N, E] },
       { x: 0, y: 1, role: 'Q', faces: [W, S] },
       { x: 1, y: 1, role: 'R', faces: [S, E] },
+    ],
+  },
+  // Concatenator: A above B on the left, the joined number leaves on the right (A then B,
+  // read left to right).
+  concat: {
+    w: 2,
+    h: 2,
+    rotatable: true,
+    tiles: [
+      { x: 0, y: 0, role: 'A', faces: [N, W] },
+      { x: 0, y: 1, role: 'B', faces: [W, S] },
+      { x: 1, y: 0, role: 'O', faces: [N, E] },
+      { x: 1, y: 1, role: 'O', faces: [E, S] },
     ],
   },
   exponent: {

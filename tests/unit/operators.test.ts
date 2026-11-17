@@ -29,6 +29,7 @@ describe('operator results', () => {
   it('computes each operation with A/B order', () => {
     expect(compute('adder', 3, 4)).toEqual({ o: 7 });
     expect(compute('multiplier', 3, 4)).toEqual({ o: 12 });
+    expect(compute('concat', 3, 4)).toEqual({ o: 34 });
     expect(compute('subtractor', 3, 4)).toEqual({ o: -1 });
     expect(compute('subtractor', 4, 3)).toEqual({ o: 1 });
     expect(compute('exponent', 2, 5)).toEqual({ o: 32 });

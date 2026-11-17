@@ -207,6 +207,7 @@ export function installDebugApi(ctx: DebugContext): void {
         'subtractor',
         'divider',
         'exponent',
+        'concat',
         'storage',
         'bridge',
       ] as const)

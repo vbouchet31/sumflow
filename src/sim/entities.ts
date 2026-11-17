@@ -99,7 +99,8 @@ export interface Building {
   storeCount?: number;
 }
 
-export type OperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent';
+export type OperatorType =
+  'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent' | 'concat';
 
 export const OPERATOR_TYPES: readonly OperatorType[] = [
   'adder',
@@ -107,6 +108,7 @@ export const OPERATOR_TYPES: readonly OperatorType[] = [
   'subtractor',
   'divider',
   'exponent',
+  'concat',
 ];
 
 export function isOperator(type: string): type is OperatorType {
