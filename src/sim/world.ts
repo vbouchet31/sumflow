@@ -20,6 +20,7 @@ import { computeNetwork, type BeltNetwork } from './network';
 import type { OutputGroup } from './outputs';
 import type { Emit, ProgressionEvents } from './progression';
 import type { GameState } from './state';
+import { DEFAULT_SORT_RULE, type SortRule } from './sorter';
 import { DeliveryStats } from './stats';
 
 export type SimEvents = ProgressionEvents & {
@@ -309,6 +310,11 @@ export class World {
     b.priority = portKey;
   }
 
+  /** Change a sorter's rule (proposal 03). Not part of undo: it is a setting, not layout. */
+  setSortRule(b: Building, rule: SortRule): void {
+    if (b.type === 'sorter') b.rule = { ...rule };
+  }
+
   /** Create, edit (non-empty text) or delete (null or empty text) the marker of a tile. */
   setMarker(x: number, y: number, text: string | null): void {
     const k = key(x, y);
@@ -465,6 +471,7 @@ export class World {
       b.extractValue = s.extractValue;
       b.extractAcc = 0;
     }
+    if (s.type === 'trash') b.trashCount = 0;
     if (s.type === 'storage') {
       b.storeValue = null;
       b.storeCount = 0;
@@ -473,7 +480,8 @@ export class World {
       b.inA = [];
       b.inB = [];
       b.cycle = -1;
-      if (s.type === 'divider') {
+      if (s.type === 'sorter') b.rule = { ...DEFAULT_SORT_RULE };
+      if (s.type === 'divider' || s.type === 'sorter') {
         b.outQ = [];
         b.outR = [];
       } else {

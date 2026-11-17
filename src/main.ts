@@ -33,6 +33,8 @@ import { TRACKS } from './config/balance';
 import { isTrackUnlocked, isUpgradeReady } from './sim/upgrades';
 import { StatusBar } from './ui/statusBar';
 import { MarkerEditor } from './ui/markerEditor';
+import { SorterEditor } from './ui/sorterEditor';
+import { DEFAULT_SORT_RULE } from './sim/sorter';
 import { ToolActions } from './ui/toolActions';
 import { describeTile, Tooltip } from './ui/tooltip';
 import { t } from './i18n';
@@ -127,11 +129,19 @@ async function bootstrap(): Promise<void> {
   const sfx = new Sfx();
   const saves = new SaveManager(world, camera);
   let markerEditor: MarkerEditor | null = null;
+  let sorterEditor: SorterEditor | null = null;
   const tools = new ToolController(world, {
     onBuild: () => sfx.place(),
     onDemolish: () => sfx.demolish(),
     onError: () => sfx.error(),
     onClear: (n) => (n > 0 ? sfx.demolish() : sfx.error()),
+    onSorter: (b) => {
+      sorterEditor?.open(b.rule ?? DEFAULT_SORT_RULE, (rule) => {
+        if (!rule) return;
+        world.setSortRule(b, rule);
+        sfx.place();
+      });
+    },
     onMarker: (x, y, text) => {
       markerEditor?.open(text, (value) => {
         if (value === null) return;
@@ -205,6 +215,7 @@ async function bootstrap(): Promise<void> {
     }
   });
   markerEditor = new MarkerEditor(uiRoot);
+  sorterEditor = new SorterEditor(uiRoot);
   const help = new HelpBubble(topLeft, state);
   const catchUpBar = new CatchUpBar(uiRoot);
   const perfOverlay = new PerfOverlay(uiRoot);
@@ -353,7 +364,11 @@ async function bootstrap(): Promise<void> {
       onQuickDemolish: () => tools.deletePressed(),
       onTogglePause: togglePause,
     },
-    () => menu.isOpen || endScreen.isOpen || (markerEditor?.isOpen ?? false),
+    () =>
+      menu.isOpen ||
+      endScreen.isOpen ||
+      (markerEditor?.isOpen ?? false) ||
+      (sorterEditor?.isOpen ?? false),
   );
   const pointer = new PointerInput(canvas, camera, {
     onDown: (x, y, mods) => tools.pointerDown(x, y, mods),

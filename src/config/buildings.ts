@@ -2,7 +2,16 @@ import type { Dir } from '../core/grid';
 
 /** Building kinds that occupy tiles (belts and bridges are handled separately). */
 export type BuildingType =
-  'hub' | 'extractor' | 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent' | 'storage';
+  | 'hub'
+  | 'extractor'
+  | 'adder'
+  | 'multiplier'
+  | 'subtractor'
+  | 'divider'
+  | 'exponent'
+  | 'storage'
+  | 'sorter'
+  | 'trash';
 
 /** Role of a footprint tile (PLAN §6.1). `any` ports follow the building's `anyRole`. */
 export type PortRole = 'A' | 'B' | 'O' | 'Q' | 'R' | 'any' | 'body';
@@ -86,6 +95,21 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
       { x: 1, y: 1, role: 'R', faces: [S, E] },
     ],
   },
+  // Sorter: items enter top left; matching ones leave by ✓ (Q), the others by ✗ (R).
+  // A single input tile: two belts feeding one buffer directly would starve each other.
+  sorter: {
+    w: 2,
+    h: 2,
+    rotatable: true,
+    tiles: [
+      { x: 0, y: 0, role: 'A', faces: [N, W] },
+      { x: 1, y: 0, role: 'body', faces: [] },
+      { x: 0, y: 1, role: 'Q', faces: [W, S] },
+      { x: 1, y: 1, role: 'R', faces: [S, E] },
+    ],
+  },
+  // Incinerator: swallows whatever enters on any face.
+  trash: { w: 1, h: 1, tiles: block(1), anyRole: 'input', rotatable: false },
   exponent: {
     w: 2,
     h: 2,

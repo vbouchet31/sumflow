@@ -20,6 +20,7 @@ export type Target =
   | { kind: 'belt'; belt: Belt; node: number; from: Dir }
   | { kind: 'hub' }
   | { kind: 'storage'; building: Building }
+  | { kind: 'trash'; building: Building }
   | { kind: 'port'; building: Building; port: PortKind; face: number }
   | { kind: 'none' }
   | { kind: 'blocked' };
@@ -47,6 +48,7 @@ export function resolveTarget(world: World, x: number, y: number, d: Dir): Targe
   }
   if (ref && isInputKind(ref.port.kind)) {
     if (ref.building.type === 'hub') return { kind: 'hub' };
+    if (ref.building.type === 'trash') return { kind: 'trash', building: ref.building };
     return {
       kind: 'port',
       building: ref.building,
@@ -100,6 +102,9 @@ export function offer(
       return true;
     case 'storage':
       return storeItem(target.building, value);
+    case 'trash':
+      target.building.trashCount = (target.building.trashCount ?? 0) + 1;
+      return true;
     case 'port': {
       const buf = inputBuffer(target.building, target.port);
       if (!buf || buf.length >= INPUT_BUFFER_SIZE) return false;

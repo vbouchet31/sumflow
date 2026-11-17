@@ -1,7 +1,9 @@
 import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT, type Track } from '../config/balance';
+import { DEFAULT_SORT_RULE, matchesRule } from './sorter';
+import { currentBeltSpeed } from './upgrades';
 import { add, divmod, mul, pow, sub } from '../core/intmath';
 import { EPS } from './belts';
-import { type Building, isOperator, type OperatorType } from './entities';
+import { type Building, isOperator, isUnary, type OperatorType } from './entities';
 import { outputGroup, pushOut } from './outputs';
 import type { World } from './world';
 
@@ -12,6 +14,7 @@ export const OPERATOR_TRACK: Record<OperatorType, Track> = {
   subtractor: 'subdiv',
   divider: 'subdiv',
   exponent: 'exponent',
+  sorter: 'belt',
 };
 
 /** Result(s) of one operation. The divider emits R only when non-zero (PLAN §6.3). */
@@ -29,6 +32,9 @@ export function compute(
       return { o: sub(a, b) };
     case 'exponent':
       return { o: pow(a, b) };
+    case 'sorter':
+      // The rule is applied in `finishCycle`: here every item matches.
+      return { q: a };
     case 'divider': {
       const { q, r } = divmod(a, b);
       return r === 0 ? { q } : { q, r };
@@ -38,6 +44,8 @@ export function compute(
 
 /** Seconds per operation for a building, from its track's upgrade level. */
 export function cycleDuration(world: World, type: OperatorType): number {
+  // The sorter keeps pace with the belts: one item per belt step.
+  if (type === 'sorter') return 1 / currentBeltSpeed(world.state);
   const track = OPERATOR_TRACK[type];
   return 1 / operatorSpeed(track, world.state.upgrades[track]);
 }
@@ -47,15 +55,26 @@ function hasRoom(buf: number[] | undefined): boolean {
 }
 
 function canStart(b: Building): boolean {
-  if (!b.inA?.length || !b.inB?.length) return false;
+  if (!b.inA?.length) return false;
+  if (!isUnary(b.type) && !b.inB?.length) return false;
+  if (b.type === 'sorter') {
+    // Only the side the next item goes to needs room: a full ✗ never blocks ✓ items.
+    const next = b.inA[0] as number;
+    return hasRoom(matchesRule(b.rule ?? DEFAULT_SORT_RULE, next) ? b.outQ : b.outR);
+  }
   if (b.type === 'divider') return hasRoom(b.outQ) && hasRoom(b.outR);
   return hasRoom(b.out);
 }
 
 function finishCycle(world: World, b: Building, type: OperatorType): void {
   const a = b.inA?.shift();
-  const c = b.inB?.shift();
+  const c = isUnary(type) ? 0 : b.inB?.shift();
   if (a === undefined || c === undefined) return;
+  if (type === 'sorter') {
+    (matchesRule(b.rule ?? DEFAULT_SORT_RULE, a) ? b.outQ : b.outR)?.push(a);
+    b.flashTick = world.state.tick;
+    return;
+  }
   const res = compute(type, a, c);
   if (res.o !== undefined) b.out?.push(res.o);
   if (res.q !== undefined) b.outQ?.push(res.q);

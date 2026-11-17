@@ -3,6 +3,7 @@ import { TRACKS } from '../config/balance';
 import type { BuildingType } from '../config/buildings';
 import { COORD_MAX, COORD_MIN, type Dir, type Rot } from '../core/grid';
 import type { Clip } from '../sim/clip';
+import { SORT_RULE_KINDS, type SortRuleKind } from '../sim/sorter';
 
 /** Current save format version (PLAN §11.3). Bump it with a migration (§11.4). */
 export const SAVE_VERSION = 1;
@@ -53,6 +54,8 @@ export interface SavedBuilding {
   cycle?: number;
   storeValue?: number | null;
   storeCount?: number;
+  rule?: { kind: SortRuleKind; n: number };
+  trashCount?: number;
 }
 
 export interface SavedRequirement {
@@ -150,6 +153,8 @@ const ints = (v: unknown, path: string): number[] =>
   arr(v, path).map((x, i) => int32(x, `${path}[${i}]`));
 
 const PLACEABLE: readonly PlaceableType[] = [
+  'trash',
+  'sorter',
   'extractor',
   'adder',
   'multiplier',
@@ -161,6 +166,8 @@ const PLACEABLE: readonly PlaceableType[] = [
 ];
 const FEATURES: readonly Feature[] = ['upgrades', 'priorities'];
 const BUILDING_TYPES: readonly BuildingType[] = [
+  'trash',
+  'sorter',
   'hub',
   'extractor',
   'adder',
@@ -230,6 +237,14 @@ function building(v: unknown, path: string): SavedBuilding {
     b.storeValue = o['storeValue'] === null ? null : int32(o['storeValue'], `${path}.storeValue`);
   }
   if (o['storeCount'] !== undefined) b.storeCount = int(o['storeCount'], `${path}.storeCount`, 0);
+  if (o['rule'] !== undefined) {
+    const r = obj(o['rule'], `${path}.rule`);
+    b.rule = {
+      kind: oneOf(r['kind'], SORT_RULE_KINDS, `${path}.rule.kind`),
+      n: int32(r['n'], `${path}.rule.n`),
+    };
+  }
+  if (o['trashCount'] !== undefined) b.trashCount = int(o['trashCount'], `${path}.trashCount`, 0);
   return b;
 }
 

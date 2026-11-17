@@ -11,6 +11,7 @@ export const OPERATOR_SYMBOL: Record<OperatorType, string> = {
   subtractor: '−',
   divider: '÷',
   exponent: '^',
+  sorter: '⑂',
 };
 
 /** Mix a #rrggbb colour toward black (f < 0) or white (f > 0). */
@@ -42,6 +43,14 @@ export interface OperatorDrawOptions {
   tint?: string;
   /** Mirrored building (mirror applied before the rotation). */
   mirror?: boolean;
+  /** Text drawn at the centre instead of the operator symbol (sorter rule). */
+  centerText?: string;
+}
+
+/** Port letters; the sorter shows ✓ / ✗ on its outputs and nothing on its inputs. */
+function portLabel(type: OperatorType, role: string): string {
+  if (type !== 'sorter') return role;
+  return role === 'Q' ? '✓' : role === 'R' ? '✗' : '';
 }
 
 /**
@@ -115,17 +124,29 @@ export function drawOperator(
       // Push letters away from a symbol at a tile corner; none needed when it sits on a tile.
       const push = def.tiles.length < def.w * def.h ? 0 : 0.14 * s;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
-      ctx.fillText(t.role, tc.x + (vx / len2) * push, tc.y + (vy / len2) * push);
+      const label = portLabel(type, t.role);
+      if (label) ctx.fillText(label, tc.x + (vx / len2) * push, tc.y + (vy / len2) * push);
     }
 
     // Operator symbol in a disc at the centre of the footprint box.
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, 0.36 * s, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = COLORS.text;
-    ctx.font = `700 ${0.62 * s}px ${FONT_NUM}`;
-    ctx.fillText(OPERATOR_SYMBOL[type], center.x, center.y + 0.04 * s);
+    if (opts.centerText) {
+      ctx.font = `700 ${0.36 * s}px ${FONT_NUM}`;
+      const w = Math.max(0.72 * s, ctx.measureText(opts.centerText).width + 0.24 * s);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.beginPath();
+      ctx.roundRect(center.x - w / 2, center.y - 0.24 * s, w, 0.48 * s, 0.16 * s);
+      ctx.fill();
+      ctx.fillStyle = COLORS.text;
+      ctx.fillText(opts.centerText, center.x, center.y + 0.02 * s);
+    } else {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, 0.36 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = COLORS.text;
+      ctx.font = `700 ${0.62 * s}px ${FONT_NUM}`;
+      ctx.fillText(OPERATOR_SYMBOL[type], center.x, center.y + 0.04 * s);
+    }
   }
 
   if (opts.flash && opts.flash > 0) {
