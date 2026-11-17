@@ -46,7 +46,8 @@ export function resolveTarget(world: World, x: number, y: number, d: Dir): Targe
     return { kind: 'storage', building: ref.building };
   }
   if (ref && isInputKind(ref.port.kind)) {
-    if (ref.building.type === 'hub') return { kind: 'hub' };
+    // A relay delivers to the hub from afar (proposal 10).
+    if (ref.building.type === 'hub' || ref.building.type === 'relay') return { kind: 'hub' };
     return {
       kind: 'port',
       building: ref.building,

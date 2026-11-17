@@ -114,10 +114,10 @@ export function isOperator(type: string): type is OperatorType {
 }
 
 /** Buildings placed freely with the generic tool (centred ghost, rows by dragging). */
-export type FreeBuildingType = OperatorType | 'storage';
+export type FreeBuildingType = OperatorType | 'storage' | 'relay';
 
 export function isFreeBuilding(type: string): type is FreeBuildingType {
-  return type === 'storage' || isOperator(type);
+  return type === 'storage' || type === 'relay' || isOperator(type);
 }
 
 export type PortKind = 'A' | 'B' | 'O' | 'Q' | 'R' | 'in' | 'out' | 'dynamic';

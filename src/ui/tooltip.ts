@@ -1,4 +1,5 @@
-import { STORAGE_CAPACITY } from '../config/balance';
+import { RELAY_MAX, STORAGE_CAPACITY } from '../config/balance';
+import { relayCount } from '../build/placement';
 import { formatFull } from '../core/format';
 import { key } from '../core/grid';
 import { getLocale, t } from '../i18n';
@@ -52,6 +53,13 @@ function describeObject(world: World, x: number, y: number): string[] {
         ? t('tip.storeValue', { value: num(b.storeValue) })
         : t('tip.storeEmpty'),
       t('tip.storeFill', { n: num(count), max: num(STORAGE_CAPACITY) }),
+    ];
+  }
+  if (b?.type === 'relay') {
+    return [
+      t('tool.relay'),
+      t('tip.relay'),
+      t('tip.relayCount', { n: relayCount(world), max: RELAY_MAX }),
     ];
   }
   if (b && isOperator(b.type)) {
