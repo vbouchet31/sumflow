@@ -56,6 +56,27 @@ describe('Camera', () => {
     expect(cam.x).toBe(COORD_MAX);
   });
 
+  it('pinch keeps the world point under the fingers and follows their midpoint', () => {
+    const cam = makeCamera();
+    cam.x = 3;
+    cam.y = -2;
+    const grabbed = cam.screenToWorld(300, 200);
+    cam.pinch(300, 200, 340, 260, 1.8);
+    expect(cam.zoom).toBeCloseTo(1.8);
+    const now = cam.worldToScreen(grabbed.x, grabbed.y);
+    expect(now.x).toBeCloseTo(340);
+    expect(now.y).toBeCloseTo(260);
+  });
+
+  it('pinch with a constant finger distance only pans, and zoom stays clamped', () => {
+    const cam = makeCamera();
+    cam.pinch(100, 100, 100 + TILE_PX, 100, 1);
+    expect(cam.zoom).toBe(1);
+    expect(cam.x).toBeCloseTo(-1);
+    cam.pinch(100, 100, 100, 100, 1000);
+    expect(cam.zoom).toBe(CAMERA.maxZoom);
+  });
+
   it('returns the visible tile range', () => {
     const cam = makeCamera();
     const v = cam.visibleTiles();

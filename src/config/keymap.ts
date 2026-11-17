@@ -65,5 +65,13 @@ export const CAMERA = {
   wheelZoomRate: 0.0015,
 } as const;
 
+/** Touch gestures (PLAN-tactile §3.2). */
+export const TOUCH = {
+  /** Movement, in CSS pixels, under which a press is still a tap and not a drag. */
+  slopPx: 10,
+  /** Time a finger must stay still for a long press. */
+  longPressMs: 450,
+} as const;
+
 /** Base size of a tile in CSS pixels at zoom 1 (PLAN §4.1). */
 export const TILE_PX = 32;

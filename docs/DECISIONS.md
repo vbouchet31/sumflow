@@ -150,3 +150,15 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Contraste** : vérifié par un test e2e qui calcule le rapport de chaque texte du DOM sur son fond réel (couches translucides composées sur le fond du canvas). Les boutons désactivés sont exclus, comme dans WCAG. Aucune couleur n'a dû être changée.
 - **Clavier** : fermer un panneau ou une fenêtre retire le focus de ses éléments (sinon l'`Échap` suivant était avalé par l'élément masqué). Un clic à la souris sur un bouton rend le clavier au jeu ; une activation au clavier garde le focus sur le bouton.
 - **Lighthouse** : pas ajouté aux dépendances (liste fermée du §1.6) ni à la CI. À lancer à la main avec `npx lighthouse`.
+
+## Tactile (PLAN-tactile.md)
+
+- **Cible** : tablette et téléphone en paysage d'abord. Téléphone portrait utilisable, sans plus.
+- **Par type de pointeur, pas par appareil** : `pointerType` décide (`mouse` d'un côté, `touch` et `pen` de l'autre). Une souris branchée sur une tablette marche comme sur un PC.
+- **Modèle de gestes** : sans outil, un doigt déplace la carte ; avec un outil, il construit. Deux doigts déplacent et zooment toujours. Le choix est fait quand le doigt se pose (changer d'outil pendant un geste ne le change pas).
+- **Seuil de 10 px** avant qu'un appui devienne un glisser. Un appui bref agit sur la tuile touchée en premier, même si le doigt a un peu glissé.
+- **Rien n'est posé avant le relâchement**, donc un deuxième doigt annule sans trace dans l'historique. Après un pincement, le doigt restant ne fait que déplacer la carte : lever un doigt ne pose jamais rien.
+- **Le fantôme apparaît dès que le doigt se pose** (avec un outil) et disparaît quand il se lève : il n'y a pas de tuile survolée sur un écran tactile.
+- **Appui long** : 450 ms sans dépasser le seuil. Il abandonne l'appui en cours avant de se déclencher.
+- **Pas de minuteur dans les gestes** : `Gestures.update(now)` est appelé à chaque image, avec l'horloge des événements. Tout est testable sans DOM.
+- **Outils sans glisser (extracteur, pont, priorité, marqueur)** : un doigt qui glisse déplace le fantôme, l'objet est posé là où le doigt se lève. Cela permet d'ajuster la position avant de lâcher.

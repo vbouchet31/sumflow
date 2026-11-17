@@ -9,7 +9,7 @@ import { PerfMeter } from './debug/perfMeter';
 import { countItems } from './debug/reference';
 import { detectLocale, getLocale, setLocale } from './i18n';
 import { Keyboard } from './input/keyboard';
-import { Mouse } from './input/mouse';
+import { PointerInput } from './input/pointer';
 import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
 import { SimLoop } from './sim/loop';
@@ -316,11 +316,14 @@ async function bootstrap(): Promise<void> {
     },
     () => menu.isOpen || endScreen.isOpen || (markerEditor?.isOpen ?? false),
   );
-  const mouse = new Mouse(canvas, camera, {
+  const pointer = new PointerInput(canvas, camera, {
     onDown: (x, y, mods) => tools.pointerDown(x, y, mods),
     onMove: (x, y, mods) => tools.pointerMove(x, y, mods),
     onUp: (x, y, mods) => tools.pointerUp(x, y, mods),
     onCancel: () => tools.pointerCancel(),
+    onLeave: () => tools.clearHover(),
+    // Touch: with a tool one finger builds, without one it moves the map.
+    buildsOnDrag: () => tools.tool !== 'none',
     onWheel: (delta, mods) => {
       if (!mods.shift || tools.tool !== 'paste') return false;
       // Accumulate so a trackpad does not skip through the history.
@@ -357,9 +360,13 @@ async function bootstrap(): Promise<void> {
       // Keys move the view, so the world moves the opposite way.
       camera.panScreen((-pan.dx / len) * speed, (-pan.dy / len) * speed);
     }
-    // Keep the drag preview in sync with Ctrl even when the mouse is still.
-    const hover = mouse.tileAt(mouse.x, mouse.y);
-    tools.pointerMove(hover.x, hover.y, { ctrl: keyboard.ctrl, shift: false, alt: false });
+    pointer.update(now);
+    const hover = pointer.tileAt(pointer.x, pointer.y);
+    // Keep the drag preview in sync with Ctrl even when the mouse is still. A finger
+    // leaves no hovered tile behind: the gestures drive the tools themselves.
+    if (pointer.hovering) {
+      tools.pointerMove(hover.x, hover.y, { ctrl: keyboard.ctrl, shift: false, alt: false });
+    }
 
     const simStart = performance.now();
     const ticks = loop.advance(dt, () => performance.now() - simStart > CATCH_UP.frameBudgetMs);
@@ -395,9 +402,9 @@ async function bootstrap(): Promise<void> {
     saves.update();
     statusBar.update(
       saves.lastSavedAt === null ? null : now - saves.lastSavedAt,
-      mouse.inside ? hover : null,
+      pointer.inside ? hover : null,
     );
-    tooltip.update(mouse.inside ? describeTile(world, hover.x, hover.y) : []);
+    tooltip.update(pointer.inside ? describeTile(world, hover.x, hover.y) : []);
     debugPanel?.update({
       seed: state.seed,
       tick: state.tick,

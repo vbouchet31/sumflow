@@ -22,11 +22,20 @@ Cible : tablette et téléphone en paysage d'abord. Branche `dev-mobile`.
 | Jalon                            | État       |
 | -------------------------------- | ---------- |
 | T0 Plomberie                     | ✅ terminé |
-| T1 Gestes caméra et construction | à faire    |
+| T1 Gestes caméra et construction | ✅ terminé |
 | T2 Remplacement du clavier       | à faire    |
 | T3 Mise en page                  | à faire    |
 | T4 Confort                       | à faire    |
 | T5 Installation                  | à faire    |
+
+### T1 : détail
+
+- [x] `src/input/gestures.ts` : machine à états sans DOM ni minuteur (`pending`, `build`, `pan`, `pinch`, `spent`), testée sous Node.
+- [x] `src/input/pointer.ts` remplace `mouse.ts` : la souris garde son chemin (boutons, molette), le doigt et le stylet au contact passent par les gestes. Un stylet en survol déplace le fantôme comme une souris.
+- [x] Sans outil : un doigt déplace la carte. Avec un outil : un doigt construit. Deux doigts déplacent et zooment (`Camera.pinch`), et abandonnent le tracé en cours.
+- [x] Le fantôme disparaît quand le doigt se lève (`ToolController.clearHover`).
+- [x] Les blocs en lecture seule (HUD, info-bulle, état, toasts) laissent passer clics et touches vers la carte : la règle `#ui-root > *` écrasait leur `pointer-events: none`.
+- [x] Tests : `gestures.test.ts`, pincement dans `camera.test.ts`, `touch.spec.ts` sur les trois gabarits (déplacement, pincement, tracé, deuxième doigt, souris sur appareil tactile).
 
 ### T0 : détail
 

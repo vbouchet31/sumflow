@@ -53,6 +53,16 @@ export class Camera {
     this.clampPosition();
   }
 
+  /**
+   * One step of a two-finger gesture: the fingers' midpoint went from `(px, py)` to
+   * `(cx, cy)` and their distance was multiplied by `factor`. The world point that was
+   * under the midpoint stays under it.
+   */
+  pinch(px: number, py: number, cx: number, cy: number, factor: number): void {
+    this.zoomAt(px, py, factor);
+    this.panScreen(cx - px, cy - py);
+  }
+
   centerOn(wx: number, wy: number): void {
     this.x = wx;
     this.y = wy;

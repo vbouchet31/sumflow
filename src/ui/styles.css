@@ -56,7 +56,11 @@ textarea {
   pointer-events: none;
 }
 
-#ui-root > * {
+/*
+ * `:where` keeps the specificity at zero: read-only blocks (HUD, tooltip, status, toasts)
+ * opt out with `pointer-events: none` and let clicks and touches through to the map.
+ */
+:where(#ui-root) > * {
   pointer-events: auto;
 }
 
