@@ -5,6 +5,7 @@ import type { Building } from '../sim/entities';
 import { isBuildingUnlocked } from '../sim/state';
 import { HUB_ID } from '../sim/state';
 import type { World } from '../sim/world';
+import { meteorAt } from '../sim/meteors';
 import { isExtractable } from '../world/deposits';
 
 export interface BuildingPlan {
@@ -17,6 +18,8 @@ export interface BuildingPlan {
   ok: boolean;
   /** Extractor only: value of the deposit it covers. */
   value?: number;
+  /** Extractor on a meteorite: its id. */
+  meteor?: number;
 }
 
 /**
@@ -24,6 +27,12 @@ export interface BuildingPlan {
  * valid only if that deposit is extractable and no building is in the way (PLAN §6.3).
  */
 export function planExtractor(world: World, tx: number, ty: number): BuildingPlan {
+  // A meteorite can always be mined, whatever the extraction cap (proposal 13).
+  const m = meteorAt(world, tx, ty);
+  if (m) {
+    const ok = world.isFootprintFree('extractor', m.x - 1, m.y - 1, 0);
+    return { type: 'extractor', x: m.x - 1, y: m.y - 1, rot: 0, ok, value: m.value, meteor: m.id };
+  }
   const d = world.deposits.depositAt(tx, ty);
   if (!d) return { type: 'extractor', x: tx - 1, y: ty - 1, rot: 0, ok: false };
   const x = d.x - 1;
@@ -94,7 +103,9 @@ export function applyBuildingPlan(world: World, plan: BuildingPlan): Building | 
   if (!plan.ok) return null;
   if (plan.type === 'extractor') {
     if (plan.value === undefined) return null;
-    return world.addBuilding('extractor', plan.x, plan.y, 0, { extractValue: plan.value });
+    const b = world.addBuilding('extractor', plan.x, plan.y, 0, { extractValue: plan.value });
+    if (plan.meteor !== undefined) b.meteor = plan.meteor;
+    return b;
   }
   return world.addBuilding(plan.type, plan.x, plan.y, plan.rot);
 }

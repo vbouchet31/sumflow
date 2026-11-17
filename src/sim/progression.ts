@@ -8,6 +8,8 @@ export type ProgressionEvents = {
   levelCompleted: { level: number; reward: Reward | null; final: boolean };
   upgradeReady: { track: Track };
   upgradeBought: { track: Track; level: number };
+  meteorFell: { value: number; x: number; y: number };
+  meteorFaded: { value: number };
 };
 
 export type Emit = <K extends keyof ProgressionEvents>(

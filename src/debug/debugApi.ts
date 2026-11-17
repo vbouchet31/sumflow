@@ -3,13 +3,14 @@ import { applyBeltPlan, computeLPath, planBeltPath } from '../build/beltPath';
 import { applyPaste, planPaste, transformClip } from '../build/clipboard';
 import type { ToolController } from '../build/tools';
 import { applyBuildingPlan, planExtractor, planOperator } from '../build/placement';
-import { TICK_RATE, type Track, TRACKS } from '../config/balance';
+import { METEORS, TICK_RATE, type Track, TRACKS } from '../config/balance';
 import { type Dir, normalizeRot, rotateDir } from '../core/grid';
 import type { Camera } from '../render/camera';
 import { dirMask, type FreeBuildingType } from '../sim/entities';
 import type { SimLoop } from '../sim/loop';
 import { applyReward, deliver, setLevel } from '../sim/progression';
 import { runTicks } from '../sim/tick';
+import { stepMeteors } from '../sim/meteors';
 import { setUpgradeLevel } from '../sim/upgrades';
 import type { World } from '../sim/world';
 import { layoutString } from '../sim/layout';
@@ -101,6 +102,8 @@ export interface DebugApi {
   loadReference: () => void;
   /** Frame timings of the last half second (the numbers of the F3 overlay). */
   perf: () => PerfStats;
+  /** Drop the next meteorite now (proposal 13). Returns where it fell, or null. */
+  dropMeteor: () => { x: number; y: number; value: number } | null;
   /** Move the camera (tiles) and optionally set the zoom. */
   lookAt: (x: number, y: number, zoom?: number) => void;
 }
@@ -189,6 +192,17 @@ export function installDebugApi(ctx: DebugContext): void {
       runTicks(world, REFERENCE.warmupSeconds * TICK_RATE);
     },
     perf: () => ({ ...perf.stats }),
+    dropMeteor: () => {
+      const ms = world.state.meteors;
+      ms.active = [];
+      ms.nextAt = world.state.tick;
+      const level = world.state.level;
+      world.state.level = Math.max(level, METEORS.fromLevel);
+      stepMeteors(world, world.emit);
+      world.state.level = level;
+      const m = ms.active[0];
+      return m ? { x: m.x, y: m.y, value: m.value } : null;
+    },
     lookAt: (x, y, zoom) => {
       camera.centerOn(x, y);
       if (zoom !== undefined) camera.zoomAt(camera.viewW / 2, camera.viewH / 2, zoom / camera.zoom);

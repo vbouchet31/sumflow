@@ -290,4 +290,13 @@ export const en: Record<MessageKey, string> = {
   'toast.importError': 'Import failed: invalid file. Nothing was changed.',
   'toast.loadError': 'Unreadable save: new game started. The old one is kept aside.',
   'toast.exported': 'Game exported: {file}',
+  'tip.meteor': 'Meteorite of {value}',
+  'tip.meteorLeft': 'Fades in {time}',
+  'tip.meteorAny': 'Minable whatever your level',
+  'tip.meteorGone': 'Meteorite faded: nothing left to mine',
+  'toast.meteorFell': 'A meteorite of {value} has fallen!',
+  'toast.meteorFellBody': 'It fades in 4 minutes. Follow the arrow.',
+  'toast.meteorFaded': 'The meteorite of {value} has faded',
+  'help.meteor':
+    'Meteorites: now and then a big number falls near the hub. Put an extractor on it before it fades (4 min), even beyond your extraction level.',
 };

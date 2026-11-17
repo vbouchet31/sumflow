@@ -9,6 +9,8 @@ export function stepExtractors(world: World): void {
   const rate = currentExtractorRate(world.state);
   for (const b of world.state.buildings.values()) {
     if (b.type !== 'extractor' || b.extractValue === undefined) continue;
+    if (b.meteor !== undefined && !world.state.meteors.active.some((m) => m.id === b.meteor))
+      continue; // the meteorite has faded: nothing left to mine
     let acc = (b.extractAcc ?? 0) + rate * TICK_DT;
     while (acc >= 1 - EPS) {
       if (!pushOut(world, b, 'out', b.extractValue)) {

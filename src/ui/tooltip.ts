@@ -8,6 +8,14 @@ import { currentExtractorRate } from '../sim/upgrades';
 import { isOperator } from '../sim/entities';
 import { cycleDuration } from '../sim/operators';
 import { type MessageKey } from '../i18n';
+import { meteorAt } from '../sim/meteors';
+import { TICK_RATE } from '../config/balance';
+
+/** "3:07" from seconds. */
+function clock(seconds: number): string {
+  const s = Math.max(0, Math.ceil(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
 import type { World } from '../sim/world';
 import { isExtractable } from '../world/deposits';
 
@@ -37,8 +45,17 @@ function describeObject(world: World, x: number, y: number): string[] {
   }
   if (b?.type === 'extractor') {
     const outs = connectedOutputs(world, b);
+    const meteor =
+      b.meteor === undefined ? null : world.state.meteors.active.find((m) => m.id === b.meteor);
+    const meteorLine =
+      b.meteor === undefined
+        ? []
+        : meteor
+          ? [t('tip.meteorLeft', { time: clock((meteor.endsAt - world.state.tick) / TICK_RATE) })]
+          : [t('tip.meteorGone')];
     return [
       t('tip.extractor'),
+      ...meteorLine,
       t('tip.extractValue', { value: num(b.extractValue ?? 0) }),
       t('tip.rate', { rate: currentExtractorRate(world.state).toLocaleString(getLocale()) }),
       outs > 0 ? t('tip.outputs', { n: outs }) : t('tip.noOutput'),
@@ -89,6 +106,14 @@ function describeObject(world: World, x: number, y: number): string[] {
     if (status === 'noInput') lines.push(t('tip.blockedNoInput'));
     else if (status === 'waiting') lines.push(t('tip.waiting'));
     return lines;
+  }
+  const m = meteorAt(world, x, y);
+  if (m) {
+    return [
+      t('tip.meteor', { value: num(m.value) }),
+      t('tip.meteorLeft', { time: clock((m.endsAt - world.state.tick) / TICK_RATE) }),
+      t('tip.meteorAny'),
+    ];
   }
   const d = world.deposits.depositAt(x, y);
   if (d) {

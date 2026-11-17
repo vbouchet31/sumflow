@@ -310,6 +310,13 @@ async function bootstrap(): Promise<void> {
     );
     if (final) endScreen.show(world.state);
   });
+  world.events.on('meteorFell', ({ value }) => {
+    sfx.upgradeReady();
+    toasts.show(t('toast.meteorFell', { value }), t('toast.meteorFellBody'));
+  });
+  world.events.on('meteorFaded', ({ value }) => {
+    toasts.show(t('toast.meteorFaded', { value }));
+  });
   world.events.on('upgradeReady', ({ track }) => {
     if (state.autoBuyUpgrades) return;
     sfx.upgradeReady();
