@@ -157,6 +157,8 @@ export const fr = {
   'act.removeClipTitle': 'Retirer du presse-papiers (Suppr)',
   'act.quit': 'Quitter',
   'act.quitTitle': 'Quitter l’outil (Échap)',
+  'btn.more': 'Plus de boutons',
+  'hud.details': 'Détail du niveau',
   'btn.pause': 'Pause (Espace)',
   'btn.resume': 'Reprendre (Espace)',
   'hint.marker': 'Clic : poser ou modifier un marqueur',

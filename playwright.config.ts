@@ -27,6 +27,12 @@ export default defineConfig({
       use: { ...devices['iPad (gen 7)'], browserName: 'chromium' },
       testMatch: TOUCH_SPECS,
     },
+    // A phone held upright is supported, not polished: layout checks only.
+    {
+      name: 'phone-portrait',
+      use: { ...devices['iPhone 13'], browserName: 'chromium' },
+      testMatch: /layout\.spec\.ts$/,
+    },
     {
       name: 'phone-landscape',
       use: { ...devices['iPhone 13 landscape'], browserName: 'chromium' },

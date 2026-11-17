@@ -23,6 +23,7 @@ import { DebugPanel } from './ui/debugPanel';
 import { EndScreen } from './ui/endScreen';
 import { Hud } from './ui/hud';
 import { rewardLabel } from './ui/labels';
+import { watchLayout } from './ui/layout';
 import { LevelsPanel } from './ui/panels/levels';
 import { Toasts } from './ui/toasts';
 import { TopBar } from './ui/topBar';
@@ -148,7 +149,12 @@ async function bootstrap(): Promise<void> {
   };
   applySettings();
 
-  const hud = new Hud(uiRoot);
+  // HUD and help bubble stack in one column, whatever the height of the HUD.
+  const topLeft = document.createElement('div');
+  topLeft.className = 'top-left';
+  uiRoot.append(topLeft);
+  const hud = new Hud(topLeft);
+  watchLayout(document.documentElement, (layout) => hud.setCompact(layout.compact));
   const goHome = (): void => camera.centerOn(0, 0);
   const levelsPanel = new LevelsPanel(uiRoot, world);
   const upgradesPanel = new UpgradesPanel(uiRoot, world);
@@ -190,7 +196,7 @@ async function bootstrap(): Promise<void> {
   let pinned: { x: number; y: number } | null = null;
   tools.onChange(() => (pinned = null));
   markerEditor = new MarkerEditor(uiRoot);
-  const help = new HelpBubble(uiRoot, state);
+  const help = new HelpBubble(topLeft, state);
   const catchUpBar = new CatchUpBar(uiRoot);
   const perfOverlay = new PerfOverlay(uiRoot);
   const perf = new PerfMeter();

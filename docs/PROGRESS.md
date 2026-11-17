@@ -24,9 +24,23 @@ Cible : tablette et téléphone en paysage d'abord. Branche `dev-mobile`.
 | T0 Plomberie                     | ✅ terminé |
 | T1 Gestes caméra et construction | ✅ terminé |
 | T2 Remplacement du clavier       | ✅ terminé |
-| T3 Mise en page                  | à faire    |
+| T3 Mise en page                  | ✅ terminé |
 | T4 Confort                       | à faire    |
 | T5 Installation                  | à faire    |
+
+### T3 : détail
+
+- [x] **Gabarits** (`src/ui/layout.ts`) : trois classes sur `<html>`, tenues à jour par `matchMedia`. `ui-icons` (≤ 1200 px de large : barre sans libellés), `ui-compact` (≤ 500 px de haut ou ≤ 600 px de large : téléphone), `ui-narrow` (≤ 600 px de large : téléphone debout).
+- [x] **Barre de construction** : jamais plus large que l'écran, défilement horizontal, fondu du côté où il reste des boutons, l'outil actif est ramené dans la vue.
+- [x] **HUD compact** sur téléphone : une ligne (niveau, cible, compte), un appui le déplie. HUD et bulle d'aide empilés dans une même colonne.
+- [x] **Barre du haut** : sur téléphone debout, Marqueur, Nombres livrés et Niveaux se replient derrière un bouton « Plus ».
+- [x] **Panneaux** : feuille sur toute la hauteur à droite (téléphone couché), feuille en bas (téléphone debout). Au-dessus des barres, sous les fenêtres modales.
+- [x] **Cibles de 44 px** quand le pointeur principal est un doigt (`pointer: coarse`) ; champs à 16 px (pas de zoom à la saisie sur Safari).
+- [x] **Zones sûres** (`env(safe-area-inset-*)`), `100dvh`, styles de survol réservés aux pointeurs qui survolent.
+- [x] **Clavier virtuel** : l'éditeur de marqueur se place en haut de l'écran, sur une ligne quand la hauteur manque.
+- [x] **Événements souris de compatibilité** coupés après un contact tactile : leur `mousedown` retirait le focus du champ de l'éditeur de marqueur que l'appui venait d'ouvrir.
+- [x] Chips d'état sous la barre du haut sur tablette et téléphone ; la chip de sauvegarde disparaît sur téléphone.
+- [x] `layout.spec.ts` sur quatre gabarits (tablette couchée et debout, téléphone couché et debout) : aucun contrôle hors écran, trop petit ou recouvert, aucun bloc qui en chevauche un autre, panneaux, menu et éditeur dans l'écran.
 
 ### T2 : détail
 

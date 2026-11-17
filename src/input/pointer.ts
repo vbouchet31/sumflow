@@ -139,6 +139,9 @@ export class PointerInput {
     this.y = p.y;
     if (e.pointerType !== 'mouse') {
       this.touches.add(e.pointerId);
+      // No compatibility mouse events after the touch: their `mousedown` would take the
+      // focus away from a dialog the tap has just opened (marker editor).
+      e.preventDefault();
       this.hovering = false;
       this.inside = false;
       this.gestures.pointerDown(e.pointerId, p.x, p.y, e.timeStamp);

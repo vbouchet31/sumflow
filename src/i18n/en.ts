@@ -159,6 +159,8 @@ export const en: Record<MessageKey, string> = {
   'act.removeClipTitle': 'Remove from the clipboard (Del)',
   'act.quit': 'Quit',
   'act.quitTitle': 'Quit the tool (Esc)',
+  'btn.more': 'More buttons',
+  'hud.details': 'Level details',
   'btn.pause': 'Pause (Space)',
   'btn.resume': 'Resume (Space)',
   'hint.marker': 'Click: place or edit a marker',

@@ -166,3 +166,9 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Appui long sur rien** : le geste continue comme si de rien n'était. Garder le doigt immobile pour viser, puis lâcher, pose bien l'objet. L'appui long ne prend la main que s'il y a un objet à prendre à la pipette.
 - **Info-bulle épinglée** : seulement sans outil. Elle tombe dès qu'un outil est choisi ou qu'une souris bouge (le survol reprend la main).
 - **Coude** : le bouton est un état qui reste jusqu'à ce qu'on le rebascule ; `Ctrl` l'inverse pendant qu'il est tenu.
+- **Points de rupture en un seul endroit** : `src/ui/layout.ts` pose des classes sur `<html>`, la feuille de style s'écrit contre ces classes. Les requêtes média ne servent plus qu'au type de pointeur (`pointer: coarse`, `hover`).
+- **Barre de construction en bas, même sur téléphone couché** : la largeur y est abondante (15 boutons visibles sur 16), une barre verticale n'en montrerait que 6.
+- **Panneaux sur téléphone couché** : feuille pleine hauteur à droite plutôt qu'en bas, car c'est la hauteur qui manque.
+- **Chip « Sauvegardé il y a… » masquée sur téléphone** : la place manque. Les échecs de sauvegarde restent signalés par un toast.
+- **Téléphone debout** : mêmes contrôles de mise en page que les autres gabarits (ils passent), mais pas de test de gestes dédié.
+- **Icônes** : toujours des symboles Unicode. Le ciseau et le triangle de reprise portent le sélecteur U+FE0E pour ne pas devenir des emojis. À vérifier sur appareil : présence des glyphes `⧉`, `⎘`, `⌫`, `⟳` dans les polices d'Android.

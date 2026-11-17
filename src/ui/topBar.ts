@@ -4,6 +4,9 @@ import { el } from './dom';
 export type TopAction =
   'pause' | 'undo' | 'redo' | 'home' | 'marker' | 'delivered' | 'levels' | 'upgrades' | 'menu';
 
+/** Buttons folded behind the "more" button on a narrow screen. */
+const FOLDED: readonly TopAction[] = ['marker', 'delivered', 'levels'];
+
 /** Text symbols (U+FE0E keeps the triangle from turning into an emoji on phones). */
 const PAUSE_ICON = '❚❚';
 const RESUME_ICON = '▶\uFE0E';
@@ -14,6 +17,24 @@ export class TopBar {
 
   constructor(root: HTMLElement, actions: Record<TopAction, () => void>) {
     const bar = el('nav', 'top-bar');
+    const folded = el('div', 'top-more');
+    const more = el('button', 'top-btn top-more-btn', '⋯');
+    const setOpen = (open: boolean): void => {
+      bar.classList.toggle('more-open', open);
+      more.setAttribute('aria-expanded', String(open));
+    };
+    more.type = 'button';
+    more.title = t('btn.more');
+    more.setAttribute('aria-label', t('btn.more'));
+    more.setAttribute('aria-expanded', 'false');
+    more.addEventListener('click', (e) => {
+      setOpen(!bar.classList.contains('more-open'));
+      if (e.detail > 0) more.blur();
+    });
+    // A press anywhere else closes the folded buttons.
+    document.addEventListener('pointerdown', (e) => {
+      if (e.target instanceof Node && !bar.contains(e.target)) setOpen(false);
+    });
     const add = (id: TopAction, label: MessageKey, icon: string): void => {
       const btn = el('button', 'top-btn', icon);
       btn.type = 'button';
@@ -22,10 +43,13 @@ export class TopBar {
       btn.dataset['action'] = id;
       btn.addEventListener('click', (e) => {
         actions[id]();
+        setOpen(false);
         // Mouse clicks give the keyboard back to the game; keyboard users keep their place.
         if (e.detail > 0) btn.blur();
       });
-      bar.append(btn);
+      (FOLDED.includes(id) ? folded : bar).append(btn);
+      if (id === 'home') bar.append(folded);
+      if (id === 'upgrades') bar.append(more);
       this.buttons.set(id, btn);
     };
     add('pause', 'btn.pause', PAUSE_ICON);

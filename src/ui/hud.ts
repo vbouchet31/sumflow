@@ -14,10 +14,13 @@ export class Hud {
   private readonly rate = el('div', 'hud-rate');
   private readonly reward = el('div', 'hud-reward');
   private readonly barTrack = el('div', 'hud-bar', this.bar);
+  /** Covers the compact HUD: a press shows or hides the rate and the next reward. */
+  private readonly toggle = el('button', 'hud-toggle');
+  private readonly box: HTMLElement;
   private last = '';
 
   constructor(root: HTMLElement) {
-    const box = el(
+    this.box = el(
       'section',
       'hud',
       this.level,
@@ -26,10 +29,28 @@ export class Hud {
       this.barTrack,
       this.rate,
       this.reward,
+      this.toggle,
     );
     this.barTrack.setAttribute('role', 'progressbar');
     this.barTrack.setAttribute('aria-valuemin', '0');
-    root.append(box);
+    this.toggle.type = 'button';
+    this.toggle.hidden = true;
+    this.toggle.setAttribute('aria-label', t('hud.details'));
+    this.toggle.setAttribute('aria-expanded', 'false');
+    this.toggle.addEventListener('click', (e) => {
+      const open = this.box.classList.toggle('is-open');
+      this.toggle.setAttribute('aria-expanded', String(open));
+      if (e.detail > 0) this.toggle.blur();
+    });
+    root.append(this.box);
+  }
+
+  /** Small screens: one line (level, target, count), unfolded by a press. */
+  setCompact(compact: boolean): void {
+    this.toggle.hidden = !compact;
+    if (compact) return;
+    this.box.classList.remove('is-open');
+    this.toggle.setAttribute('aria-expanded', 'false');
   }
 
   update(world: World): void {
