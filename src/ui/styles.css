@@ -1312,3 +1312,128 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Keyboard shortcuts sheet (`?`). */
+.shortcuts {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgb(5 8 16 / 55%);
+}
+
+.shortcuts[hidden] {
+  display: none;
+}
+
+.shortcuts-card {
+  width: min(940px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  padding: 18px 22px 20px;
+  border-radius: 14px;
+  background: #121a2c;
+  border: 1px solid #2c3754;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 40%);
+  color: var(--fg);
+}
+
+.sc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sc-header h2 {
+  margin: 0;
+  font: 700 18px var(--font-ui);
+}
+
+.sc-note {
+  margin: 6px 0 14px;
+  color: var(--muted);
+  font: 13px/1.4 var(--font-ui);
+}
+
+.sc-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  gap: 18px 22px;
+}
+
+.sc-group h3 {
+  margin: 0 0 8px;
+  color: #9fb8e8;
+  font: 700 12px var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sc-list {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.sc-row {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.sc-row.is-useful {
+  background: rgb(80 140 240 / 18%);
+  outline: 1px solid rgb(120 170 255 / 45%);
+}
+
+.sc-row dt,
+.sc-row dd {
+  margin: 0;
+}
+
+.sc-row dd {
+  font: 13px/1.3 var(--font-ui);
+}
+
+.sc-keys {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  color: var(--muted);
+  font: 12px var(--font-ui);
+}
+
+.sc-cap {
+  min-width: 22px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid #3a4766;
+  border-bottom-width: 2px;
+  background: #1b2438;
+  color: var(--fg);
+  font: 600 12px var(--font-num);
+  text-align: center;
+}
+
+.sc-or {
+  margin: 0 3px;
+}
+
+.status-keys {
+  pointer-events: auto;
+  min-width: 28px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (pointer: coarse) {
+  .status-keys {
+    display: none;
+  }
+}
