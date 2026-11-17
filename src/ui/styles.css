@@ -1312,3 +1312,81 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Oracle panel (proposal 05). */
+.oracle-intro {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.oracle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.oracle-card {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #141b2c;
+  border: 1px solid #26304a;
+}
+.oracle-card.current {
+  border-color: #2b6cb0;
+}
+.oracle-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.oracle-level {
+  color: var(--muted);
+  font: 600 13px var(--font-ui);
+}
+.oracle-target {
+  font: 700 22px var(--font-num);
+}
+.oracle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px dashed #26304a;
+}
+.oracle-expr,
+.oracle-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.oracle-group {
+  padding: 2px 4px;
+  border-radius: 14px;
+  border: 1px solid #3d4860;
+}
+.oracle-num {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 4px;
+  border-radius: 13px;
+  color: #fff;
+  font: 700 13px var(--font-num);
+  text-shadow: 0 1px 1px rgb(0 0 0 / 50%);
+}
+.oracle-op {
+  font: 700 16px var(--font-num);
+}
+.oracle-cost {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.oracle-none {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}

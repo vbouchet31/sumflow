@@ -2,10 +2,19 @@ import { type MessageKey, t } from '../i18n';
 import { el } from './dom';
 
 export type TopAction =
-  'pause' | 'undo' | 'redo' | 'home' | 'marker' | 'delivered' | 'levels' | 'upgrades' | 'menu';
+  | 'pause'
+  | 'undo'
+  | 'redo'
+  | 'home'
+  | 'marker'
+  | 'delivered'
+  | 'levels'
+  | 'oracle'
+  | 'upgrades'
+  | 'menu';
 
 /** Buttons folded behind the "more" button on a narrow screen. */
-const FOLDED: readonly TopAction[] = ['marker', 'delivered', 'levels'];
+const FOLDED: readonly TopAction[] = ['marker', 'delivered', 'levels', 'oracle'];
 
 /** Text symbols (U+FE0E keeps the triangle from turning into an emoji on phones). */
 const PAUSE_ICON = '❚❚';
@@ -59,6 +68,7 @@ export class TopBar {
     add('marker', 'btn.marker', '⚑');
     add('delivered', 'btn.delivered', '∑');
     add('levels', 'btn.levels', '☰');
+    add('oracle', 'btn.oracle', '✦');
     add('upgrades', 'btn.upgrades', '⇧');
     add('menu', 'btn.menu', '⋮');
     root.append(bar);
