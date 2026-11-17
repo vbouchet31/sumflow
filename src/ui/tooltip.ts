@@ -59,8 +59,11 @@ function describeObject(world: World, x: number, y: number): string[] {
       buf && buf.length > 0 ? buf.map(num).join(', ') : t('tip.none');
     const dur = cycleDuration(world, b.type);
     const lines = [t(`tool.${b.type}` as MessageKey)];
-    lines.push(t('tip.bufA', { items: list(b.inA) }), t('tip.bufB', { items: list(b.inB) }));
-    if (b.type === 'divider') {
+    lines.push(t('tip.bufA', { items: list(b.inA) }));
+    if (b.type !== 'factor') lines.push(t('tip.bufB', { items: list(b.inB) }));
+    if (b.type === 'factor') {
+      lines.push(t('tip.bufP', { items: list(b.outQ) }), t('tip.bufNP', { items: list(b.outR) }));
+    } else if (b.type === 'divider') {
       lines.push(t('tip.bufQ', { items: list(b.outQ) }), t('tip.bufR', { items: list(b.outR) }));
     } else {
       lines.push(t('tip.bufOut', { items: list(b.out) }));

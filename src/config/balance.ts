@@ -11,7 +11,8 @@ export type PlaceableType =
   | 'divider'
   | 'exponent'
   | 'storage'
-  | 'bridge';
+  | 'bridge'
+  | 'factor';
 
 export type Feature = 'upgrades' | 'priorities';
 
@@ -55,7 +56,7 @@ export const LEVEL_TABLE: readonly LevelDef[] = [
   { target: 928, quantity: 8_000, reward: x(14) },
   { target: 1_779, quantity: 9_000, reward: x(15) },
   { target: 2_805, quantity: 10_000, reward: b('storage') },
-  { target: 3_366, quantity: 10_500, reward: x(16) },
+  { target: 3_366, quantity: 10_500, reward: b('factor') },
   { target: 4_100, quantity: 11_000, reward: x(17) },
   { target: 4_950, quantity: 11_500, reward: x(18) },
   { target: 5_900, quantity: 12_000, reward: x(19) },

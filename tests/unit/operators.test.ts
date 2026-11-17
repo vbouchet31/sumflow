@@ -154,3 +154,26 @@ describe('level 2 with an adder', () => {
     expect(world.state.level).toBe(3);
   });
 });
+
+describe('prime decomposer', () => {
+  it('splits into the smallest prime factor and the rest', () => {
+    expect(compute('factor', 91, 0)).toEqual({ q: 7, r: 13 });
+    expect(compute('factor', 64, 0)).toEqual({ q: 2, r: 32 });
+    expect(compute('factor', 97, 0)).toEqual({ q: 97, r: 1 });
+    expect(compute('factor', -15, 0)).toEqual({ q: 3, r: -5 });
+    expect(compute('factor', 1, 0)).toEqual({ q: 1 });
+    expect(compute('factor', 2_147_483_647, 0)).toEqual({ q: 2_147_483_647, r: 1 });
+  });
+
+  it('runs on A alone in the simulation', () => {
+    const world = makeWorld();
+    const f = world.addBuilding('factor', 60, 0, 0);
+    for (let i = 0; i < 60 * 12; i++) {
+      while ((f.inA?.length ?? 4) < 4) f.inA?.push(169);
+      runTicks(world, 1);
+    }
+    expect(f.inB).toEqual([]);
+    expect(f.outQ).toEqual([13, 13]);
+    expect(f.outR).toEqual([13, 13]);
+  });
+});

@@ -11,6 +11,7 @@ export const OPERATOR_SYMBOL: Record<OperatorType, string> = {
   subtractor: '−',
   divider: '÷',
   exponent: '^',
+  factor: '⁂',
 };
 
 /** Mix a #rrggbb colour toward black (f < 0) or white (f > 0). */
@@ -115,7 +116,10 @@ export function drawOperator(
       // Push letters away from a symbol at a tile corner; none needed when it sits on a tile.
       const push = def.tiles.length < def.w * def.h ? 0 : 0.14 * s;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
-      ctx.fillText(t.role, tc.x + (vx / len2) * push, tc.y + (vy / len2) * push);
+      // The decomposer names its outputs after what they carry.
+      const label =
+        type === 'factor' ? (t.role === 'Q' ? 'p' : t.role === 'R' ? 'n/p' : '') : t.role;
+      if (label) ctx.fillText(label, tc.x + (vx / len2) * push, tc.y + (vy / len2) * push);
     }
 
     // Operator symbol in a disc at the centre of the footprint box.

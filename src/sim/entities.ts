@@ -99,9 +99,11 @@ export interface Building {
   storeCount?: number;
 }
 
-export type OperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent';
+export type OperatorType =
+  'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent' | 'factor';
 
 export const OPERATOR_TYPES: readonly OperatorType[] = [
+  'factor',
   'adder',
   'multiplier',
   'subtractor',
