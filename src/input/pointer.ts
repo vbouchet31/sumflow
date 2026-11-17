@@ -1,14 +1,16 @@
 import { CAMERA } from '../config/keymap';
 import type { Camera } from '../render/camera';
-import { Gestures } from './gestures';
+import { edgeScroll, Gestures, PanInertia } from './gestures';
 
 export interface PointerMods {
   ctrl: boolean;
   shift: boolean;
   alt: boolean;
+  /** The press comes from a finger (or a pen on the screen), not from a mouse. */
+  touch?: boolean;
 }
 
-const NO_MODS: PointerMods = { ctrl: false, shift: false, alt: false };
+const TOUCH_MODS: PointerMods = { ctrl: false, shift: false, alt: false, touch: true };
 
 export interface PointerHandlers {
   /** Left button or building finger, in world tile coordinates. */
@@ -43,6 +45,12 @@ export class PointerInput {
   /** Pointers currently handled as touches. */
   private readonly touches = new Set<number>();
   private readonly gestures: Gestures;
+  private readonly glide = new PanInertia();
+  /** `timeStamp` of the pointer event being handled, and time of the last `update`. */
+  private eventTime = 0;
+  private lastUpdate = 0;
+  /** The map keeps gliding after a quick pan (off with "reduce animations"). */
+  inertia = true;
   /** Last known pointer position in CSS pixels, relative to the canvas. */
   x = 0;
   y = 0;
@@ -65,7 +73,10 @@ export class PointerInput {
       move: (x, y) => this.toTile(x, y, handlers.onMove),
       up: (x, y) => this.toTile(x, y, handlers.onUp),
       cancel: () => handlers.onCancel?.(),
-      leave: () => handlers.onLeave?.(),
+      leave: () => {
+        this.glide.release(this.eventTime);
+        handlers.onLeave?.();
+      },
       tap: (x, y) => {
         const t = this.tileAt(x, y);
         handlers.onTap?.(t.x, t.y);
@@ -74,8 +85,14 @@ export class PointerInput {
         const t = this.tileAt(x, y);
         return handlers.onLongPress?.(t.x, t.y) ?? false;
       },
-      pan: (dx, dy) => camera.panScreen(dx, dy),
-      pinch: (px, py, cx, cy, factor) => camera.pinch(px, py, cx, cy, factor),
+      pan: (dx, dy) => {
+        camera.panScreen(dx, dy);
+        this.glide.track(dx, dy, this.eventTime);
+      },
+      pinch: (px, py, cx, cy, factor) => {
+        this.glide.stop();
+        camera.pinch(px, py, cx, cy, factor);
+      },
     });
     el.addEventListener('pointerdown', (e) => this.onDown(e));
     el.addEventListener('pointermove', (e) => this.onMove(e));
@@ -99,9 +116,26 @@ export class PointerInput {
     }
   }
 
-  /** Call every frame (same clock as the events' `timeStamp`): long press detection. */
+  /**
+   * Call every frame (same clock as the events' `timeStamp`): long press, map scroll when
+   * a building finger nears an edge, glide after a pan.
+   */
   update(now: number): void {
+    const dt = Math.min(100, Math.max(0, now - this.lastUpdate));
+    this.lastUpdate = now;
     this.gestures.update(now);
+    const finger = this.gestures.buildPoint;
+    if (finger) {
+      const v = edgeScroll(finger.x, finger.y, this.camera.viewW, this.camera.viewH);
+      if (v.dx !== 0 || v.dy !== 0) {
+        this.camera.panScreen((v.dx * dt) / 1000, (v.dy * dt) / 1000);
+        // The finger did not move but the map did: another tile is under it now.
+        this.toTile(finger.x, finger.y, this.handlers.onMove);
+      }
+    }
+    if (!this.inertia) this.glide.stop();
+    const step = this.glide.step(dt);
+    if (step) this.camera.panScreen(step.dx, step.dy);
   }
 
   /** Finger contact, or a pen touching the screen. */
@@ -126,7 +160,7 @@ export class PointerInput {
     fn: (tx: number, ty: number, mods: PointerMods) => void,
   ): void {
     const t = this.tileAt(sx, sy);
-    fn(t.x, t.y, NO_MODS);
+    fn(t.x, t.y, TOUCH_MODS);
   }
 
   private mods(e: MouseEvent): PointerMods {
@@ -137,6 +171,8 @@ export class PointerInput {
     const p = this.local(e);
     this.x = p.x;
     this.y = p.y;
+    this.eventTime = e.timeStamp;
+    this.glide.stop();
     if (e.pointerType !== 'mouse') {
       this.touches.add(e.pointerId);
       // No compatibility mouse events after the touch: their `mousedown` would take the
@@ -170,6 +206,7 @@ export class PointerInput {
     this.x = p.x;
     this.y = p.y;
     if (this.touches.has(e.pointerId)) {
+      this.eventTime = e.timeStamp;
       this.gestures.pointerMove(e.pointerId, p.x, p.y);
       return;
     }
@@ -188,6 +225,7 @@ export class PointerInput {
   private onUp(e: PointerEvent): void {
     if (this.touches.delete(e.pointerId)) {
       const p = this.local(e);
+      this.eventTime = e.timeStamp;
       this.gestures.pointerUp(e.pointerId, p.x, p.y);
       return;
     }
@@ -204,6 +242,8 @@ export class PointerInput {
   private onCancel(e: PointerEvent): void {
     if (this.touches.delete(e.pointerId)) {
       this.gestures.pointerCancel(e.pointerId);
+      // Not a release: the map must not glide away.
+      this.glide.stop();
       return;
     }
     if (this.panPointer === e.pointerId) this.panPointer = null;

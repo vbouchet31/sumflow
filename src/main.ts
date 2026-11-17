@@ -194,7 +194,15 @@ async function bootstrap(): Promise<void> {
   const toolActions = new ToolActions(uiRoot, tools);
   /** Tile inspected by a tap, on a touch screen (there is no hover to show the tooltip). */
   let pinned: { x: number; y: number } | null = null;
-  tools.onChange(() => (pinned = null));
+  tools.onChange(() => {
+    pinned = null;
+    // Paste mode without a hovering pointer (touch): show the preview at once, in the
+    // middle of the screen, ready to be moved and confirmed.
+    if (tools.tool === 'paste' && !pointer.hovering && !tools.pastePending) {
+      const centre = pointer.tileAt(camera.viewW / 2, camera.viewH / 2);
+      tools.placePastePreview(centre.x, centre.y);
+    }
+  });
   markerEditor = new MarkerEditor(uiRoot);
   const help = new HelpBubble(topLeft, state);
   const catchUpBar = new CatchUpBar(uiRoot);
@@ -393,6 +401,7 @@ async function bootstrap(): Promise<void> {
       // Keys move the view, so the world moves the opposite way.
       camera.panScreen((-pan.dx / len) * speed, (-pan.dy / len) * speed);
     }
+    pointer.inertia = !settings.reduceMotion;
     pointer.update(now);
     const hover = pointer.tileAt(pointer.x, pointer.y);
     // Keep the drag preview in sync with Ctrl even when the mouse is still. A finger

@@ -25,8 +25,16 @@ Cible : tablette et téléphone en paysage d'abord. Branche `dev-mobile`.
 | T1 Gestes caméra et construction | ✅ terminé |
 | T2 Remplacement du clavier       | ✅ terminé |
 | T3 Mise en page                  | ✅ terminé |
-| T4 Confort                       | à faire    |
+| T4 Confort                       | ✅ terminé |
 | T5 Installation                  | à faire    |
+
+### T4 : détail
+
+- [x] **Collage au doigt en deux temps** : l'aperçu se pose au milieu de l'écran à l'entrée en mode Coller, un appui ou un glisser le déplace, le bouton « Poser » construit (`ToolController.confirmPaste`). À la souris, rien ne change (clic = poser, glisser = rangée).
+- [x] **Défilement au bord** : pendant un tracé, un doigt à moins de 56 px d'un bord fait défiler la carte, de plus en plus vite (`edgeScroll`).
+- [x] **Inertie** : la carte continue sur sa lancée après un déplacement lâché en mouvement (`PanInertia`). Coupée par « Réduire les animations ».
+- [x] **Textes** : consignes d'outils sans « clic », liste « Écran tactile » dans Options > Commandes (en premier quand le pointeur principal est un doigt).
+- [x] Tests : unitaires (collage en deux temps, défilement au bord, inertie), e2e tactiles (collage, tracé au-delà de l'écran, inertie avec et sans animations, **niveau 1 terminé au doigt seul**).
 
 ### T3 : détail
 

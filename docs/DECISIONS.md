@@ -171,4 +171,7 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Panneaux sur téléphone couché** : feuille pleine hauteur à droite plutôt qu'en bas, car c'est la hauteur qui manque.
 - **Chip « Sauvegardé il y a… » masquée sur téléphone** : la place manque. Les échecs de sauvegarde restent signalés par un toast.
 - **Téléphone debout** : mêmes contrôles de mise en page que les autres gabarits (ils passent), mais pas de test de gestes dédié.
-- **Icônes** : toujours des symboles Unicode. Le ciseau et le triangle de reprise portent le sélecteur U+FE0E pour ne pas devenir des emojis. À vérifier sur appareil : présence des glyphes `⧉`, `⎘`, `⌫`, `⟳` dans les polices d'Android.
+- **Icônes** : toujours des symboles Unicode. Le ciseau et le triangle de reprise portent le sélecteur U+FE0E pour ne pas devenir des emojis. À vérifier sur appareil : présence des glyphes `⧉`, `⎘`, `⌫`, `↻` dans les polices d'Android.
+- **Collage au doigt** : pose en deux temps, seulement pour le collage (objet large, il remplace des tapis). Les autres outils posent au relâchement, Annuler rattrape une erreur. Pas de rangée de copies au doigt. Si rien ne peut être posé, l'aperçu reste pour être déplacé. Un geste annulé (pincement) remet l'aperçu où il était.
+- **Vitesse d'inertie** : distance des 100 dernières millisecondes divisée par le temps écoulé jusqu'au lâcher, en partant de l'échantillon juste avant la fenêtre. Un doigt qui s'arrête plus de 100 ms avant de se lever ne lance pas la carte. Seuil de départ 150 px/s, arrêt à 20 px/s, constante de temps 325 ms.
+- **Défilement au bord réservé au doigt** : à la souris, le clavier déplace déjà la caméra pendant un tracé.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TOUCH } from '../../src/config/keymap';
-import { Gestures, type GestureSink } from '../../src/input/gestures';
+import { edgeScroll, Gestures, type GestureSink, PanInertia } from '../../src/input/gestures';
 
 /** A sink that records what the gestures ask for, as short strings. */
 function recorder(tool: boolean, longPress = true): { log: string[]; sink: GestureSink } {
@@ -185,5 +185,90 @@ describe('Pinch', () => {
     g.pointerUp(7, 10, 10);
     g.pointerCancel(7);
     expect(log).toEqual([]);
+  });
+});
+
+describe('edge scroll while building', () => {
+  it('is zero away from the edges', () => {
+    expect(edgeScroll(400, 300, 800, 600)).toEqual({ dx: 0, dy: 0 });
+    expect(edgeScroll(TOUCH.edgePx, 600 - TOUCH.edgePx, 800, 600)).toEqual({ dx: 0, dy: 0 });
+  });
+
+  it('moves the world away from the edge the finger is at, faster the closer it gets', () => {
+    // Right edge: the view goes right, so the world goes left (negative pan).
+    expect(edgeScroll(800, 300, 800, 600)).toEqual({ dx: -TOUCH.edgeSpeedPx, dy: 0 });
+    expect(edgeScroll(0, 300, 800, 600)).toEqual({ dx: TOUCH.edgeSpeedPx, dy: 0 });
+    const half = edgeScroll(400, 600 - TOUCH.edgePx / 2, 800, 600);
+    expect(half.dx).toBe(0);
+    expect(half.dy).toBeCloseTo(-TOUCH.edgeSpeedPx / 2);
+    // A finger dragged past the screen edge still scrolls at full speed, not more.
+    expect(edgeScroll(-40, -40, 800, 600)).toEqual({
+      dx: TOUCH.edgeSpeedPx,
+      dy: TOUCH.edgeSpeedPx,
+    });
+  });
+});
+
+describe('PanInertia', () => {
+  /** A steady pan of `vx` px/ms sampled every 16 ms, ending at `end` ms. */
+  function pan(inertia: PanInertia, vx: number, end: number): void {
+    for (let t = end - 96; t <= end; t += 16) inertia.track(vx * 16, 0, t);
+  }
+
+  it('glides at the release speed, slows down and stops', () => {
+    const inertia = new PanInertia();
+    pan(inertia, 1, 1000); // 1000 px/s
+    inertia.release(1005);
+    expect(inertia.active).toBe(true);
+    // Close to the pan speed (16 px per frame), a little less for the 5 ms before lifting.
+    const first = inertia.step(16);
+    expect(first?.dx).toBeGreaterThan(14.5);
+    expect(first?.dx).toBeLessThanOrEqual(16);
+    expect(first?.dy).toBe(0);
+    const second = inertia.step(16);
+    expect(second?.dx).toBeLessThan(16);
+    let travelled = 0;
+    for (let i = 0; i < 2000 && inertia.active; i++) travelled += inertia.step(16)?.dx ?? 0;
+    expect(inertia.active).toBe(false);
+    expect(inertia.step(16)).toBeNull();
+    // Total distance of an exponential slow-down: about speed × time constant.
+    expect(travelled).toBeGreaterThan(200);
+    expect(travelled).toBeLessThan(1 * TOUCH.inertiaTauMs);
+  });
+
+  it('does not glide after a slow pan, a pause before lifting, or a single move', () => {
+    const slow = new PanInertia();
+    pan(slow, (TOUCH.inertiaMinSpeed - 10) / 1000, 1000);
+    slow.release(1005);
+    expect(slow.active).toBe(false);
+
+    const paused = new PanInertia();
+    pan(paused, 1, 1000);
+    paused.release(1000 + TOUCH.inertiaRestMs + 1);
+    expect(paused.active).toBe(false);
+
+    const single = new PanInertia();
+    single.track(50, 0, 1000);
+    single.release(1001);
+    expect(single.active).toBe(false);
+  });
+
+  it('measures the speed right when moves are far apart (slow device)', () => {
+    const inertia = new PanInertia();
+    // 20 px every 50 ms = 400 px/s; only one or two moves fall in the 100 ms window.
+    for (const t of [530, 600, 645, 696, 745, 795, 848.4, 895]) inertia.track(-20, 0, t);
+    inertia.release(945);
+    expect(inertia.active).toBe(true);
+    const step = inertia.step(10);
+    expect(step?.dx).toBeLessThan(-2.5);
+    expect(step?.dx).toBeGreaterThan(-4.5);
+  });
+
+  it('a new touch stops the glide', () => {
+    const inertia = new PanInertia();
+    pan(inertia, 1, 1000);
+    inertia.release(1000);
+    inertia.stop();
+    expect(inertia.step(16)).toBeNull();
   });
 });

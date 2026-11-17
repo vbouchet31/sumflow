@@ -225,3 +225,94 @@ export class Gestures {
     this.dist = Math.max(1, Math.hypot(b.x - a.x, b.y - a.y));
   }
 }
+
+/**
+ * Map scroll, in CSS pixels per second, for a finger building at `(x, y)` in a `w × h`
+ * view: zero away from the edges, growing to `TOUCH.edgeSpeedPx` at the very edge. The
+ * sign is the one `Camera.panScreen` expects (a finger at the right edge moves the world
+ * to the left).
+ */
+export function edgeScroll(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  edge: number = TOUCH.edgePx,
+  speed: number = TOUCH.edgeSpeedPx,
+): { dx: number; dy: number } {
+  const axis = (pos: number, size: number): number => {
+    const near = Math.min(1, Math.max(0, (edge - pos) / edge));
+    const far = Math.min(1, Math.max(0, (pos - (size - edge)) / edge));
+    return (near - far) * speed || 0;
+  };
+  return { dx: axis(x, w), dy: axis(y, h) };
+}
+
+/**
+ * Glide of the map after a one-finger pan released while moving. Pure logic: `track` each
+ * pan step, `release` when the finger lifts, then `step` every frame.
+ */
+export class PanInertia {
+  private samples: { dx: number; dy: number; t: number }[] = [];
+  /** Velocity in CSS pixels per millisecond. */
+  private vx = 0;
+  private vy = 0;
+  private gliding = false;
+
+  get active(): boolean {
+    return this.gliding;
+  }
+
+  /** A pan step of `(dx, dy)` pixels at time `t` (ms). */
+  track(dx: number, dy: number, t: number): void {
+    this.gliding = false;
+    this.samples.push({ dx, dy, t });
+    // Keep the window, plus the one sample before it: it dates the start of the first move.
+    while (this.samples.length > 1 && t - (this.samples[1]?.t ?? t) > TOUCH.inertiaWindowMs) {
+      this.samples.shift();
+    }
+  }
+
+  /** Forget the pan in progress and stop any glide (new touch, pinch). */
+  stop(): void {
+    this.samples = [];
+    this.gliding = false;
+  }
+
+  /** The finger lifted at time `t`: glide if it was still moving fast enough. */
+  release(t: number): void {
+    const samples = this.samples;
+    this.samples = [];
+    const last = samples[samples.length - 1];
+    if (!last || t - last.t > TOUCH.inertiaRestMs) return;
+    // Moves of the last `inertiaWindowMs`. Each sample is the distance covered since the
+    // one before it, so the clock starts at the sample just before the window.
+    let from = samples.findIndex((s) => t - s.t <= TOUCH.inertiaWindowMs);
+    if (from === 0) from = 1; // nothing dates the start of the very first move
+    const start = samples[from - 1];
+    if (from < 0 || !start) return;
+    let dx = 0;
+    let dy = 0;
+    for (const s of samples.slice(from)) {
+      dx += s.dx;
+      dy += s.dy;
+    }
+    // Up to the release: a finger that slowed to a stop throws the map less far.
+    const span = t - start.t;
+    if (span <= 0) return;
+    this.vx = dx / span;
+    this.vy = dy / span;
+    this.gliding = Math.hypot(this.vx, this.vy) * 1000 >= TOUCH.inertiaMinSpeed;
+  }
+
+  /** Pan to apply for a frame of `dtMs`, or null when the map is at rest. */
+  step(dtMs: number): { dx: number; dy: number } | null {
+    if (!this.gliding) return null;
+    const out = { dx: this.vx * dtMs, dy: this.vy * dtMs };
+    const k = Math.exp(-dtMs / TOUCH.inertiaTauMs);
+    this.vx *= k;
+    this.vy *= k;
+    if (Math.hypot(this.vx, this.vy) * 1000 < TOUCH.inertiaStopSpeed) this.gliding = false;
+    return out;
+  }
+}

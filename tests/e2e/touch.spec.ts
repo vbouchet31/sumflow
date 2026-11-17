@@ -41,7 +41,12 @@ test('without a tool one finger moves the map, two fingers move it too', async (
   const touch = await touchDriver(page);
   const from = tileCentre(page, 6, 0);
 
-  await touch.drag(from, [from[0] - 96, from[1] - 32]);
+  // Held still before lifting, so the map does not glide (see the inertia test).
+  await touch.start(from);
+  await touch.move([from[0] - 48, from[1] - 16]);
+  await touch.move([from[0] - 96, from[1] - 32]);
+  await page.waitForTimeout(150);
+  await touch.end();
   const panned = (await state(page)).camera;
   expect(panned.x).toBeCloseTo(3, 5);
   expect(panned.y).toBeCloseTo(1, 5);
@@ -214,4 +219,144 @@ test('the pause button pauses and resumes the simulation', async ({ page }) => {
   await pause.tap();
   expect((await state(page)).paused).toBe(false);
   await expect.poll(async () => (await state(page)).tick).toBeGreaterThan(tick);
+});
+
+test('pasting with a finger: the preview is put down, moved, then confirmed', async ({ page }) => {
+  await page.goto('./?debug=1&seed=42');
+  const touch = await touchDriver(page);
+  const place = page.locator('.hint-btn[data-action="place"]');
+  await page.evaluate(() => {
+    window.__sumflow?.place('belt', 4, -3, 0);
+    window.__sumflow?.place('belt', 5, -3, 0);
+  });
+
+  // Copy with a drag: paste mode starts with the preview already on the map.
+  await page.locator('.build-btn[data-tool="copy"]').tap();
+  await touch.drag(tileCentre(page, 4, -3), tileCentre(page, 5, -3));
+  expect((await state(page)).tool).toBe('paste');
+  await expect(place).toBeVisible();
+
+  // Tapping only moves the preview: nothing is built yet.
+  await touch.tap(tileCentre(page, 6, -1));
+  expect((await state(page)).belts).toBe(2);
+  expect((await state(page)).undo).toBe(2);
+
+  await place.tap();
+  const pasted = await state(page);
+  expect(pasted.belts).toBe(4);
+  expect(pasted.undo).toBe(3);
+  expect(pasted.tool).toBe('paste');
+  await expect(place).toBeHidden();
+});
+
+test('drawing a belt past the screen edge scrolls the map', async ({ page }) => {
+  await page.goto('./?debug=1&seed=42');
+  const touch = await touchDriver(page);
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error('no viewport');
+  await page.locator('.build-btn[data-tool="belt"]').tap();
+
+  const from = tileCentre(page, 4, -2);
+  const edge: [number, number] = [viewport.width - 6, from[1]];
+  await touch.start(from);
+  await touch.move([from[0] + 40, from[1]]);
+  await touch.move(edge);
+  // The finger rests at the edge: the map keeps scrolling under it.
+  await expect.poll(async () => (await state(page)).camera.x).toBeGreaterThan(6);
+  await touch.end();
+
+  const after = await state(page);
+  // More belts than there were tiles between the start and the screen edge.
+  expect(after.belts).toBeGreaterThan(Math.ceil((viewport.width - from[0]) / 32) + 5);
+  expect(after.camera.y).toBe(0);
+  const settled = after.camera.x;
+  await page.waitForTimeout(150);
+  expect((await state(page)).camera.x).toBe(settled);
+});
+
+/** A steady one-finger pan of 160 px to the left, lifted while still moving. */
+async function flick(page: Page): Promise<{ atRelease: number; later: number }> {
+  await page.goto('./?debug=1&seed=42');
+  const touch = await touchDriver(page);
+  const [x, y] = tileCentre(page, 6, -1);
+  await touch.start([x, y]);
+  for (let i = 1; i <= 8; i++) await touch.move([x - i * 20, y]);
+  await touch.end();
+  const atRelease = (await state(page)).camera.x;
+  await page.waitForTimeout(600);
+  return { atRelease, later: (await state(page)).camera.x };
+}
+
+test('a quick pan lets the map glide', async ({ page }) => {
+  const { atRelease, later } = await flick(page);
+  expect(atRelease).toBeGreaterThanOrEqual(5);
+  expect(later).toBeGreaterThan(atRelease + 0.5);
+  // It comes to rest.
+  await page.waitForTimeout(1500);
+  const rest = (await state(page)).camera.x;
+  await page.waitForTimeout(200);
+  expect((await state(page)).camera.x).toBe(rest);
+});
+
+test('no glide when animations are reduced', async ({ page }) => {
+  // "Reduce animations" follows the system setting on a new game.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const { atRelease, later } = await flick(page);
+  expect(atRelease).toBeCloseTo(5, 5);
+  expect(later).toBe(atRelease);
+});
+
+test('level 1 can be completed with touches alone', async ({ page }) => {
+  await page.goto('./?debug=1&seed=42');
+  const touch = await touchDriver(page);
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error('no viewport');
+  await page.locator('.help-bubble button').tap();
+
+  // Frame the nearest deposit of 1 and the hub between the bars.
+  const margin = { top: 70, bottom: 130, side: 24 };
+  const plan = await page.evaluate(
+    ([vw, vh, m]) => {
+      const api = window.__sumflow;
+      const d = api?.findDeposit(1);
+      if (!api || !d) throw new Error('no deposit of 1');
+      const zoom = Math.min(
+        1,
+        (vw - 2 * m.side) / ((Math.abs(d.x) + 8) * 32),
+        (vh - m.top - m.bottom) / ((Math.abs(d.y) + 8) * 32),
+      );
+      // The free area sits a little above the screen centre.
+      api.lookAt(d.x / 2, d.y / 2 + (m.bottom - m.top) / 2 / (32 * zoom), zoom);
+      // Leave the extractor (3×3) on the side facing the hub, then go to the hub's edge.
+      const horizontal = Math.abs(d.x) >= Math.abs(d.y);
+      const start = horizontal
+        ? { x: d.x - 2 * Math.sign(d.x), y: d.y }
+        : { x: d.x, y: d.y - 2 * Math.sign(d.y) };
+      const corner = horizontal ? { x: start.x, y: 0 } : { x: 0, y: start.y };
+      // A hub tile: skipped, so the last belt points into the hub.
+      const end = horizontal ? { x: d.x > 0 ? 2 : -3, y: 0 } : { x: 0, y: d.y > 0 ? 2 : -3 };
+      return { deposit: { x: d.x, y: d.y }, start, corner, end };
+    },
+    [viewport.width, viewport.height, margin] as const,
+  );
+  const cam = (await state(page)).camera;
+  const at = (p: { x: number; y: number }): [number, number] => [
+    viewport.width / 2 + (p.x + 0.5 - cam.x) * 32 * cam.zoom,
+    viewport.height / 2 + (p.y + 0.5 - cam.y) * 32 * cam.zoom,
+  ];
+
+  await page.locator('.build-btn[data-tool="extractor"]').tap();
+  await touch.tap(at(plan.deposit));
+  expect((await state(page)).buildings).toBe(2);
+
+  // Two straight drags: away from the extractor, then into the hub.
+  await page.locator('.build-btn[data-tool="belt"]').tap();
+  const same = plan.start.x === plan.corner.x && plan.start.y === plan.corner.y;
+  if (!same) await touch.drag(at(plan.start), at(plan.corner), 12);
+  await touch.drag(at(plan.corner), at(plan.end), 12);
+  expect((await state(page)).belts).toBeGreaterThan(2);
+  expect((await state(page)).camera).toEqual(cam);
+
+  await page.evaluate(() => window.__sumflow?.step(120));
+  expect((await state(page)).level).toBeGreaterThan(1);
 });

@@ -741,6 +741,11 @@ textarea {
   outline-offset: 1px;
 }
 
+.hint-btn-primary {
+  background: #2b6cb0;
+  color: #fff;
+}
+
 .hint-btn[aria-pressed='true'] {
   border-color: #7fb2ff;
   background: #22345a;
@@ -975,6 +980,17 @@ textarea {
   height: 18px;
 }
 
+.menu-section {
+  margin: 18px 0 0;
+  font: 700 16px var(--font-ui);
+}
+
+.menu-card h3 {
+  margin: 12px 0 6px;
+  color: var(--muted);
+  font: 600 13px var(--font-ui);
+}
+
 .controls-table td.ctl-keys {
   color: var(--muted);
   font-family: var(--font-num);
@@ -1008,7 +1024,7 @@ textarea {
 @media (hover: hover) {
   .build-btn:hover,
   .top-btn:hover,
-  .hint-btn:hover,
+  .hint-btn:not(.hint-btn-primary):hover,
   .menu-btn:hover,
   .secondary-btn:hover {
     background: #232d46;

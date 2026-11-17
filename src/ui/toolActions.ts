@@ -2,7 +2,8 @@ import type { ToolController } from '../build/tools';
 import { type MessageKey, t } from '../i18n';
 import { el } from './dom';
 
-type ActionId = 'rotate' | 'mirror' | 'elbow' | 'prevClip' | 'nextClip' | 'removeClip' | 'quit';
+type ActionId =
+  'rotate' | 'mirror' | 'elbow' | 'prevClip' | 'nextClip' | 'removeClip' | 'place' | 'quit';
 
 interface ActionDef {
   id: ActionId;
@@ -60,6 +61,13 @@ const ACTIONS: readonly ActionDef[] = [
     shown: (tools) => tools.tool === 'paste',
   },
   {
+    id: 'place',
+    label: 'act.place',
+    icon: null,
+    run: (tools) => tools.confirmPaste(),
+    shown: (tools) => tools.pastePending,
+  },
+  {
     id: 'quit',
     label: 'act.quit',
     icon: null,
@@ -92,6 +100,7 @@ export class ToolActions {
       btn.type = 'button';
       btn.dataset['action'] = def.id;
       if (def.icon === null) btn.classList.add('hint-btn-text');
+      if (def.id === 'place') btn.classList.add('hint-btn-primary');
       btn.title = t(`${def.label}Title` as MessageKey);
       btn.setAttribute('aria-label', t(def.label));
       btn.addEventListener('click', (e) => {

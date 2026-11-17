@@ -71,6 +71,19 @@ export const TOUCH = {
   slopPx: 10,
   /** Time a finger must stay still for a long press. */
   longPressMs: 450,
+  /** While building, a finger this close to a screen edge scrolls the map (CSS pixels). */
+  edgePx: 56,
+  /** Scroll speed at the very edge, in CSS pixels per second. */
+  edgeSpeedPx: 700,
+  /** Velocity is measured over the last moves of a pan, within this time (ms). */
+  inertiaWindowMs: 100,
+  /** A finger still for longer than this before lifting does not throw the map (ms). */
+  inertiaRestMs: 100,
+  /** Slowest release that throws the map, and speed at which the glide stops (px/s). */
+  inertiaMinSpeed: 150,
+  inertiaStopSpeed: 20,
+  /** Time constant of the glide's exponential slow-down (ms). */
+  inertiaTauMs: 325,
 } as const;
 
 /** Base size of a tile in CSS pixels at zoom 1 (PLAN §4.1). */

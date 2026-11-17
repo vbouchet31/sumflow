@@ -480,3 +480,86 @@ describe('touch replacements for keys', () => {
     expect(tools.canRotate).toBe(true);
   });
 });
+
+describe('pasting with a finger: put down, then confirm', () => {
+  const TOUCH_MODS = { ...NO_MODS, touch: true };
+
+  function pasteTool(): { world: World; tools: ToolController } {
+    const world = makeWorld();
+    world.setBelt(30, 30, dirMask(E));
+    const tools = new ToolController(world);
+    expect(tools.copyRect({ x0: 30, y0: 30, x1: 30, y1: 30 }, false)).toBe(true);
+    return { world, tools };
+  }
+
+  it('a tap only puts the preview down; confirming builds, once', () => {
+    const { world, tools } = pasteTool();
+    expect(tools.pastePending).toBe(false);
+    tools.pointerDown(40, 40, TOUCH_MODS);
+    tools.pointerUp(40, 40, TOUCH_MODS);
+    tools.clearHover(); // the finger is up
+    expect(world.state.belts.size).toBe(1);
+    expect(tools.pastePending).toBe(true);
+    expect(tools.ghost().belts.map((b) => [b.x, b.y])).toEqual([[40, 40]]);
+
+    expect(tools.confirmPaste()).toBe(true);
+    expect(world.beltAt(40, 40)).toBeTruthy();
+    expect(tools.pastePending).toBe(false);
+    expect(tools.ghost().belts).toEqual([]);
+    expect(tools.confirmPaste()).toBe(false);
+    expect(world.state.belts.size).toBe(2);
+    expect(tools.undo()).toBe(true);
+    expect(world.state.belts.size).toBe(1);
+  });
+
+  it('dragging moves the preview instead of laying a row of copies', () => {
+    const { world, tools } = pasteTool();
+    tools.pointerDown(40, 40, TOUCH_MODS);
+    tools.pointerMove(46, 40, TOUCH_MODS);
+    expect(tools.ghost().belts.map((b) => [b.x, b.y])).toEqual([[46, 40]]);
+    tools.pointerUp(47, 41, TOUCH_MODS);
+    tools.clearHover();
+    expect(tools.ghost().belts.map((b) => [b.x, b.y])).toEqual([[47, 41]]);
+    expect(world.state.belts.size).toBe(1);
+  });
+
+  it('a cancelled gesture puts the preview back where it was', () => {
+    const { tools } = pasteTool();
+    tools.placePastePreview(40, 40);
+    tools.pointerDown(50, 50, TOUCH_MODS); // first finger of a pinch
+    tools.pointerCancel();
+    tools.clearHover();
+    expect(tools.ghost().belts.map((b) => [b.x, b.y])).toEqual([[40, 40]]);
+  });
+
+  it('rotating and leaving the tool', () => {
+    const { tools } = pasteTool();
+    tools.placePastePreview(40, 40);
+    tools.rotate(1);
+    expect(tools.pastePending).toBe(true);
+    tools.setTool('none');
+    expect(tools.pastePending).toBe(false);
+    tools.placePastePreview(40, 40); // ignored outside paste mode
+    expect(tools.pastePending).toBe(false);
+  });
+
+  it('a mouse takes the preview back, and a click still pastes at once', () => {
+    const { world, tools } = pasteTool();
+    tools.placePastePreview(40, 40);
+    tools.pointerMove(60, 60, NO_MODS);
+    expect(tools.pastePending).toBe(false);
+    expect(tools.ghost().belts.map((b) => [b.x, b.y])).toEqual([[60, 60]]);
+    tools.pointerDown(60, 60, NO_MODS);
+    tools.pointerUp(60, 60, NO_MODS);
+    expect(world.beltAt(60, 60)).toBeTruthy();
+  });
+
+  it('when nothing can be placed the preview stays, to be moved', () => {
+    const { world, tools } = pasteTool();
+    unlockAll(world);
+    world.addBuilding('adder', 50, 50, 0);
+    tools.placePastePreview(50, 50); // a belt cannot be pasted on a building
+    expect(tools.confirmPaste()).toBe(false);
+    expect(tools.pastePending).toBe(true);
+  });
+});

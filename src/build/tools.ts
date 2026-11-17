@@ -49,6 +49,8 @@ export interface Modifiers {
   ctrl: boolean;
   shift: boolean;
   alt: boolean;
+  /** The press comes from a finger: pasting waits for a confirmation (`confirmPaste`). */
+  touch?: boolean;
 }
 
 /** What the renderer draws as construction ghosts. */
@@ -93,6 +95,14 @@ export class ToolController {
    */
   elbowSwap = false;
   private hover: { x: number; y: number } | null = null;
+  /**
+   * Touch: tile where the paste preview was put down. It stays there once the finger is
+   * up, until `confirmPaste` (a finger hides what is under it, and a paste is large).
+   */
+  private pending: { x: number; y: number } | null = null;
+  private pendingBefore: { x: number; y: number } | null = null;
+  /** A finger is moving the paste preview. */
+  private touchPaste = false;
   private drag: { x: number; y: number; moved: boolean } | null = null;
   private ctrl = false;
   private listeners = new Set<() => void>();
@@ -121,6 +131,7 @@ export class ToolController {
     if (!this.isAvailable(tool)) return;
     this.tool = this.tool === tool ? 'none' : tool;
     this.drag = null;
+    this.dropPending();
     this.notify();
   }
 
@@ -128,7 +139,14 @@ export class ToolController {
   private forceTool(tool: ToolId): void {
     this.tool = tool;
     this.drag = null;
+    this.dropPending();
     this.notify();
+  }
+
+  private dropPending(): void {
+    this.pending = null;
+    this.pendingBefore = null;
+    this.touchPaste = false;
   }
 
   /** Locked buildings and features cannot be selected; paste needs a clipboard entry. */
@@ -229,17 +247,58 @@ export class ToolController {
     return true;
   }
 
+  /** True while a paste preview waits on the map for `confirmPaste` (touch). */
+  get pastePending(): boolean {
+    return this.tool === 'paste' && this.pending !== null;
+  }
+
+  /** Put the paste preview down on a tile without a pointer (touch: at the screen centre). */
+  placePastePreview(x: number, y: number): void {
+    if (this.tool === 'paste') this.pending = { x, y };
+  }
+
+  /**
+   * Paste where the preview was put down. On success the preview goes away; when nothing
+   * could be placed it stays, to be moved somewhere else.
+   */
+  confirmPaste(): boolean {
+    if (!this.pastePending) return false;
+    const placed = this.history.run(() =>
+      this.pastePlans(null).reduce((n, p) => n + applyPaste(this.world, p), 0),
+    );
+    if (placed > 0) {
+      this.pending = null;
+      this.events.onBuild?.();
+    } else {
+      this.events.onError?.();
+    }
+    return placed > 0;
+  }
+
   // ---- pointer -----------------------------------------------------------
 
   pointerMove(x: number, y: number, mods: Modifiers): void {
     this.hover = { x, y };
     this.ctrl = mods.ctrl;
+    if (this.tool === 'paste') {
+      if (mods.touch) {
+        if (this.touchPaste) this.pending = { x, y };
+        return;
+      }
+      // A mouse takes over: the preview follows it again.
+      this.pending = null;
+    }
     if (this.drag && (x !== this.drag.x || y !== this.drag.y)) this.drag.moved = true;
   }
 
   /** The gesture was interrupted (system, second finger): drop the drag, build nothing. */
   pointerCancel(): void {
     this.drag = null;
+    if (this.touchPaste) {
+      // The preview goes back to where it was before this finger moved it.
+      this.pending = this.pendingBefore;
+      this.touchPaste = false;
+    }
   }
 
   /** No pointer is over the map any more (finger lifted): no ghost, no hovered tile. */
@@ -251,6 +310,12 @@ export class ToolController {
   pointerDown(x: number, y: number, mods: Modifiers): void {
     this.hover = { x, y };
     this.ctrl = mods.ctrl;
+    if (this.tool === 'paste' && mods.touch) {
+      this.pendingBefore = this.pending;
+      this.pending = { x, y };
+      this.touchPaste = true;
+      return;
+    }
     if (this.tool === 'belt' && mods.alt) return; // Alt+click = priority (on release)
     const t = this.tool;
     if (t === 'belt' || t === 'paste' || isAreaTool(t) || isFreeBuilding(t)) {
@@ -264,6 +329,12 @@ export class ToolController {
     const tool = this.tool;
     const drag = this.drag;
     this.drag = null;
+    if (tool === 'paste' && mods.touch) {
+      // The finger only puts the preview down: `confirmPaste` builds.
+      if (this.touchPaste) this.pending = { x, y };
+      this.touchPaste = false;
+      return;
+    }
     const run = <T>(fn: () => T): T => this.history.run(fn);
     if (tool === 'none' || tool === 'marker') {
       const marker = this.world.state.markers.get(key(x, y));
@@ -433,7 +504,10 @@ export class ToolController {
 
   private pastePlans(drag: { x: number; y: number; moved: boolean } | null): PastePlan[] {
     const clip = this.currentClip();
-    if (!clip || !this.hover) return [];
+    if (!clip) return [];
+    // A preview put down by a finger is a single copy, where it was put.
+    if (this.pending) return planPasteRow(this.world, clip, this.pending, this.pending);
+    if (!this.hover) return [];
     const from = drag ?? this.hover;
     const to = drag?.moved ? this.hover : from;
     return planPasteRow(this.world, clip, from, to);
@@ -441,9 +515,10 @@ export class ToolController {
 
   ghost(): Ghost {
     const empty: Ghost = { belts: [], buildings: [], demolish: null, area: null };
-    if (!this.hover) return empty;
     const tool = this.tool;
     const drag = this.drag;
+    if (tool === 'paste') return pasteGhost(this.pastePlans(drag));
+    if (!this.hover) return empty;
     if (tool === 'belt') return { ...empty, belts: this.beltPlan(drag) };
     if (tool === 'extractor') {
       return { ...empty, buildings: [planExtractor(this.world, this.hover.x, this.hover.y)] };
@@ -458,7 +533,6 @@ export class ToolController {
       }
       return { ...empty, area: { rect: selectionRect(this.hover, this.hover), kind: tool } };
     }
-    if (tool === 'paste') return pasteGhost(this.pastePlans(drag));
     if (isFreeBuilding(tool)) return { ...empty, buildings: this.operatorPlans(tool, drag) };
     if (tool === 'bridge') {
       const { x, y } = this.hover;
