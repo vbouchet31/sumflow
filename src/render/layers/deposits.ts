@@ -2,7 +2,7 @@ import { COLORS, FONT_NUM } from '../../config/colors';
 import { CHUNK_SIZE } from '../../core/grid';
 import type { GameState } from '../../sim/state';
 import type { DepositMap } from '../../world/chunks';
-import { type Deposit, isExtractable } from '../../world/deposits';
+import { type Deposit, isExtractable, isRich } from '../../world/deposits';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
 
@@ -18,6 +18,26 @@ function visibleDeposits(cam: Camera, map: DepositMap): Deposit[] {
     for (let cx = cx0; cx <= cx1; cx++) out.push(...map.getChunk(cx, cy));
   }
   return out;
+}
+
+const RICH_COLOR = '#f2c46d';
+/** Sparkle offsets from the deposit centre and sizes, in tiles. */
+const SPARKLES: readonly [number, number, number][] = [
+  [-1.0, -0.95, 0.2],
+  [1.05, -0.7, 0.14],
+  [0.9, 1.0, 0.18],
+  [-1.05, 0.85, 0.12],
+];
+
+/** Four-pointed star. */
+function sparkle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  ctx.beginPath();
+  ctx.moveTo(x, y - r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.quadraticCurveTo(x, y, x, y + r);
+  ctx.quadraticCurveTo(x, y, x - r, y);
+  ctx.quadraticCurveTo(x, y, x, y - r);
+  ctx.fill();
 }
 
 function drawLock(ctx: CanvasRenderingContext2D, x: number, y: number, size: number): void {
@@ -59,6 +79,27 @@ export function drawDeposits(
     else ctx.rect(p.x, p.y, Math.max(1, size), Math.max(1, size));
   }
   ctx.fill();
+
+  // Rich veins (proposal 11): golden rim and a few fixed sparkles.
+  const rich = deposits.filter((d) => isRich(state.seed, d));
+  if (rich.length > 0) {
+    ctx.strokeStyle = RICH_COLOR;
+    ctx.lineWidth = Math.max(1, 0.1 * s);
+    ctx.beginPath();
+    for (const d of rich) {
+      const p = cam.worldToScreen(d.x - 1, d.y - 1);
+      if (radius > 0) ctx.roundRect(p.x + inset, p.y + inset, size, size, radius);
+      else ctx.rect(p.x, p.y, Math.max(1, size), Math.max(1, size));
+    }
+    ctx.stroke();
+    if (cam.zoom >= LOD.buildingText) {
+      ctx.fillStyle = RICH_COLOR;
+      for (const d of rich) {
+        const c = cam.worldToScreen(d.x + 0.5, d.y + 0.5);
+        for (const [dx, dy, r] of SPARKLES) sparkle(ctx, c.x + dx * s, c.y + dy * s, r * s);
+      }
+    }
+  }
 
   if (cam.zoom < LOD.depositText) return;
 

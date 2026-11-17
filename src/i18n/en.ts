@@ -290,4 +290,6 @@ export const en: Record<MessageKey, string> = {
   'toast.importError': 'Import failed: invalid file. Nothing was changed.',
   'toast.loadError': 'Unreadable save: new game started. The old one is kept aside.',
   'toast.exported': 'Game exported: {file}',
+  'tip.rich': 'Rich vein: an extractor here yields ×2',
+  'tip.richExtractor': 'On a rich vein (×2)',
 };

@@ -1,4 +1,5 @@
-import { MAPGEN } from '../config/balance';
+import { MAPGEN, RICH } from '../config/balance';
+import { hash2 } from '../core/rng';
 
 /**
  * A 3×3 deposit. `x`, `y` is its centre tile; it covers `[x-1, x+1] × [y-1, y+1]`.
@@ -40,4 +41,15 @@ export function isExtractable(value: number, maxExtraction: number): boolean {
 /** Distance of a deposit centre from the hub centre, in tiles. */
 export function depositDistance(x: number, y: number): number {
   return Math.hypot(x, y);
+}
+
+const RICH_SALT = 0x52494348; // "RICH"
+
+/**
+ * Rich vein (proposal 11): decided by the seed and the deposit's position only, so the map
+ * stays the same whatever the order chunks are generated in.
+ */
+export function isRich(seed: number, d: Deposit): boolean {
+  if (depositDistance(d.x, d.y) < RICH.minDistance) return false;
+  return hash2(seed ^ RICH_SALT, d.x, d.y) % 1000 < RICH.perMille;
 }
