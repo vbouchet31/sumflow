@@ -49,6 +49,8 @@ export const fr = {
   'reward.subtractor': 'Soustracteur',
   'reward.divider': 'Diviseur',
   'reward.exponent': 'Exposant',
+  'reward.digitsum': 'Réducteur',
+  'reward.reverse': 'Inverseur',
   'reward.storage': 'Stockage',
   'reward.bridge': 'Pont',
   'reward.extractor': 'Extracteur',
@@ -80,6 +82,8 @@ export const fr = {
   'tool.subtractor': 'Soustracteur',
   'tool.divider': 'Diviseur',
   'tool.exponent': 'Exposant',
+  'tool.digitsum': 'Réducteur',
+  'tool.reverse': 'Inverseur',
   'tip.bufA': 'A : {items}',
   'tip.bufB': 'B : {items}',
   'tip.bufOut': 'Sortie : {items}',
@@ -273,6 +277,10 @@ export const fr = {
   'help.subtractor': 'Soustracteur : l’ordre A − B compte.',
   'help.divider': 'Diviseur : le reste sort à part, jamais 0.',
   'help.exponent': 'Exposant : A à la puissance B. Les résultats grandissent vite.',
+  'help.digitsum':
+    "Réducteur : un seul flux d'entrée, il additionne les chiffres. 1 234 donne 10, 99 donne 18.",
+  'help.reverse':
+    "Inverseur : un seul flux d'entrée, il retourne l'ordre des chiffres. 12 devient 21, 120 devient 21.",
   'help.storage':
     'Stockage : il garde jusqu’à 10 000 exemplaires d’une seule valeur et les ressort à pleine vitesse.',
   'about.body':

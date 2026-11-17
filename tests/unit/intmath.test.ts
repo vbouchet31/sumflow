@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { add, clamp, divmod, INT_MAX, INT_MIN, mul, pow, sub } from '../../src/core/intmath';
+import {
+  add,
+  clamp,
+  digitSum,
+  divmod,
+  INT_MAX,
+  INT_MIN,
+  mul,
+  pow,
+  reverseDigits,
+  sub,
+} from '../../src/core/intmath';
 
 describe('clamp', () => {
   it('saturates instead of wrapping', () => {
@@ -83,5 +94,21 @@ describe('pow', () => {
     expect(pow(3, 1_000_000_000)).toBe(INT_MAX);
     expect(pow(-1, 1_000_000_001)).toBe(-1);
     expect(pow(1, INT_MAX)).toBe(1);
+  });
+});
+
+describe('digit operations', () => {
+  it('reverses digits, dropping leading zeros and keeping the sign', () => {
+    expect(reverseDigits(12)).toBe(21);
+    expect(reverseDigits(120)).toBe(21);
+    expect(reverseDigits(-34)).toBe(-43);
+    expect(reverseDigits(0)).toBe(0);
+    expect(reverseDigits(2_000_000_009)).toBe(INT_MAX);
+  });
+  it('adds up digits', () => {
+    expect(digitSum(1234)).toBe(10);
+    expect(digitSum(99)).toBe(18);
+    expect(digitSum(-99)).toBe(-18);
+    expect(digitSum(0)).toBe(0);
   });
 });

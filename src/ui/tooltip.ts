@@ -5,7 +5,7 @@ import { getLocale, t } from '../i18n';
 import { beltStatus } from '../sim/belts';
 import { connectedOutputs } from '../sim/outputs';
 import { currentExtractorRate } from '../sim/upgrades';
-import { isOperator } from '../sim/entities';
+import { isOperator, isUnary } from '../sim/entities';
 import { cycleDuration } from '../sim/operators';
 import { type MessageKey } from '../i18n';
 import type { World } from '../sim/world';
@@ -59,7 +59,8 @@ function describeObject(world: World, x: number, y: number): string[] {
       buf && buf.length > 0 ? buf.map(num).join(', ') : t('tip.none');
     const dur = cycleDuration(world, b.type);
     const lines = [t(`tool.${b.type}` as MessageKey)];
-    lines.push(t('tip.bufA', { items: list(b.inA) }), t('tip.bufB', { items: list(b.inB) }));
+    lines.push(t('tip.bufA', { items: list(b.inA) }));
+    if (!isUnary(b.type)) lines.push(t('tip.bufB', { items: list(b.inB) }));
     if (b.type === 'divider') {
       lines.push(t('tip.bufQ', { items: list(b.outQ) }), t('tip.bufR', { items: list(b.outR) }));
     } else {

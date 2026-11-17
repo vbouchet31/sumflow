@@ -19,6 +19,8 @@ export const HELP_TIPS: readonly HelpTip[] = [
   { id: 'subtractor', text: 'help.subtractor', when: (s) => isBuildingUnlocked(s, 'subtractor') },
   { id: 'divider', text: 'help.divider', when: (s) => isBuildingUnlocked(s, 'divider') },
   { id: 'exponent', text: 'help.exponent', when: (s) => isBuildingUnlocked(s, 'exponent') },
+  { id: 'reverse', text: 'help.reverse', when: (s) => isBuildingUnlocked(s, 'reverse') },
+  { id: 'digitsum', text: 'help.digitsum', when: (s) => isBuildingUnlocked(s, 'digitsum') },
   { id: 'storage', text: 'help.storage', when: (s) => isBuildingUnlocked(s, 'storage') },
 ];
 

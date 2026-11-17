@@ -99,15 +99,25 @@ export interface Building {
   storeCount?: number;
 }
 
-export type OperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent';
+export type OperatorType =
+  'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent' | 'reverse' | 'digitsum';
 
 export const OPERATOR_TYPES: readonly OperatorType[] = [
+  'digitsum',
+  'reverse',
   'adder',
   'multiplier',
   'subtractor',
   'divider',
   'exponent',
 ];
+
+/** Operators with a single input (A). */
+export type UnaryType = 'reverse' | 'digitsum';
+
+export function isUnary(type: string): type is UnaryType {
+  return type === 'reverse' || type === 'digitsum';
+}
 
 export function isOperator(type: string): type is OperatorType {
   return (OPERATOR_TYPES as readonly string[]).includes(type);
