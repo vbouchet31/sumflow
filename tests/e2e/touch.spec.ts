@@ -274,22 +274,51 @@ test('drawing a belt past the screen edge scrolls the map', async ({ page }) => 
   expect((await state(page)).camera.x).toBe(settled);
 });
 
-/** A steady one-finger pan of 160 px to the left, lifted while still moving. */
+/**
+ * A steady one-finger pan of 320 px (10 tiles) to the left, lifted while still moving. Whether a pan
+ * counts as quick depends on when the page receives the events, which a loaded machine
+ * delays: the flick is measured and played again until the machine kept up (a finger
+ * resting more than 100 ms before lifting must not throw the map, so a slow flick proves
+ * nothing either way).
+ */
 async function flick(page: Page): Promise<{ atRelease: number; later: number }> {
   await page.goto('./?debug=1&seed=42');
+  await page.evaluate(() => {
+    const times: number[] = [];
+    for (const type of ['pointerdown', 'pointermove', 'pointerup']) {
+      document
+        .getElementById('world')
+        ?.addEventListener(type, (e) => times.push(e.timeStamp), true);
+    }
+    (window as unknown as { __times: number[] }).__times = times;
+  });
   const touch = await touchDriver(page);
   const [x, y] = tileCentre(page, 6, -1);
-  await touch.start([x, y]);
-  for (let i = 1; i <= 8; i++) await touch.move([x - i * 20, y]);
-  await touch.end();
-  const atRelease = (await state(page)).camera.x;
-  await page.waitForTimeout(600);
-  return { atRelease, later: (await state(page)).camera.x };
+  for (let attempt = 1; attempt <= 6; attempt++) {
+    // Not a reload: the game saves its camera when the page is left.
+    await page.evaluate(() => {
+      window.__sumflow?.lookAt(0, 0, 1);
+      (window as unknown as { __times: number[] }).__times.length = 0;
+    });
+    await touch.start([x, y]);
+    for (let i = 1; i <= 8; i++) await touch.move([x - i * 40, y]);
+    await touch.end();
+    const atRelease = (await state(page)).camera.x;
+    const times = await page.evaluate(() => (window as unknown as { __times: number[] }).__times);
+    const gaps = times.slice(1).map((t, k) => t - (times[k] ?? t));
+    // 40 px per move: a gap under 90 ms keeps the speed above the 150 px/s of a throw.
+    if (gaps.length === 9 && Math.max(...gaps) < 90) {
+      await page.waitForTimeout(600);
+      return { atRelease, later: (await state(page)).camera.x };
+    }
+    await page.waitForTimeout(1500); // let any glide of this attempt end
+  }
+  throw new Error('the machine is too slow to play a quick flick');
 }
 
 test('a quick pan lets the map glide', async ({ page }) => {
   const { atRelease, later } = await flick(page);
-  expect(atRelease).toBeGreaterThanOrEqual(5);
+  expect(atRelease).toBeGreaterThanOrEqual(10);
   expect(later).toBeGreaterThan(atRelease + 0.5);
   // It comes to rest.
   await page.waitForTimeout(1500);
@@ -302,7 +331,7 @@ test('no glide when animations are reduced', async ({ page }) => {
   // "Reduce animations" follows the system setting on a new game.
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const { atRelease, later } = await flick(page);
-  expect(atRelease).toBeCloseTo(5, 5);
+  expect(atRelease).toBeCloseTo(10, 5);
   expect(later).toBe(atRelease);
 });
 
