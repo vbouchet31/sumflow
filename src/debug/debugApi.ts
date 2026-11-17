@@ -16,6 +16,7 @@ import { layoutString } from '../sim/layout';
 import type { SaveManager } from '../save/manager';
 import { stateHash } from '../save/serialize';
 import type { Deposit } from '../world/deposits';
+import type { SortRuleKind } from '../sim/sorter';
 import type { PerfMeter, PerfStats } from './perfMeter';
 import { buildReferenceScenario, countItems, REFERENCE } from './reference';
 
@@ -101,6 +102,8 @@ export interface DebugApi {
   loadReference: () => void;
   /** Frame timings of the last half second (the numbers of the F3 overlay). */
   perf: () => PerfStats;
+  /** Set the rule of the sorter covering (x, y). */
+  setSortRule: (x: number, y: number, kind: SortRuleKind, n?: number) => boolean;
   /** Move the camera (tiles) and optionally set the zoom. */
   lookAt: (x: number, y: number, zoom?: number) => void;
 }
@@ -189,6 +192,12 @@ export function installDebugApi(ctx: DebugContext): void {
       runTicks(world, REFERENCE.warmupSeconds * TICK_RATE);
     },
     perf: () => ({ ...perf.stats }),
+    setSortRule: (x, y, kind, n = 0) => {
+      const b = world.buildingAt(x, y);
+      if (b?.type !== 'sorter') return false;
+      world.setSortRule(b, { kind, n });
+      return true;
+    },
     lookAt: (x, y, zoom) => {
       camera.centerOn(x, y);
       if (zoom !== undefined) camera.zoomAt(camera.viewW / 2, camera.viewH / 2, zoom / camera.zoom);
@@ -209,6 +218,8 @@ export function installDebugApi(ctx: DebugContext): void {
         'exponent',
         'storage',
         'bridge',
+        'trash',
+        'sorter',
       ] as const)
         applyReward(world.state, { kind: 'building', building });
       applyReward(world.state, { kind: 'feature', feature: 'upgrades' });

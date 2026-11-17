@@ -1,4 +1,5 @@
 import { BUILDINGS, type BuildingType, type PortRole } from '../config/buildings';
+import type { SortRule } from './sorter';
 import {
   type Dir,
   DX,
@@ -97,11 +98,17 @@ export interface Building {
   /** Storage: stored value (null when empty) and count (PLAN §6.3). */
   storeValue?: number | null;
   storeCount?: number;
+  /** Sorter: rule deciding which items leave through ✓ (Q). */
+  rule?: SortRule;
+  /** Incinerator: items destroyed so far. */
+  trashCount?: number;
 }
 
-export type OperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent';
+export type OperatorType =
+  'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent' | 'sorter';
 
 export const OPERATOR_TYPES: readonly OperatorType[] = [
+  'sorter',
   'adder',
   'multiplier',
   'subtractor',
@@ -109,15 +116,20 @@ export const OPERATOR_TYPES: readonly OperatorType[] = [
   'exponent',
 ];
 
+/** Operators with a single input (A). */
+export function isUnary(type: string): boolean {
+  return type === 'sorter';
+}
+
 export function isOperator(type: string): type is OperatorType {
   return (OPERATOR_TYPES as readonly string[]).includes(type);
 }
 
 /** Buildings placed freely with the generic tool (centred ghost, rows by dragging). */
-export type FreeBuildingType = OperatorType | 'storage';
+export type FreeBuildingType = OperatorType | 'storage' | 'trash';
 
 export function isFreeBuilding(type: string): type is FreeBuildingType {
-  return type === 'storage' || isOperator(type);
+  return type === 'storage' || type === 'trash' || isOperator(type);
 }
 
 export type PortKind = 'A' | 'B' | 'O' | 'Q' | 'R' | 'in' | 'out' | 'dynamic';

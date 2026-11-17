@@ -8,6 +8,7 @@ import { currentExtractorRate } from '../sim/upgrades';
 import { isOperator } from '../sim/entities';
 import { cycleDuration } from '../sim/operators';
 import { type MessageKey } from '../i18n';
+import { DEFAULT_SORT_RULE, ruleHasOperand } from '../sim/sorter';
 import type { World } from '../sim/world';
 import { isExtractable } from '../world/deposits';
 
@@ -52,6 +53,22 @@ function describeObject(world: World, x: number, y: number): string[] {
         ? t('tip.storeValue', { value: num(b.storeValue) })
         : t('tip.storeEmpty'),
       t('tip.storeFill', { n: num(count), max: num(STORAGE_CAPACITY) }),
+    ];
+  }
+  if (b?.type === 'trash') {
+    return [t('tool.trash'), t('tip.trashCount', { n: num(b.trashCount ?? 0) })];
+  }
+  if (b?.type === 'sorter') {
+    const list = (buf: number[] | undefined): string =>
+      buf && buf.length > 0 ? buf.map(num).join(', ') : t('tip.none');
+    return [
+      t('tool.sorter'),
+      t('tip.sorterRule', { rule: t(`sorter.kind.${(b.rule ?? DEFAULT_SORT_RULE).kind}`) }) +
+        (b.rule && ruleHasOperand(b.rule.kind) ? ` (N = ${num(b.rule.n)})` : ''),
+      t('tip.bufA', { items: list(b.inA) }),
+      t('tip.bufYes', { items: list(b.outQ) }),
+      t('tip.bufNo', { items: list(b.outR) }),
+      t('tip.sorterHint'),
     ];
   }
   if (b && isOperator(b.type)) {

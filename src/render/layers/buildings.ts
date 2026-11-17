@@ -7,6 +7,32 @@ import { roundRect } from '../shapes';
 import { drawHub } from './hub';
 import { drawOperator } from './operators';
 import { drawStorage } from './storage';
+import { ruleLabel } from '../../ui/sortRuleLabel';
+import { DEFAULT_SORT_RULE } from '../../sim/sorter';
+
+/** Incinerator: a dark rounded tile with a glowing core. */
+function drawTrash(ctx: CanvasRenderingContext2D, cam: Camera, b: Building): void {
+  const s = cam.scale;
+  const p = cam.worldToScreen(b.x, b.y);
+  const inset = 0.08 * s;
+  ctx.fillStyle = BUILDING_COLORS.trash;
+  roundRect(ctx, p.x + inset, p.y + inset, s - 2 * inset, s - 2 * inset, 0.25 * s);
+  ctx.fill();
+  const g = ctx.createRadialGradient(
+    p.x + s / 2,
+    p.y + s / 2,
+    0,
+    p.x + s / 2,
+    p.y + s / 2,
+    0.36 * s,
+  );
+  g.addColorStop(0, 'rgba(255, 200, 90, 0.95)');
+  g.addColorStop(1, 'rgba(230, 90, 40, 0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(p.x + s / 2, p.y + s / 2, 0.36 * s, 0, Math.PI * 2);
+  ctx.fill();
+}
 
 /** Cycle-end flash duration in ticks (150 ms, PLAN §6.2). */
 const FLASH_TICKS = 9;
@@ -65,10 +91,15 @@ export function drawBuildings(
     if (b.type === 'hub') drawHub(ctx, cam, state);
     else if (b.type === 'extractor') drawExtractor(ctx, cam, b);
     else if (b.type === 'storage') drawStorage(ctx, cam, b);
+    else if (b.type === 'trash') drawTrash(ctx, cam, b);
     else if (isOperator(b.type)) {
       const age = b.flashTick === undefined ? Infinity : state.tick - b.flashTick;
       const flash = !reducedMotion && age < FLASH_TICKS ? 1 - age / FLASH_TICKS : 0;
-      drawOperator(ctx, cam, b.type, b.x, b.y, b.rot, { flash, mirror: b.mirror === true });
+      drawOperator(ctx, cam, b.type, b.x, b.y, b.rot, {
+        flash,
+        mirror: b.mirror === true,
+        ...(b.type === 'sorter' ? { centerText: ruleLabel(b.rule ?? DEFAULT_SORT_RULE) } : {}),
+      });
     }
   }
 }
