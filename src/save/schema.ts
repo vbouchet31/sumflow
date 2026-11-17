@@ -3,6 +3,7 @@ import { TRACKS } from '../config/balance';
 import type { BuildingType } from '../config/buildings';
 import { COORD_MAX, COORD_MIN, type Dir, type Rot } from '../core/grid';
 import type { Clip } from '../sim/clip';
+import type { StreakState } from '../sim/streak';
 
 /** Current save format version (PLAN §11.3). Bump it with a migration (§11.4). */
 export const SAVE_VERSION = 1;
@@ -88,6 +89,8 @@ export interface SaveData {
   markers: { x: number; y: number; text: string }[];
   clipboard: Clip[];
   helpSeen: string[];
+  /** Delivery streak (proposal 08). Optional: older saves have none. */
+  streak?: StreakState;
   camera: { x: number; y: number; zoom: number };
 }
 
@@ -288,6 +291,18 @@ function clip(v: unknown, path: string): Clip {
  * Check that `raw` is a valid save of the current version and return a clean copy
  * (unknown fields dropped). Throws `SaveError` with the path of the first problem.
  */
+function streak(v: unknown): StreakState {
+  const o = obj(v, '$.streak');
+  const carry = num(o['carry'], '$.streak.carry');
+  if (carry < 0 || carry >= 1) fail('$.streak.carry');
+  return {
+    count: int(o['count'], '$.streak.count', 0),
+    lastTick: int(o['lastTick'], '$.streak.lastTick', -1),
+    carry,
+    best: int(o['best'], '$.streak.best', 0),
+  };
+}
+
 export function validateSave(raw: unknown): SaveData {
   const o = obj(raw, '$');
   const version = int(o['version'], '$.version', 1);
@@ -366,6 +381,7 @@ export function validateSave(raw: unknown): SaveData {
     }),
     clipboard: arr(o['clipboard'], '$.clipboard').map((x, i) => clip(x, `$.clipboard[${i}]`)),
     helpSeen: arr(o['helpSeen'], '$.helpSeen').map((x, i) => str(x, `$.helpSeen[${i}]`)),
+    ...(o['streak'] === undefined ? {} : { streak: streak(o['streak']) }),
     camera: {
       x: num(cam['x'], '$.camera.x'),
       y: num(cam['y'], '$.camera.y'),

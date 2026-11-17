@@ -272,3 +272,19 @@ export const EDIT = {
   /** Most copies placed by one paste drag. */
   maxPasteRow: 32,
 } as const;
+
+/**
+ * Delivery streak (proposal 08): target items arriving without a gap build a streak; long
+ * streaks make each item count more toward the level.
+ */
+export const STREAK = {
+  /** A gap longer than this (seconds) without a target item ends the streak. */
+  gapSeconds: 2.5,
+  /** Streak length → credit per item. Ordered by `from`. */
+  tiers: [
+    { from: 0, factor: 1 },
+    { from: 40, factor: 1.25 },
+    { from: 150, factor: 1.5 },
+    { from: 400, factor: 2 },
+  ],
+} as const;

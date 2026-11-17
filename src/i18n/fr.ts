@@ -290,4 +290,12 @@ export const fr = {
   'toast.importError': 'Import impossible : fichier invalide. Rien n’a été modifié.',
   'toast.loadError': 'Sauvegarde illisible : nouvelle partie. L’ancienne est gardée à part.',
   'toast.exported': 'Partie exportée : {file}',
+  'streak.title': 'Série : {n}',
+  'streak.next': 'Encore {n} sans interruption pour ×{f}',
+  'streak.max': 'Bonus maximal · record {best}',
+  'toast.streakTier': 'Série ×{f} !',
+  'toast.streakTierBody': 'Chaque nombre cible compte davantage',
+  'toast.streakLost': 'Série interrompue ({n})',
+  'help.streak':
+    'Série : livre la cible sans interruption. Au-delà de 40, 150 puis 400 d’affilée, chaque nombre compte ×1,25, ×1,5 puis ×2.',
 } as const;

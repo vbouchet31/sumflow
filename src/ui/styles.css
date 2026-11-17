@@ -1312,3 +1312,57 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Delivery streak (proposal 08). */
+.streak-card {
+  min-width: 200px;
+  max-width: 280px;
+  padding: 8px 14px 10px;
+  border-radius: 10px;
+  background: rgb(10 14 26 / 88%);
+  border: 1px solid #3a4a6a;
+  pointer-events: none;
+}
+.streak-card[data-tier='1'] {
+  border-color: #d29a32;
+}
+.streak-card[data-tier='2'] {
+  border-color: #e0663a;
+  box-shadow: 0 0 12px rgb(224 102 58 / 35%);
+}
+.streak-card[data-tier='3'] {
+  border-color: #ff4f7a;
+  box-shadow: 0 0 18px rgb(255 79 122 / 45%);
+}
+.streak-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.streak-title {
+  font: 700 14px var(--font-ui);
+}
+.streak-factor {
+  font: 800 22px var(--font-num);
+  color: #ffb45e;
+}
+.streak-card[data-tier='0'] .streak-factor {
+  color: var(--muted);
+}
+.streak-bar {
+  height: 5px;
+  margin: 6px 0;
+  border-radius: 3px;
+  background: #2a2f45;
+  overflow: hidden;
+}
+.streak-bar-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #ffb45e, #ff4f7a);
+}
+.streak-info {
+  color: var(--muted);
+  font: 12px/1.4 var(--font-ui);
+}
