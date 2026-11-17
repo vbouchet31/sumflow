@@ -23,12 +23,31 @@ body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-ui);
+  /* Touch: no pull-to-refresh or bounce, and no page pinch-zoom (panels may still scroll). */
+  overscroll-behavior: none;
+  touch-action: pan-x pan-y;
+}
+
+/* Touch: a long press must not select text or open the callout menu. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 #world {
   position: fixed;
   inset: 0;
   display: block;
+  /* Every gesture on the map belongs to the game (pan, pinch, drag to build). */
+  touch-action: none;
 }
 
 #ui-root {

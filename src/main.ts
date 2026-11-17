@@ -250,6 +250,9 @@ async function bootstrap(): Promise<void> {
     }
   });
   window.addEventListener('beforeunload', () => saves.saveSync());
+  // Mobile browsers often skip `beforeunload` and may kill the tab before the async save
+  // of `visibilitychange` ends: `pagehide` writes synchronously.
+  window.addEventListener('pagehide', () => saves.saveSync());
   if (loaded.error) toasts.show(t('toast.loadError'));
   // Soft click on every UI button (PLAN §12).
   uiRoot.addEventListener('click', (e) => {
@@ -274,9 +277,12 @@ async function bootstrap(): Promise<void> {
     toasts.show(t('toast.upgradeBought', { track: t(`track.${track}`), n: level }));
   });
   // The audio context needs a user gesture (PLAN §12).
+  // Kept for the whole session: the context may be suspended again later (mobile). In the
+  // capture phase, so the sound of the very gesture that unlocks it can play.
   const unlockAudio = (): void => sfx.unlock();
-  window.addEventListener('pointerdown', unlockAudio, { once: true });
-  window.addEventListener('keydown', unlockAudio, { once: true });
+  for (const type of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) {
+    window.addEventListener(type, unlockAudio, { capture: true, passive: true });
+  }
 
   const keyboard = new Keyboard(
     window,
@@ -314,6 +320,7 @@ async function bootstrap(): Promise<void> {
     onDown: (x, y, mods) => tools.pointerDown(x, y, mods),
     onMove: (x, y, mods) => tools.pointerMove(x, y, mods),
     onUp: (x, y, mods) => tools.pointerUp(x, y, mods),
+    onCancel: () => tools.pointerCancel(),
     onWheel: (delta, mods) => {
       if (!mods.shift || tools.tool !== 'paste') return false;
       // Accumulate so a trackpad does not skip through the history.

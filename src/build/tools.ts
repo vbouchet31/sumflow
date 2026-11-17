@@ -220,6 +220,17 @@ export class ToolController {
     if (this.drag && (x !== this.drag.x || y !== this.drag.y)) this.drag.moved = true;
   }
 
+  /** The gesture was interrupted (system, second finger): drop the drag, build nothing. */
+  pointerCancel(): void {
+    this.drag = null;
+  }
+
+  /** No pointer is over the map any more (finger lifted): no ghost, no hovered tile. */
+  clearHover(): void {
+    this.hover = null;
+    this.drag = null;
+  }
+
   pointerDown(x: number, y: number, mods: Modifiers): void {
     this.hover = { x, y };
     this.ctrl = mods.ctrl;

@@ -15,6 +15,28 @@
 | M10 Sauvegarde, options, i18n, menu, aide, audio | ✅ terminé        |                                             |
 | M11 Performance et finition                      | ✅ terminé (code) | Score Lighthouse à relever (voir le détail) |
 
+## Tactile (PLAN-tactile.md)
+
+Cible : tablette et téléphone en paysage d'abord. Branche `dev-mobile`.
+
+| Jalon                            | État       |
+| -------------------------------- | ---------- |
+| T0 Plomberie                     | ✅ terminé |
+| T1 Gestes caméra et construction | à faire    |
+| T2 Remplacement du clavier       | à faire    |
+| T3 Mise en page                  | à faire    |
+| T4 Confort                       | à faire    |
+| T5 Installation                  | à faire    |
+
+### T0 : détail
+
+- [x] `touch-action: none` sur le canvas : les gestes arrivent au jeu au lieu de faire défiler ou zoomer la page. `touch-action: pan-x pan-y` sur `html, body` : pas de zoom de page en pinçant l'interface, les panneaux défilent toujours.
+- [x] Pas de sélection de texte ni de menu sur appui long, pas de rebond ni de tirer-pour-rafraîchir, `viewport-fit=cover`.
+- [x] Un geste interrompu (`pointercancel`) ne laisse plus de tracé armé dans les outils (`ToolController.pointerCancel`).
+- [x] Audio : le contexte est repris à chaque geste (un `pointerdown` tactile n'est pas une activation, et le mobile le suspend en arrière-plan).
+- [x] Sauvegarde synchrone à `pagehide` en plus de `beforeunload`.
+- [x] e2e : trois projets tactiles (tablette paysage, tablette portrait, téléphone paysage), gestes multi-doigts envoyés par CDP (`touchDriver` dans `tests/e2e/helpers.ts`).
+
 ## M11 : détail
 
 - [x] **Bench** : scénario de référence (`src/debug/reference.ts`, 20 000 tapis, 1 000 bâtiments, 14 750 items). `npm run bench` échoue au-delà de 4 ms/tick ; il tourne aussi en CI.

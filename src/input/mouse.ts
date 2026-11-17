@@ -12,6 +12,8 @@ export interface MouseHandlers {
   onDown: (tx: number, ty: number, mods: PointerMods) => void;
   onMove: (tx: number, ty: number, mods: PointerMods) => void;
   onUp: (tx: number, ty: number, mods: PointerMods) => void;
+  /** The gesture was interrupted by the system: nothing must be built. */
+  onCancel?: () => void;
   /** Wheel; return true to consume it (no zoom). `delta` > 0 = scroll down. */
   onWheel?: (delta: number, mods: PointerMods) => boolean;
 }
@@ -112,7 +114,10 @@ export class Mouse {
 
   private onCancel(e: PointerEvent): void {
     if (this.panPointer === e.pointerId) this.panPointer = null;
-    if (this.buildPointer === e.pointerId) this.buildPointer = null;
+    if (this.buildPointer === e.pointerId) {
+      this.buildPointer = null;
+      this.handlers.onCancel?.();
+    }
   }
 
   private onWheel(e: WheelEvent): void {

@@ -389,3 +389,31 @@ describe('clipboard history, markers, pipette', () => {
     expect(tools.beltDir).toBe(W);
   });
 });
+
+describe('interrupted gestures (touch)', () => {
+  it('a cancelled drag builds nothing', () => {
+    const world = makeWorld();
+    const tools = new ToolController(world);
+    tools.setTool('belt');
+    tools.pointerDown(10, 10, NO_MODS);
+    tools.pointerMove(14, 10, NO_MODS);
+    expect(tools.ghost().belts.length).toBe(5);
+    tools.pointerCancel();
+    // The drag is gone: only the single hovered tile is previewed, and nothing was built.
+    expect(tools.ghost().belts.length).toBe(1);
+    expect(world.state.belts.size).toBe(0);
+    expect(tools.history.canUndo).toBe(false);
+  });
+
+  it('clearing the hover removes the ghost and the hovered tile', () => {
+    const world = makeWorld();
+    const tools = new ToolController(world);
+    tools.setTool('belt');
+    tools.pointerDown(10, 10, NO_MODS);
+    tools.pointerMove(12, 10, NO_MODS);
+    tools.clearHover();
+    expect(tools.hovered).toBeNull();
+    expect(tools.ghost()).toEqual({ belts: [], buildings: [], demolish: null, area: null });
+    expect(world.state.belts.size).toBe(0);
+  });
+});
