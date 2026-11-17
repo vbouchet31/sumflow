@@ -35,6 +35,7 @@ import { StatusBar } from './ui/statusBar';
 import { MarkerEditor } from './ui/markerEditor';
 import { ToolActions } from './ui/toolActions';
 import { describeTile, Tooltip } from './ui/tooltip';
+import { Compass } from './ui/compass';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
 import { setAutoBuy } from './sim/progression';
@@ -156,7 +157,12 @@ async function bootstrap(): Promise<void> {
   uiRoot.append(topLeft);
   const hud = new Hud(topLeft);
   watchLayout(document.documentElement, (layout) => hud.setCompact(layout.compact));
-  const goHome = (): void => camera.centerOn(0, 0);
+  /** Glide there, or jump when animations are reduced. */
+  const flyTo = (x: number, y: number): void => {
+    if (settings.reduceMotion) camera.centerOn(x, y);
+    else camera.flyTo(x, y);
+  };
+  const goHome = (): void => flyTo(0, 0);
   const levelsPanel = new LevelsPanel(uiRoot, world);
   const upgradesPanel = new UpgradesPanel(uiRoot, world);
   const deliveredPanel = new DeliveredPanel(uiRoot, world);
@@ -188,6 +194,7 @@ async function bootstrap(): Promise<void> {
     menu: () => menu.toggle(),
   });
   const tooltip = new Tooltip(uiRoot);
+  const compass = new Compass(uiRoot, flyTo);
   const buildBar = new BuildBar(uiRoot, tools);
   const statusBar = new StatusBar(uiRoot);
   const toasts = new Toasts(uiRoot);
@@ -409,6 +416,7 @@ async function bootstrap(): Promise<void> {
       // Keys move the view, so the world moves the opposite way.
       camera.panScreen((-pan.dx / len) * speed, (-pan.dy / len) * speed);
     }
+    camera.step(dt);
     pointer.inertia = !settings.reduceMotion;
     pointer.update(now);
     const hover = pointer.tileAt(pointer.x, pointer.y);
@@ -435,6 +443,7 @@ async function bootstrap(): Promise<void> {
       });
     }
     hud.update(world);
+    compass.update(world, camera);
     for (const p of panels) p.update();
     topBar.setVisible('upgrades', upgradesAvailable());
     topBar.setBadge(

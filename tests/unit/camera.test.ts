@@ -85,3 +85,21 @@ describe('Camera', () => {
     expect(cam.visibleTiles(1).x0).toBe(v.x0 - 1);
   });
 });
+
+describe('camera flight', () => {
+  it('glides to the target, and a pan by the player cancels it', () => {
+    const cam = new Camera();
+    cam.setViewport(800, 600);
+    cam.flyTo(100, 50);
+    cam.step(0.05);
+    expect(cam.x).toBeGreaterThan(0);
+    expect(cam.x).toBeLessThan(100);
+    for (let i = 0; i < 120; i++) cam.step(1 / 60);
+    expect(cam.flying).toBe(false);
+    expect(cam.x).toBe(100);
+    expect(cam.y).toBe(50);
+    cam.flyTo(0, 0);
+    cam.panScreen(10, 0);
+    expect(cam.flying).toBe(false);
+  });
+});

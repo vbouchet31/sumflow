@@ -38,6 +38,7 @@ export class Camera {
 
   /** Move the view by a screen-space offset (a drag of `dx, dy` pixels moves the world with it). */
   panScreen(dx: number, dy: number): void {
+    this.flight = null; // the player takes over
     this.x -= dx / this.scale;
     this.y -= dy / this.scale;
     this.clampPosition();
@@ -63,7 +64,36 @@ export class Camera {
     this.panScreen(cx - px, cy - py);
   }
 
+  /** Where an animated move (`flyTo`) is heading, or null. */
+  private flight: { x: number; y: number } | null = null;
+
+  /** Glide to centre on a world point (see `step`); `centerOn` jumps at once. */
+  flyTo(wx: number, wy: number): void {
+    this.flight = { x: wx, y: wy };
+  }
+
+  get flying(): boolean {
+    return this.flight !== null;
+  }
+
+  /** Advance an animated move by `dt` seconds (call every frame). Eases out, ~0.5 s. */
+  step(dt: number): void {
+    const f = this.flight;
+    if (!f) return;
+    const k = 1 - Math.exp(-dt * 9);
+    this.x += (f.x - this.x) * k;
+    this.y += (f.y - this.y) * k;
+    this.clampPosition();
+    if (Math.hypot(f.x - this.x, f.y - this.y) * this.scale < 0.5) {
+      this.x = f.x;
+      this.y = f.y;
+      this.clampPosition();
+      this.flight = null;
+    }
+  }
+
   centerOn(wx: number, wy: number): void {
+    this.flight = null;
     this.x = wx;
     this.y = wy;
     this.clampPosition();
