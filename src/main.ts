@@ -35,6 +35,7 @@ import { StatusBar } from './ui/statusBar';
 import { MarkerEditor } from './ui/markerEditor';
 import { ToolActions } from './ui/toolActions';
 import { describeTile, Tooltip } from './ui/tooltip';
+import { ShortcutSheet } from './ui/shortcuts';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
 import { setAutoBuy } from './sim/progression';
@@ -188,8 +189,9 @@ async function bootstrap(): Promise<void> {
     menu: () => menu.toggle(),
   });
   const tooltip = new Tooltip(uiRoot);
+  const shortcuts = new ShortcutSheet(uiRoot, () => tools.tool);
   const buildBar = new BuildBar(uiRoot, tools);
-  const statusBar = new StatusBar(uiRoot);
+  const statusBar = new StatusBar(uiRoot, () => shortcuts.toggle());
   const toasts = new Toasts(uiRoot);
   const endScreen = new EndScreen(uiRoot);
   const toolActions = new ToolActions(uiRoot, tools);
@@ -334,6 +336,7 @@ async function bootstrap(): Promise<void> {
       onUpgrades: toggleUpgrades,
       onDelivered: () => deliveredPanel.toggle(),
       onTogglePerf: () => perfOverlay.toggle(),
+      onShortcuts: () => shortcuts.toggle(),
       onTool: (tool) => {
         if (tool === 'paste' && !tools.isAvailable('paste')) sfx.error();
         else tools.setTool(tool);
@@ -345,7 +348,8 @@ async function bootstrap(): Promise<void> {
       onRedo: redo,
       onCancel: () => {
         const open = panels.find((p) => p.isOpen);
-        if (endScreen.isOpen) endScreen.hide();
+        if (shortcuts.isOpen) shortcuts.close();
+        else if (endScreen.isOpen) endScreen.hide();
         else if (open) open.close();
         else if (tools.tool !== 'none') tools.cancel();
         else menu.open();

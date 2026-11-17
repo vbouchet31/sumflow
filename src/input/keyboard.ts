@@ -35,6 +35,8 @@ export interface KeyboardHandlers {
   onUpgrades: () => void;
   onDelivered: () => void;
   onTogglePerf: () => void;
+  /** `?` or `F1`: the shortcuts sheet. */
+  onShortcuts?: () => void;
 }
 
 /** Tracks held physical keys for camera panning and dispatches shortcuts (PLAN §8). */
@@ -84,6 +86,11 @@ export class Keyboard {
     if (e.ctrlKey || e.altKey || e.metaKey) return;
     this.held.add(e.code);
     if (e.repeat) return;
+    if (e.key === '?' || e.code === 'F1') {
+      this.handlers.onShortcuts?.();
+      e.preventDefault(); // F1 opens the browser's help otherwise
+      return;
+    }
     if (e.code === SPECIAL_KEYS.perf) {
       this.handlers.onTogglePerf();
       e.preventDefault(); // F3 opens the browser's search otherwise

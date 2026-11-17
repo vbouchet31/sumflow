@@ -17,9 +17,22 @@ export class StatusBar {
   private readonly cursor = el('span', 'status-chip status-cursor');
   private last = '';
 
-  constructor(root: HTMLElement) {
+  constructor(root: HTMLElement, onShortcuts?: () => void) {
     this.pause.hidden = true;
-    root.append(el('div', 'status-bar', this.pause, this.saved, this.cursor));
+    const bar = el('div', 'status-bar', this.pause, this.saved, this.cursor);
+    if (onShortcuts) {
+      // Desktop only (the style sheet hides it on touch screens): where the shortcuts are.
+      const btn = el('button', 'status-chip status-keys', '?');
+      btn.type = 'button';
+      btn.title = `${t('sc.button')} (?)`;
+      btn.setAttribute('aria-label', t('sc.button'));
+      btn.addEventListener('click', (e) => {
+        onShortcuts();
+        if (e.detail > 0) btn.blur();
+      });
+      bar.append(btn);
+    }
+    root.append(bar);
   }
 
   setPaused(paused: boolean): void {
