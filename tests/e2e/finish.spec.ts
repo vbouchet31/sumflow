@@ -175,10 +175,10 @@ test('zoomed out, the cached belt layer follows edits', async ({ page }) => {
   const zoom = 0.45;
   const scale = 32 * zoom;
   await page.evaluate((z) => window.__sumflow?.lookAt(60, 60, z), zoom);
-  // Top middle of tile (60, 60): on the belt's base, clear of its chevrons.
+  // Upper middle of tile (60, 60): on the belt's running surface, clear of its chevrons.
   const px = Math.round(viewport.width / 2 + 0.5 * scale);
-  const py = Math.round(viewport.height / 2 + 0.15 * scale);
-  const BELT_BASE = [35, 43, 61, 255];
+  const py = Math.round(viewport.height / 2 + 0.27 * scale);
+  const BELT_BASE = [38, 47, 67, 255];
   await page.waitForTimeout(200); // let the zoom settle so the caches are in use
   expect(await pixelAt(page, px, py)).not.toEqual(BELT_BASE);
 

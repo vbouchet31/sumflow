@@ -34,7 +34,8 @@ export const BELT_COLORS = {
   bridgeBase: '#1b2232',
   bridgeDeck: '#34405a',
   priority: '#48c774',
-  base: '#232b3d',
+  base: '#262f43',
+  rail: '#1a2131',
   chevron: '#55627e',
   line: '#3d4860',
 } as const;

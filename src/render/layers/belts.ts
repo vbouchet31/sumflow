@@ -1,19 +1,80 @@
 import { BELT_COLORS } from '../../config/colors';
-import { DIRS, type Dir, DX, DY } from '../../core/grid';
-import { type Belt, hasOutput } from '../../sim/entities';
+import { DIRS, type Dir, DX, DY, opposite } from '../../core/grid';
+import { axisOf, type Belt, hasOutput } from '../../sim/entities';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
 
-/** Draw a chevron pointing along `d`, centred at `(cx, cy)`. */
+/**
+ * Sides a belt receives from, as a direction mask (bit d = something on side d pushes into
+ * the tile). Without it, a belt is drawn as if fed from straight behind (bridge lanes).
+ */
+export type InputsOf = (b: Belt) => number;
+
+/** Half width of the belt band, and of its lighter running surface, in tiles. */
+const BAND = 0.38;
+const SURFACE = 0.31;
+
+/**
+ * The input and output of a belt that turns: exactly one output, fed from exactly one side
+ * at a right angle to it. Null for anything else (straight, split, merge, end).
+ */
+export function curveOf(outputs: number, inputs: number): { from: Dir; to: Dir } | null {
+  let to: Dir | null = null;
+  let from: Dir | null = null;
+  for (const d of DIRS) {
+    if (outputs === 1 << d) to = d;
+    if (inputs === 1 << d) from = d;
+  }
+  if (to === null || from === null) return null;
+  return axisOf(to) === axisOf(from) ? null : { from, to };
+}
+
+/**
+ * Geometry of a quarter turn entering by side `from` and leaving by side `to`, for a tile
+ * whose top-left corner is at `(0, 0)` and side is 1: the circle is centred on the tile
+ * corner between the two sides, with radius 0.5 through both side midpoints.
+ */
+export function curveGeometry(
+  from: Dir,
+  to: Dir,
+): { cx: number; cy: number; a0: number; sweep: number } {
+  const cx = 0.5 + (DX[from] + DX[to]) * 0.5;
+  const cy = 0.5 + (DY[from] + DY[to]) * 0.5;
+  // From the corner, the entry midpoint lies opposite the exit direction and vice versa.
+  const a0 = Math.atan2(-DY[to], -DX[to]);
+  const a1 = Math.atan2(-DY[from], -DX[from]);
+  let sweep = a1 - a0;
+  if (sweep > Math.PI) sweep -= 2 * Math.PI;
+  if (sweep < -Math.PI) sweep += 2 * Math.PI;
+  return { cx, cy, a0, sweep };
+}
+
+/** Point and heading at `t` ∈ [0, 1] along a quarter turn, in tile units (see above). */
+export function curvePoint(
+  from: Dir,
+  to: Dir,
+  t: number,
+): { x: number; y: number; fx: number; fy: number } {
+  const { cx, cy, a0, sweep } = curveGeometry(from, to);
+  const a = a0 + sweep * t;
+  const sign = Math.sign(sweep);
+  return {
+    x: cx + 0.5 * Math.cos(a),
+    y: cy + 0.5 * Math.sin(a),
+    fx: -Math.sin(a) * sign,
+    fy: Math.cos(a) * sign,
+  };
+}
+
+/** Draw a chevron pointing along `(fx, fy)` (unit vector), centred at `(cx, cy)`. */
 function chevron(
   ctx: CanvasRenderingContext2D,
   cx: number,
   cy: number,
-  d: Dir,
+  fx: number,
+  fy: number,
   size: number,
 ): void {
-  const fx = DX[d];
-  const fy = DY[d];
   // Perpendicular.
   const px = -fy;
   const py = fx;
@@ -24,10 +85,67 @@ function chevron(
   ctx.lineTo(cx - fx * back - px * half, cy - fy * back - py * half);
 }
 
+/** Sides a belt is joined on: its outputs, its inputs, and straight behind when unfed. */
+function joints(b: Belt, inputs: number): number {
+  return b.outputs | inputs;
+}
+
 /**
- * Belts layer (PLAN §10.2 layer 3): tile base plus chevrons animated along each output.
- * `phase` ∈ [0, 1) scrolls with time × belt speed. `part` draws only the static tile bases
- * or only the chevrons (below zoom 0.3 belts are plain lines and count as base).
+ * Add the band of one belt tile to the current path, `half` tiles wide on each side of the
+ * centre line. A quarter turn is an annulus sector; anything else is a centre square with
+ * an arm to every joined side (a straight belt is two opposite arms).
+ */
+function bandPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  s: number,
+  b: Belt,
+  inputs: number,
+  half: number,
+): void {
+  const curve = curveOf(b.outputs, inputs);
+  if (curve) {
+    const g = curveGeometry(curve.from, curve.to);
+    const cx = x + g.cx * s;
+    const cy = y + g.cy * s;
+    const ccw = g.sweep < 0;
+    ctx.moveTo(cx + (0.5 + half) * s * Math.cos(g.a0), cy + (0.5 + half) * s * Math.sin(g.a0));
+    ctx.arc(cx, cy, (0.5 + half) * s, g.a0, g.a0 + g.sweep, ccw);
+    ctx.arc(cx, cy, (0.5 - half) * s, g.a0 + g.sweep, g.a0, !ccw);
+    ctx.closePath();
+    return;
+  }
+  const mx = x + 0.5 * s;
+  const my = y + 0.5 * s;
+  const h = half * s;
+  const mask = joints(b, inputs);
+  let count = 0;
+  for (const d of DIRS) {
+    if (!(mask & (1 << d))) continue;
+    count++;
+    // Arm from the centre to the side, as wide as the band.
+    const x0 = DX[d] === 0 ? mx - h : DX[d] > 0 ? mx : x;
+    const x1 = DX[d] === 0 ? mx + h : DX[d] > 0 ? x + s : mx;
+    const y0 = DY[d] === 0 ? my - h : DY[d] > 0 ? my : y;
+    const y1 = DY[d] === 0 ? my + h : DY[d] > 0 ? y + s : my;
+    ctx.rect(x0, y0, x1 - x0, y1 - y0);
+  }
+  if (count === 1) {
+    // A loose end (start of a line, or nothing joined yet): rounded.
+    ctx.moveTo(mx + h, my);
+    ctx.arc(mx, my, h, 0, Math.PI * 2);
+  } else {
+    ctx.rect(mx - h, my - h, 2 * h, 2 * h);
+  }
+}
+
+/**
+ * Belts layer (PLAN §10.2 layer 3): a continuous band joining each belt to what feeds it
+ * and to where it leads, rounded in turns, with chevrons animated along the flow (they
+ * follow the curve in a turn). `phase` ∈ [0, 1) scrolls with time × belt speed. `part`
+ * draws only the static band or only the chevrons (below zoom 0.3 belts are plain lines and
+ * count as base). `inputsOf` tells which sides feed each belt.
  */
 export function drawBelts(
   ctx: CanvasRenderingContext2D,
@@ -35,6 +153,7 @@ export function drawBelts(
   belts: Iterable<Belt>,
   phase: number,
   part: 'all' | 'base' | 'chevrons' = 'all',
+  inputsOf: InputsOf = straightInputs,
 ): void {
   const s = cam.scale;
   const list = Array.isArray(belts) ? (belts as Belt[]) : [...belts];
@@ -46,26 +165,42 @@ export function drawBelts(
     ctx.lineCap = 'round';
     ctx.beginPath();
     for (const b of list) {
-      const c = cam.worldToScreen(b.x + 0.5, b.y + 0.5);
+      const inputs = inputsOf(b);
+      const curve = curveOf(b.outputs, inputs);
+      const p = cam.worldToScreen(b.x, b.y);
+      if (curve) {
+        const g = curveGeometry(curve.from, curve.to);
+        const cx = p.x + g.cx * s;
+        const cy = p.y + g.cy * s;
+        ctx.moveTo(cx + 0.5 * s * Math.cos(g.a0), cy + 0.5 * s * Math.sin(g.a0));
+        ctx.arc(cx, cy, 0.5 * s, g.a0, g.a0 + g.sweep, g.sweep < 0);
+        continue;
+      }
+      const mask = joints(b, inputs);
       for (const d of DIRS) {
-        if (!hasOutput(b, d)) continue;
-        ctx.moveTo(c.x - DX[d] * 0.5 * s, c.y - DY[d] * 0.5 * s);
-        ctx.lineTo(c.x + DX[d] * 0.5 * s, c.y + DY[d] * 0.5 * s);
+        if (!(mask & (1 << d))) continue;
+        ctx.moveTo(p.x + 0.5 * s, p.y + 0.5 * s);
+        ctx.lineTo(p.x + (0.5 + DX[d] * 0.5) * s, p.y + (0.5 + DY[d] * 0.5) * s);
       }
     }
     ctx.stroke();
     return;
   }
 
-  const inset = 0.06 * s;
   if (part !== 'chevrons') {
-    ctx.fillStyle = BELT_COLORS.base;
-    ctx.beginPath();
-    for (const b of list) {
-      const p = cam.worldToScreen(b.x, b.y);
-      ctx.roundRect(p.x + inset, p.y + inset, s - 2 * inset, s - 2 * inset, 0.15 * s);
+    // Rails (darker edge), then the running surface: neighbouring tiles join seamlessly.
+    for (const [color, half] of [
+      [BELT_COLORS.rail, BAND],
+      [BELT_COLORS.base, SURFACE],
+    ] as const) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      for (const b of list) {
+        const p = cam.worldToScreen(b.x, b.y);
+        bandPath(ctx, p.x, p.y, s, b, inputsOf(b), half);
+      }
+      ctx.fill('nonzero');
     }
-    ctx.fill();
   }
 
   if (part === 'base') return;
@@ -81,7 +216,19 @@ export function drawBelts(
   ctx.beginPath();
   const size = 0.17 * s;
   for (const b of list) {
-    const c = cam.worldToScreen(b.x + 0.5, b.y + 0.5);
+    const p = cam.worldToScreen(b.x, b.y);
+    const cx = p.x + 0.5 * s;
+    const cy = p.y + 0.5 * s;
+    const curve = curveOf(b.outputs, inputsOf(b));
+    if (curve) {
+      // Two chevrons along the arc, turning with it.
+      for (let i = 0; i < 2; i++) {
+        const t = animated ? (phase + i * 0.5) % 1 : 0.25 + i * 0.5;
+        const c = curvePoint(curve.from, curve.to, 0.1 + t * 0.8);
+        chevron(ctx, p.x + c.x * s, p.y + c.y * s, c.fx, c.fy, size);
+      }
+      continue;
+    }
     let outs = 0;
     for (const d of DIRS) if (hasOutput(b, d)) outs++;
     for (const d of DIRS) {
@@ -91,14 +238,20 @@ export function drawBelts(
         for (let i = 0; i < 2; i++) {
           const t = (animated ? (phase + i * 0.5) % 1 : 0.25 + i * 0.5) - 0.5;
           const off = t * 0.8;
-          chevron(ctx, c.x + DX[d] * off * s, c.y + DY[d] * off * s, d, size);
+          chevron(ctx, cx + DX[d] * off * s, cy + DY[d] * off * s, DX[d], DY[d], size);
         }
       } else {
         // One chevron on the half tile toward each output.
         const t = animated ? 0.15 + (phase % 1) * 0.25 : 0.27;
-        chevron(ctx, c.x + DX[d] * t * s, c.y + DY[d] * t * s, d, size * 0.9);
+        chevron(ctx, cx + DX[d] * t * s, cy + DY[d] * t * s, DX[d], DY[d], size * 0.9);
       }
     }
   }
   ctx.stroke();
+}
+
+/** Default feed: from straight behind a single output (bridge lanes, previews). */
+export function straightInputs(b: Belt): number {
+  for (const d of DIRS) if (b.outputs === 1 << d) return 1 << opposite(d);
+  return 0;
 }
