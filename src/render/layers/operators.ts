@@ -11,6 +11,7 @@ export const OPERATOR_SYMBOL: Record<OperatorType, string> = {
   subtractor: '−',
   divider: '÷',
   exponent: '^',
+  concat: '‖',
 };
 
 /** Mix a #rrggbb colour toward black (f < 0) or white (f > 0). */

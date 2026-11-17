@@ -67,3 +67,24 @@ export function pow(a: number, b: number): number {
   }
   return negative ? -result : result;
 }
+
+/** Number of decimal digits of |n| (0 has one digit). */
+export function digitCount(n: number): number {
+  let m = Math.abs(n);
+  let d = 1;
+  while (m >= 10) {
+    m = Math.floor(m / 10);
+    d++;
+  }
+  return d;
+}
+
+/**
+ * `a ‖ b`: the digits of `b` written after those of `a` (12 ‖ 34 = 1234). The sign of `b` is
+ * dropped, the sign of `a` kept (−12 ‖ 3 = −123). Saturates like the other operations.
+ */
+export function concat(a: number, b: number): number {
+  const tail = Math.abs(b);
+  const shifted = a * 10 ** digitCount(tail);
+  return clamp(a < 0 ? shifted - tail : shifted + tail);
+}

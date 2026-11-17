@@ -1,5 +1,5 @@
 import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT, type Track } from '../config/balance';
-import { add, divmod, mul, pow, sub } from '../core/intmath';
+import { add, concat, divmod, mul, pow, sub } from '../core/intmath';
 import { EPS } from './belts';
 import { type Building, isOperator, type OperatorType } from './entities';
 import { outputGroup, pushOut } from './outputs';
@@ -12,6 +12,8 @@ export const OPERATOR_TRACK: Record<OperatorType, Track> = {
   subtractor: 'subdiv',
   divider: 'subdiv',
   exponent: 'exponent',
+  // Joining digits shares the multiplier's upgrades: both make numbers grow by a factor.
+  concat: 'multiplier',
 };
 
 /** Result(s) of one operation. The divider emits R only when non-zero (PLAN §6.3). */
@@ -29,6 +31,8 @@ export function compute(
       return { o: sub(a, b) };
     case 'exponent':
       return { o: pow(a, b) };
+    case 'concat':
+      return { o: concat(a, b) };
     case 'divider': {
       const { q, r } = divmod(a, b);
       return r === 0 ? { q } : { q, r };

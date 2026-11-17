@@ -222,7 +222,7 @@ describe('mirror and rotation', () => {
         }
       }
     }
-    expect(checked).toBe(6 * 8 * 8);
+    expect(checked).toBe(7 * 8 * 8);
   });
 
   it('F mirrors the preview as shown, R rotates it', () => {

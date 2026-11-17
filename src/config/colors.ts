@@ -16,6 +16,7 @@ export const BUILDING_COLORS = {
   subtractor: '#c84a4a',
   divider: '#8a5cc2',
   exponent: '#c9a72c',
+  concat: '#2a9d8f',
   storage: '#6b7a8f',
   bridge: '#4a6fa5',
 } as const;

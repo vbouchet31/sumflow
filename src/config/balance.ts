@@ -10,6 +10,7 @@ export type PlaceableType =
   | 'subtractor'
   | 'divider'
   | 'exponent'
+  | 'concat'
   | 'storage'
   | 'bridge';
 
@@ -43,7 +44,7 @@ export const LEVEL_TABLE: readonly LevelDef[] = [
   { target: 36, quantity: 300, reward: x(5) },
   { target: 47, quantity: 450, reward: x(6) },
   { target: 50, quantity: 500, reward: f('priorities') },
-  { target: 82, quantity: 600, reward: x(7) },
+  { target: 82, quantity: 600, reward: b('concat') },
   { target: 174, quantity: 800, reward: x(8) },
   { target: 248, quantity: 1_000, reward: b('subtractor') },
   { target: 324, quantity: 2_000, reward: x(9) },

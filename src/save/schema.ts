@@ -156,6 +156,7 @@ const PLACEABLE: readonly PlaceableType[] = [
   'subtractor',
   'divider',
   'exponent',
+  'concat',
   'storage',
   'bridge',
 ];
@@ -168,6 +169,7 @@ const BUILDING_TYPES: readonly BuildingType[] = [
   'subtractor',
   'divider',
   'exponent',
+  'concat',
   'storage',
 ];
 

@@ -49,6 +49,7 @@ export const fr = {
   'reward.subtractor': 'Soustracteur',
   'reward.divider': 'Diviseur',
   'reward.exponent': 'Exposant',
+  'reward.concat': 'Concaténateur',
   'reward.storage': 'Stockage',
   'reward.bridge': 'Pont',
   'reward.extractor': 'Extracteur',
@@ -80,6 +81,7 @@ export const fr = {
   'tool.subtractor': 'Soustracteur',
   'tool.divider': 'Diviseur',
   'tool.exponent': 'Exposant',
+  'tool.concat': 'Concaténateur',
   'tip.bufA': 'A : {items}',
   'tip.bufB': 'B : {items}',
   'tip.bufOut': 'Sortie : {items}',
@@ -273,6 +275,8 @@ export const fr = {
   'help.subtractor': 'Soustracteur : l’ordre A − B compte.',
   'help.divider': 'Diviseur : le reste sort à part, jamais 0.',
   'help.exponent': 'Exposant : A à la puissance B. Les résultats grandissent vite.',
+  'help.concat':
+    'Concaténateur : écrit les chiffres de B après ceux de A. 12 ‖ 7 donne 127. Il partage les améliorations du multiplicateur.',
   'help.storage':
     'Stockage : il garde jusqu’à 10 000 exemplaires d’une seule valeur et les ressort à pleine vitesse.',
   'about.body':
