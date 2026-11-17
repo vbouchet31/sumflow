@@ -418,6 +418,7 @@ async function bootstrap(): Promise<void> {
       tools.pointerMove(hover.x, hover.y, { ctrl: keyboard.ctrl, shift: false, alt: false });
       pinned = null;
     }
+    renderer.showPorts = tools.tool === 'belt';
     renderer.selection = pinned ? inspectedRect(world, pinned.x, pinned.y) : null;
 
     const simStart = performance.now();

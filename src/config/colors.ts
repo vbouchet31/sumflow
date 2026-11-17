@@ -48,6 +48,13 @@ export const GHOST_COLORS = {
   demolish: 'rgba(230, 70, 70, 0.35)',
 } as const;
 
+/** Port hints shown with the belt tool: inputs, outputs, letters. */
+export const PORT_COLORS = {
+  input: '#f0b429',
+  output: '#5ad38a',
+  label: '#ffe9b0',
+} as const;
+
 /** Zone selection rectangles (PLAN §8.2). */
 export const AREA_COLORS = {
   demolish: { fill: 'rgba(230, 70, 70, 0.18)', stroke: 'rgba(240, 100, 100, 0.9)' },
