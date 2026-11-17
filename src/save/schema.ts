@@ -150,6 +150,7 @@ const ints = (v: unknown, path: string): number[] =>
   arr(v, path).map((x, i) => int32(x, `${path}[${i}]`));
 
 const PLACEABLE: readonly PlaceableType[] = [
+  'copier',
   'extractor',
   'adder',
   'multiplier',
@@ -161,6 +162,7 @@ const PLACEABLE: readonly PlaceableType[] = [
 ];
 const FEATURES: readonly Feature[] = ['upgrades', 'priorities'];
 const BUILDING_TYPES: readonly BuildingType[] = [
+  'copier',
   'hub',
   'extractor',
   'adder',

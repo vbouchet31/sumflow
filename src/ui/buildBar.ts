@@ -22,6 +22,7 @@ const BUTTONS: readonly ToolButton[] = [
   { tool: 'exponent', label: 'tool.exponent', key: '7', icon: '^' },
   { tool: 'storage', label: 'tool.storage', key: '8', icon: '▦' },
   { tool: 'bridge', label: 'tool.bridge', key: '9', icon: '≡' },
+  { tool: 'copier', label: 'tool.copier', key: '0', icon: '⧉' },
   { tool: 'priority', label: 'tool.priority', key: 'P', icon: '◆' },
   { tool: 'demolish', label: 'tool.demolish', key: 'X', icon: '✕', edit: true },
   { tool: 'clear', label: 'tool.clear', key: 'C', icon: '○', edit: true },

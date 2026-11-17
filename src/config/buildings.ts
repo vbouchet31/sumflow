@@ -2,7 +2,15 @@ import type { Dir } from '../core/grid';
 
 /** Building kinds that occupy tiles (belts and bridges are handled separately). */
 export type BuildingType =
-  'hub' | 'extractor' | 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent' | 'storage';
+  | 'hub'
+  | 'extractor'
+  | 'adder'
+  | 'multiplier'
+  | 'subtractor'
+  | 'divider'
+  | 'exponent'
+  | 'storage'
+  | 'copier';
 
 /** Role of a footprint tile (PLAN §6.1). `any` ports follow the building's `anyRole`. */
 export type PortRole = 'A' | 'B' | 'O' | 'Q' | 'R' | 'any' | 'body';
@@ -84,6 +92,18 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
       { x: 1, y: 0, role: 'B', faces: [N, E] },
       { x: 0, y: 1, role: 'Q', faces: [W, S] },
       { x: 1, y: 1, role: 'R', faces: [S, E] },
+    ],
+  },
+  // Copier: A is the number to copy, B is burnt as fuel; two copies of A leave by O.
+  copier: {
+    w: 2,
+    h: 2,
+    rotatable: true,
+    tiles: [
+      { x: 0, y: 0, role: 'A', faces: [N, W] },
+      { x: 1, y: 0, role: 'B', faces: [N, E] },
+      { x: 0, y: 1, role: 'O', faces: [S, W] },
+      { x: 1, y: 1, role: 'O', faces: [S, E] },
     ],
   },
   exponent: {

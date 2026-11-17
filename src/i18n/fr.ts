@@ -49,6 +49,7 @@ export const fr = {
   'reward.subtractor': 'Soustracteur',
   'reward.divider': 'Diviseur',
   'reward.exponent': 'Exposant',
+  'reward.copier': 'Copieur',
   'reward.storage': 'Stockage',
   'reward.bridge': 'Pont',
   'reward.extractor': 'Extracteur',
@@ -80,6 +81,7 @@ export const fr = {
   'tool.subtractor': 'Soustracteur',
   'tool.divider': 'Diviseur',
   'tool.exponent': 'Exposant',
+  'tool.copier': 'Copieur',
   'tip.bufA': 'A : {items}',
   'tip.bufB': 'B : {items}',
   'tip.bufOut': 'Sortie : {items}',
@@ -273,6 +275,8 @@ export const fr = {
   'help.subtractor': 'Soustracteur : l’ordre A − B compte.',
   'help.divider': 'Diviseur : le reste sort à part, jamais 0.',
   'help.exponent': 'Exposant : A à la puissance B. Les résultats grandissent vite.',
+  'help.copier':
+    'Copieur : il brûle le nombre reçu en B pour faire deux copies du nombre reçu en A. Des 1 bon marché deviennent des copies de ton nombre le plus cher.',
   'help.storage':
     'Stockage : il garde jusqu’à 10 000 exemplaires d’une seule valeur et les ressort à pleine vitesse.',
   'about.body':
