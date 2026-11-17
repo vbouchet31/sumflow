@@ -269,4 +269,6 @@ export const EDIT = {
   historySize: 100,
   /** Longest marker text, in characters. */
   markerMaxLength: 40,
+  /** Most copies placed by one paste drag. */
+  maxPasteRow: 32,
 } as const;

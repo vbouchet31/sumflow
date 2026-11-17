@@ -180,3 +180,10 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **`storage.persist()` au niveau 2** et non au chargement : Firefox pose la question au joueur, autant attendre qu'il ait quelque chose à perdre.
 - **`display: fullscreen`** dans le manifeste, avec repli `standalone` (iOS). Orientation libre : la tablette debout est prise en charge.
 - **Pas de réduction du ratio de pixels pendant le pincement** : la mesure disponible ne la justifie pas. À revoir après un essai sur un téléphone Android milieu de gamme.
+
+## Audit de `balance.ts` (après M11)
+
+- **Constantes** : toutes conformes aux §4, §5, §6 et §7 (table des niveaux, vitesses, coûts `C(L)`, facteurs, suites `t_k`, génération de carte, tampons, stockage).
+- **Règles dérivées**, vérifiées sur 2 000 graines : niveaux 1 à 5 fixes, cibles strictement croissantes, dernier niveau ≤ 2 000 000 000 (entre le niveau 618 et 669 selon la graine), suites `t_k` strictement croissantes, sans 10, valeurs de base < 30 conservées. L'écart des niveaux 6 à 30 peut atteindre 10,5 % (au lieu de 8 %) : c'est l'arrondi d'une petite cible (niveau 6, base 19 → 17 ou 21), conforme à la formule.
+- **Plafonds doux jamais atteints** : comme pour le Tapis (M7), les suites `t_k` dépassent 2 000 000 000 avant les plafonds de vitesse. Fin de piste observée (graine 42) : Additionneur L = 68 (3,2 op/s, plafond 4), Multiplicateur L = 60 (≈ 2 op/s, plafond 3), Soustracteur/Diviseur L = 57, Exposant L = 51 (≈ 1,9 op/s). Les deux règles du plan restent appliquées ; seule la seconde joue en pratique.
+- **Valeur interdite** : la suite des améliorations utilise désormais `MAPGEN.forbiddenValue` au lieu d'un `10` en dur. La limite de 32 copies par collage en rangée est passée dans `EDIT.maxPasteRow`.
