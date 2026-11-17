@@ -26,7 +26,31 @@ Cible : tablette et téléphone en paysage d'abord. Branche `dev-mobile`.
 | T2 Remplacement du clavier       | ✅ terminé |
 | T3 Mise en page                  | ✅ terminé |
 | T4 Confort                       | ✅ terminé |
-| T5 Installation                  | à faire    |
+| T5 Installation                  | ✅ terminé |
+
+### T5 : détail
+
+- [x] **Manifeste** (`public/manifest.webmanifest`) : plein écran, toute orientation, chemins relatifs (le jeu s'installe depuis `/sumflow/` sur GitHub Pages). Balises d'écran d'accueil pour iOS.
+- [x] **Icônes** : PNG 192, 512, 512 « maskable » et 180 pour iOS, générés depuis le favicon par `scripts/make-icons.mjs`.
+- [x] **Stockage persistant** : `navigator.storage.persist()` demandé une fois par session, à la première sauvegarde réussie à partir du niveau 2.
+- [x] **Plein écran** : bouton dans Options, là où le navigateur le permet et hors installation.
+- [x] Tests : `requestPersistence` (unitaire), `install.spec.ts` (manifeste, icônes présentes et de la bonne taille).
+- [x] **Mesure de performance** (indicative) : scénario de référence, émulation Chromium **sans GPU**, pincement continu. Processeur normal : 60 images/s, rendu 2 à 2,5 ms pendant le pincement. Processeur ralenti 4 fois : rendu 9 à 14 ms pendant le pincement sur téléphone, 10 à 12 ms sur tablette. Le pincement (caches coupés) n'est pas plus lent que l'affichage immobile dans cet environnement, donc pas de réduction du ratio de pixels pendant le geste.
+
+### Reste à vérifier sur de vrais appareils
+
+L'émulation Chromium ne reproduit ni Safari ni un vrai écran. Liste du `PLAN-tactile.md` §7.3 :
+
+- [ ] Pincement et glisser sans zoom ni défilement de page sur iPhone, iPad et Android, y compris en partant d'un bouton.
+- [ ] Pas de menu ni de sélection sur appui long.
+- [ ] Pas de zoom à la saisie d'un marqueur ; l'éditeur reste visible au-dessus du clavier.
+- [ ] Son audible après le premier appui, et après un retour d'arrière-plan.
+- [ ] Rotation de l'écran, encoche, barre d'accueil.
+- [ ] Export et import d'une sauvegarde depuis Safari iOS.
+- [ ] Partie retrouvée après fermeture brutale de l'onglet.
+- [ ] Icônes de la barre (symboles Unicode) toutes présentes sur Android.
+- [ ] Fluidité du pincement sur une grosse usine, avec un vrai GPU.
+- [ ] Installation sur l'écran d'accueil, ouverture en plein écran.
 
 ### T4 : détail
 

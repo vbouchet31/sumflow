@@ -1,7 +1,9 @@
 # PLAN-tactile.md : rendre Sumflow jouable sur écran tactile
 
+> **État : réalisé** (jalons T0 à T5, branche `dev-mobile`). Détail dans [`docs/PROGRESS.md`](docs/PROGRESS.md), choix et écarts dans [`docs/DECISIONS.md`](docs/DECISIONS.md), section « Tactile ». Ce document reste l'étude de départ : le constat du §1 décrit le jeu **avant** ces changements.
+
 Étude des changements nécessaires. Aucun code n'est modifié par ce document.
-Le tactile est aujourd'hui hors périmètre (PLAN.md §0 « Cible : desktop » et §3.3).
+Le tactile était hors périmètre au moment de l'étude (PLAN.md §0 « Cible : desktop » et §3.3).
 
 ---
 

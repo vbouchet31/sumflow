@@ -39,6 +39,25 @@ Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGR
 
 Les panneaux et le menu s'utilisent aussi au clavier seul : `Tab`, `Entrée`, `Échap`.
 
+### Écran tactile
+
+Le jeu se joue au doigt sur tablette et sur téléphone tenu en paysage (en portrait, il reste utilisable). Une souris branchée garde les commandes ci-dessus.
+
+| Action                          | Geste                                                |
+| ------------------------------- | ---------------------------------------------------- |
+| Déplacer la carte               | glisser à un doigt sans outil, ou à deux doigts      |
+| Zoom                            | pincer à deux doigts                                 |
+| Construire                      | choisir un outil, puis toucher ou glisser à un doigt |
+| Tracer plus loin que l'écran    | amener le doigt près du bord : la carte défile       |
+| Abandonner un tracé             | poser un deuxième doigt                              |
+| Pivoter, miroir, coude, quitter | boutons au-dessus de la barre de construction        |
+| Coller                          | toucher pour déplacer l'aperçu, puis « Poser »       |
+| Inspecter un objet              | le toucher sans outil                                |
+| Pipette                         | appui long sur un objet                              |
+| Pause, annuler, panneaux, menu  | boutons en haut à droite                             |
+
+Le jeu peut être installé sur l'écran d'accueil (menu du navigateur, « Ajouter à l'écran d'accueil ») : il s'ouvre alors en plein écran. Sur iPhone et iPad, c'est aussi ce qui met la sauvegarde à l'abri : Safari peut effacer les données d'un site non installé resté quelques jours sans visite. Dans tous les cas, le menu permet d'exporter la partie.
+
 ## Développement
 
 Prérequis : Node.js 22.12 ou plus.
@@ -48,17 +67,18 @@ npm install
 npm run dev
 ```
 
-| Script              | Rôle                                                                                  |
-| ------------------- | ------------------------------------------------------------------------------------- |
-| `npm run dev`       | Serveur de dev Vite                                                                   |
-| `npm run build`     | Typecheck + build de production dans `dist/`                                          |
-| `npm run preview`   | Sert le build                                                                         |
-| `npm test`          | Tests unitaires (Vitest)                                                              |
-| `npm run test:e2e`  | Tests e2e (Playwright, Chromium) contre `vite preview` ; lancer `npm run build` avant |
-| `npm run lint`      | ESLint + Prettier (vérification)                                                      |
-| `npm run format`    | Formate le code avec Prettier                                                         |
-| `npm run typecheck` | `tsc --noEmit`                                                                        |
-| `npm run bench`     | Bench de la simulation : scénario de référence, échoue au-delà de 4 ms par tick       |
+| Script                        | Rôle                                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------------------- |
+| `npm run dev`                 | Serveur de dev Vite                                                                   |
+| `npm run build`               | Typecheck + build de production dans `dist/`                                          |
+| `npm run preview`             | Sert le build                                                                         |
+| `npm test`                    | Tests unitaires (Vitest)                                                              |
+| `npm run test:e2e`            | Tests e2e (Playwright, Chromium) contre `vite preview` ; lancer `npm run build` avant |
+| `node scripts/make-icons.mjs` | Régénère les icônes d'installation (PNG) depuis `public/favicon.svg`                  |
+| `npm run lint`                | ESLint + Prettier (vérification)                                                      |
+| `npm run format`              | Formate le code avec Prettier                                                         |
+| `npm run typecheck`           | `tsc --noEmit`                                                                        |
+| `npm run bench`               | Bench de la simulation : scénario de référence, échoue au-delà de 4 ms par tick       |
 
 ## Performances
 

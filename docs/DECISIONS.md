@@ -175,3 +175,8 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Collage au doigt** : pose en deux temps, seulement pour le collage (objet large, il remplace des tapis). Les autres outils posent au relâchement, Annuler rattrape une erreur. Pas de rangée de copies au doigt. Si rien ne peut être posé, l'aperçu reste pour être déplacé. Un geste annulé (pincement) remet l'aperçu où il était.
 - **Vitesse d'inertie** : distance des 100 dernières millisecondes divisée par le temps écoulé jusqu'au lâcher, en partant de l'échantillon juste avant la fenêtre. Un doigt qui s'arrête plus de 100 ms avant de se lever ne lance pas la carte. Seuil de départ 150 px/s, arrêt à 20 px/s, constante de temps 325 ms.
 - **Défilement au bord réservé au doigt** : à la souris, le clavier déplace déjà la caméra pendant un tracé.
+- **Icônes d'installation en PNG** : écart assumé au « aucun fichier image » du PLAN §10.1. iOS n'accepte pas de SVG pour l'icône d'écran d'accueil. Les PNG sont produits par un script depuis le favicon, pas dessinés à la main.
+- **Pas de service worker** : l'installation n'en a plus besoin sur Chrome, et le jeu hors ligne n'est pas demandé. Le jeu installé a donc besoin du réseau pour se charger.
+- **`storage.persist()` au niveau 2** et non au chargement : Firefox pose la question au joueur, autant attendre qu'il ait quelque chose à perdre.
+- **`display: fullscreen`** dans le manifeste, avec repli `standalone` (iOS). Orientation libre : la tablette debout est prise en charge.
+- **Pas de réduction du ratio de pixels pendant le pincement** : la mesure disponible ne la justifie pas. À revoir après un essai sur un téléphone Android milieu de gamme.

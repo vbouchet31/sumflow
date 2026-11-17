@@ -130,3 +130,21 @@ export async function importSave(text: string): Promise<SaveData> {
   if (result !== 'ok') throw new SaveError(`storage (${result})`);
   return data;
 }
+
+/**
+ * Ask the browser to keep this site's storage (PLAN-tactile §6.4): without it, a mobile
+ * browser may erase the save of a site left unvisited for a few days. Returns true when
+ * the storage is persistent. Some browsers ask the player, others decide on their own
+ * (installed on the home screen, visited often).
+ */
+export async function requestPersistence(
+  storage: Pick<StorageManager, 'persist' | 'persisted'> | undefined = globalThis.navigator
+    ?.storage,
+): Promise<boolean> {
+  if (!storage?.persist || !storage.persisted) return false;
+  try {
+    return (await storage.persisted()) || (await storage.persist());
+  } catch {
+    return false;
+  }
+}

@@ -239,6 +239,23 @@ export class GameMenu {
       c.addEventListener('change', () => onChange(c.checked));
       return c;
     };
+    // Full screen, where the browser offers it and the game is not already installed.
+    const fullscreen = this.button('opt.fullscreen.on', () => undefined, 'secondary-btn');
+    const syncFullscreen = (): void => {
+      fullscreen.textContent = t(
+        document.fullscreenElement ? 'opt.fullscreen.off' : 'opt.fullscreen.on',
+      );
+    };
+    fullscreen.addEventListener('click', () => {
+      const change = document.fullscreenElement
+        ? document.exitFullscreen()
+        : document.documentElement.requestFullscreen();
+      void change.then(syncFullscreen, syncFullscreen);
+    });
+    syncFullscreen();
+    const canFullscreen =
+      document.fullscreenEnabled &&
+      !window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
     const volume = el('input', 'opt-range');
     volume.type = 'range';
     volume.min = '0';
@@ -282,6 +299,7 @@ export class GameMenu {
           'opt-lang',
         ),
         el('p', 'menu-note', t('opt.languageNote')),
+        ...(canFullscreen ? [row('opt.fullscreen', fullscreen, 'opt-fullscreen')] : []),
         row('opt.volume', volume, 'opt-volume'),
         row(
           'opt.grid',

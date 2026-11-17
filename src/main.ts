@@ -47,6 +47,7 @@ import {
   exportText,
   importSave,
   readStorage,
+  requestPersistence,
   SAVE_KEY,
   writeStorage,
 } from './save/persist';
@@ -266,6 +267,13 @@ async function bootstrap(): Promise<void> {
     },
   });
 
+  // Once there is progress worth keeping, ask the browser not to evict the save.
+  let persistenceAsked = false;
+  saves.events.on('saved', ({ result }) => {
+    if (persistenceAsked || result !== 'ok' || state.level < 2) return;
+    persistenceAsked = true;
+    void requestPersistence();
+  });
   saves.events.on('saved', ({ result, manual }) => {
     if (result === 'quota') toasts.show(t('toast.saveQuota'));
     else if (result === 'unavailable') toasts.show(t('toast.saveFailed'));
