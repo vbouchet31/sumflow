@@ -23,10 +23,20 @@ Cible : tablette et téléphone en paysage d'abord. Branche `dev-mobile`.
 | -------------------------------- | ---------- |
 | T0 Plomberie                     | ✅ terminé |
 | T1 Gestes caméra et construction | ✅ terminé |
-| T2 Remplacement du clavier       | à faire    |
+| T2 Remplacement du clavier       | ✅ terminé |
 | T3 Mise en page                  | à faire    |
 | T4 Confort                       | à faire    |
 | T5 Installation                  | à faire    |
+
+### T2 : détail
+
+- [x] **Barre d'actions** (`src/ui/toolActions.ts`, remplace `toolHint.ts`) au-dessus de la barre de construction : nom ou consigne de l'outil, puis Pivoter, Miroir, Inverser le coude, entrée précédente / suivante, Retirer, Quitter, selon l'outil. Visible aussi à la souris.
+- [x] **Pause** : bouton en haut à droite (il montre ce que fera l'appui : pause ou reprise).
+- [x] **Pipette** : appui long sur un objet (`ToolController.pick(tuile)`).
+- [x] **Info-bulle** : un appui sans outil l'épingle sur l'objet, encadré sur la carte.
+- [x] **Coude du tapis** : `ToolController.toggleElbow()`, `Ctrl` l'inverse le temps d'un tracé.
+- [x] Étiquettes de touches masquées sans survol (`@media (hover: none)`).
+- [x] Tests : unitaires (coude, pipette, rotation), e2e tactiles (barre d'actions, appui long, info-bulle, pause).
 
 ### T1 : détail
 

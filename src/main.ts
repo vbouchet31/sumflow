@@ -14,6 +14,7 @@ import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
 import { SimLoop } from './sim/loop';
 import { createInitialState } from './sim/state';
+import { buildingSize } from './sim/entities';
 import { World } from './sim/world';
 import { BuildBar } from './ui/buildBar';
 import { CatchUpBar } from './ui/catchUp';
@@ -31,7 +32,7 @@ import { TRACKS } from './config/balance';
 import { isTrackUnlocked, isUpgradeReady } from './sim/upgrades';
 import { StatusBar } from './ui/statusBar';
 import { MarkerEditor } from './ui/markerEditor';
-import { ToolHint } from './ui/toolHint';
+import { ToolActions } from './ui/toolActions';
 import { describeTile, Tooltip } from './ui/tooltip';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
@@ -65,6 +66,17 @@ function initialSeed(search: string): number {
   const param = new URLSearchParams(search).get('seed');
   const parsed = param === null ? NaN : Number(param);
   return Number.isFinite(parsed) ? toSeed(parsed) : toSeed(Math.random() * 2 ** 32);
+}
+
+/** Tiles to outline for the object at `(x, y)`: a whole building, else the tile. */
+function inspectedRect(
+  world: World,
+  x: number,
+  y: number,
+): { x: number; y: number; w: number; h: number } {
+  const b = world.buildingAt(x, y);
+  if (!b) return { x, y, w: 1, h: 1 };
+  return { x: b.x, y: b.y, ...buildingSize(b.type, b.rot) };
 }
 
 type Loaded = { state: GameState; camera: CameraState | null; error: boolean };
@@ -153,7 +165,12 @@ async function bootstrap(): Promise<void> {
   const redo = (): void => {
     if (!tools.redo()) sfx.error();
   };
+  const togglePause = (): void => {
+    loop.paused = !loop.paused;
+    statusBar.setPaused(loop.paused);
+  };
   const topBar = new TopBar(uiRoot, {
+    pause: togglePause,
     undo,
     redo,
     marker: () => tools.setTool('marker'),
@@ -168,7 +185,10 @@ async function bootstrap(): Promise<void> {
   const statusBar = new StatusBar(uiRoot);
   const toasts = new Toasts(uiRoot);
   const endScreen = new EndScreen(uiRoot);
-  const toolHint = new ToolHint(uiRoot, tools);
+  const toolActions = new ToolActions(uiRoot, tools);
+  /** Tile inspected by a tap, on a touch screen (there is no hover to show the tooltip). */
+  let pinned: { x: number; y: number } | null = null;
+  tools.onChange(() => (pinned = null));
   markerEditor = new MarkerEditor(uiRoot);
   const help = new HelpBubble(uiRoot, state);
   const catchUpBar = new CatchUpBar(uiRoot);
@@ -309,10 +329,7 @@ async function bootstrap(): Promise<void> {
         else menu.open();
       },
       onQuickDemolish: () => tools.deletePressed(),
-      onTogglePause: () => {
-        loop.paused = !loop.paused;
-        statusBar.setPaused(loop.paused);
-      },
+      onTogglePause: togglePause,
     },
     () => menu.isOpen || endScreen.isOpen || (markerEditor?.isOpen ?? false),
   );
@@ -322,6 +339,16 @@ async function bootstrap(): Promise<void> {
     onUp: (x, y, mods) => tools.pointerUp(x, y, mods),
     onCancel: () => tools.pointerCancel(),
     onLeave: () => tools.clearHover(),
+    // Touch: a tap without a tool inspects the object, a long press picks it (like `E`).
+    onTap: (x, y) => {
+      pinned = tools.tool === 'none' && describeTile(world, x, y).length > 0 ? { x, y } : null;
+    },
+    onLongPress: (x, y) => {
+      if (!tools.pick({ x, y })) return false;
+      sfx.click();
+      navigator.vibrate?.(10);
+      return true;
+    },
     // Touch: with a tool one finger builds, without one it moves the map.
     buildsOnDrag: () => tools.tool !== 'none',
     onWheel: (delta, mods) => {
@@ -366,7 +393,9 @@ async function bootstrap(): Promise<void> {
     // leaves no hovered tile behind: the gestures drive the tools themselves.
     if (pointer.hovering) {
       tools.pointerMove(hover.x, hover.y, { ctrl: keyboard.ctrl, shift: false, alt: false });
+      pinned = null;
     }
+    renderer.selection = pinned ? inspectedRect(world, pinned.x, pinned.y) : null;
 
     const simStart = performance.now();
     const ticks = loop.advance(dt, () => performance.now() - simStart > CATCH_UP.frameBudgetMs);
@@ -397,14 +426,16 @@ async function bootstrap(): Promise<void> {
     topBar.setEnabled('undo', tools.history.canUndo);
     topBar.setEnabled('redo', tools.history.canRedo);
     topBar.setPressed('marker', tools.tool === 'marker');
-    toolHint.update();
+    topBar.setPaused(loop.paused);
+    toolActions.update();
     help.update();
     saves.update();
     statusBar.update(
       saves.lastSavedAt === null ? null : now - saves.lastSavedAt,
       pointer.inside ? hover : null,
     );
-    tooltip.update(pointer.inside ? describeTile(world, hover.x, hover.y) : []);
+    const inspected = pointer.inside ? hover : pinned;
+    tooltip.update(inspected ? describeTile(world, inspected.x, inspected.y) : []);
     debugPanel?.update({
       seed: state.seed,
       tick: state.tick,

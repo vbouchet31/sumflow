@@ -16,8 +16,12 @@ export interface GestureSink {
   leave: () => void;
   /** A brief press ended without moving (after its `down` / `up`). */
   tap: (x: number, y: number) => void;
-  /** The finger stayed still for `TOUCH.longPressMs`. */
-  longPress: (x: number, y: number) => void;
+  /**
+   * The finger stayed still for `TOUCH.longPressMs`. Return true when the long press did
+   * something: the press is then abandoned. Otherwise the gesture goes on as if nothing
+   * happened (holding the finger still to aim must not lose the build).
+   */
+  longPress: (x: number, y: number) => boolean;
   pan: (dx: number, dy: number) => void;
   /**
    * Two fingers: their midpoint went from `(px, py)` to `(cx, cy)` and their distance was
@@ -55,6 +59,8 @@ export class Gestures {
   private startX = 0;
   private startY = 0;
   private startT = 0;
+  /** The long press of this gesture was already offered to the sink. */
+  private longTried = false;
   private lastX = 0;
   private lastY = 0;
   private midX = 0;
@@ -83,6 +89,7 @@ export class Gestures {
       this.startX = this.lastX = x;
       this.startY = this.lastY = y;
       this.startT = t;
+      this.longTried = false;
       this.state = 'pending';
       this.armed = this.sink.buildsOnDrag();
       // The ghost shows under the finger at once; nothing is built before the release.
@@ -186,10 +193,12 @@ export class Gestures {
 
   /** Call every frame with the same clock as `pointerDown`: detects the long press. */
   update(now: number): void {
-    if (this.state !== 'pending' || now - this.startT < this.config.longPressMs) return;
+    if (this.state !== 'pending' || this.longTried) return;
+    if (now - this.startT < this.config.longPressMs) return;
+    this.longTried = true;
+    if (!this.sink.longPress(this.startX, this.startY)) return;
     this.disarm();
     this.state = 'spent';
-    this.sink.longPress(this.startX, this.startY);
   }
 
   private disarm(): void {

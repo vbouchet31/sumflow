@@ -34,6 +34,8 @@ export class Renderer {
   /** Options (PLAN §9.4). */
   showGrid = true;
   itemValuesAlways = false;
+  /** Tile rectangle outlined on the map: the object inspected by a tap (touch screens). */
+  selection: { x: number; y: number; w: number; h: number } | null = null;
   private dpr = 1;
   private readonly depositCache = new RegionCache();
   private readonly beltCache = new RegionCache();
@@ -122,6 +124,13 @@ export class Renderer {
       drawPriorities(ctx, camera, priorityTiles(world, belts.concat(lanes), buildings));
     }
     drawGhosts(ctx, camera, ghost);
+    if (this.selection) {
+      const sel = this.selection;
+      const p = camera.worldToScreen(sel.x, sel.y);
+      ctx.strokeStyle = COLORS.text;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(p.x + 1, p.y + 1, sel.w * camera.scale - 2, sel.h * camera.scale - 2);
+    }
     drawMarkers(ctx, camera, state.markers.values());
     if (this.waveStart !== null && !this.reducedMotion)
       drawWave(ctx, camera, nowMs - this.waveStart);

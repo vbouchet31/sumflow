@@ -21,8 +21,8 @@ export interface PointerHandlers {
   onLeave?: () => void;
   /** Touch: a brief press ended (after its `onDown` / `onUp`). */
   onTap?: (tx: number, ty: number) => void;
-  /** Touch: the finger stayed still on a tile. */
-  onLongPress?: (tx: number, ty: number) => void;
+  /** Touch: the finger stayed still on a tile. Return true if that did something. */
+  onLongPress?: (tx: number, ty: number) => boolean;
   /** Touch: true when a one-finger drag builds (a tool is active) instead of panning. */
   buildsOnDrag?: () => boolean;
   /** Wheel; return true to consume it (no zoom). `delta` > 0 = scroll down. */
@@ -72,7 +72,7 @@ export class PointerInput {
       },
       longPress: (x, y) => {
         const t = this.tileAt(x, y);
-        handlers.onLongPress?.(t.x, t.y);
+        return handlers.onLongPress?.(t.x, t.y) ?? false;
       },
       pan: (dx, dy) => camera.panScreen(dx, dy),
       pinch: (px, py, cx, cy, factor) => camera.pinch(px, py, cx, cy, factor),

@@ -3,7 +3,7 @@ import { TOUCH } from '../../src/config/keymap';
 import { Gestures, type GestureSink } from '../../src/input/gestures';
 
 /** A sink that records what the gestures ask for, as short strings. */
-function recorder(tool: boolean): { log: string[]; sink: GestureSink } {
+function recorder(tool: boolean, longPress = true): { log: string[]; sink: GestureSink } {
   const log: string[] = [];
   const sink: GestureSink = {
     buildsOnDrag: () => tool,
@@ -13,7 +13,10 @@ function recorder(tool: boolean): { log: string[]; sink: GestureSink } {
     cancel: () => log.push('cancel'),
     leave: () => log.push('leave'),
     tap: (x, y) => log.push(`tap ${x},${y}`),
-    longPress: (x, y) => log.push(`long ${x},${y}`),
+    longPress: (x, y) => {
+      log.push(`long ${x},${y}`);
+      return longPress;
+    },
     pan: (dx, dy) => log.push(`pan ${dx},${dy}`),
     pinch: (px, py, cx, cy, f) => log.push(`pinch ${px},${py}>${cx},${cy} x${f}`),
   };
@@ -125,7 +128,18 @@ describe('Gestures with a tool', () => {
     g.pointerDown(1, 100, 100, 0);
     g.update(TOUCH.longPressMs);
     g.pointerUp(1, 100, 100);
-    expect(log).toEqual(['down 100,100', 'cancel', 'long 100,100', 'leave']);
+    expect(log).toEqual(['down 100,100', 'long 100,100', 'cancel', 'leave']);
+  });
+
+  it('a long press on nothing leaves the gesture alone: holding still to aim still builds', () => {
+    const { log, sink } = recorder(true, false);
+    const g = new Gestures(sink);
+    g.pointerDown(1, 100, 100, 0);
+    g.update(TOUCH.longPressMs);
+    g.update(TOUCH.longPressMs * 2); // asked once only
+    g.pointerMove(1, 160, 100);
+    g.pointerUp(1, 160, 100);
+    expect(log).toEqual(['down 100,100', 'long 100,100', 'move 160,100', 'up 160,100', 'leave']);
   });
 
   it('a pointer cancelled by the system builds nothing', () => {

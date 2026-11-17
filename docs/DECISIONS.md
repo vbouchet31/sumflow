@@ -162,3 +162,7 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Appui long** : 450 ms sans dépasser le seuil. Il abandonne l'appui en cours avant de se déclencher.
 - **Pas de minuteur dans les gestes** : `Gestures.update(now)` est appelé à chaque image, avec l'horloge des événements. Tout est testable sans DOM.
 - **Outils sans glisser (extracteur, pont, priorité, marqueur)** : un doigt qui glisse déplace le fantôme, l'objet est posé là où le doigt se lève. Cela permet d'ajuster la position avant de lâcher.
+- **Barre d'actions pour tout le monde** : pas de détection d'appareil. Le texte de la barre ne cite plus de touches (elles sont dans les infobulles des boutons).
+- **Appui long sur rien** : le geste continue comme si de rien n'était. Garder le doigt immobile pour viser, puis lâcher, pose bien l'objet. L'appui long ne prend la main que s'il y a un objet à prendre à la pipette.
+- **Info-bulle épinglée** : seulement sans outil. Elle tombe dès qu'un outil est choisi ou qu'une souris bouge (le survol reprend la main).
+- **Coude** : le bouton est un état qui reste jusqu'à ce qu'on le rebascule ; `Ctrl` l'inverse pendant qu'il est tenu.

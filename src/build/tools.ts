@@ -87,6 +87,11 @@ export class ToolController {
   clipIndex = 0;
   pasteRot: Rot = 0;
   pasteMirror = false;
+  /**
+   * Belt drags start along the other axis. Toggled by a button (touch); holding Ctrl
+   * inverts it for the time of the drag.
+   */
+  elbowSwap = false;
   private hover: { x: number; y: number } | null = null;
   private drag: { x: number; y: number; moved: boolean } | null = null;
   private ctrl = false;
@@ -154,6 +159,18 @@ export class ToolController {
     if (this.tool !== 'paste') return;
     this.pasteMirror = !this.pasteMirror;
     this.pasteRot = normalizeRot(-this.pasteRot);
+  }
+
+  /** Whether rotating changes what the current tool builds. */
+  get canRotate(): boolean {
+    const t = this.tool;
+    return (
+      t === 'belt' || t === 'bridge' || t === 'paste' || (isFreeBuilding(t) && t !== 'storage')
+    );
+  }
+
+  toggleElbow(): void {
+    this.elbowSwap = !this.elbowSwap;
   }
 
   /** Belt direction for a single click: East at rotation 0, then clockwise. */
@@ -339,27 +356,32 @@ export class ToolController {
     if (h && this.history.run(() => demolishAt(this.world, h.x, h.y))) this.events.onDemolish?.();
   }
 
-  /** `E`: pick the hovered object's tool and orientation (PLAN §8.2). */
-  pick(): void {
-    const h = this.hover;
-    if (!h) return;
+  /**
+   * `E` (hovered tile) or a long press (`at`): pick the object's tool and orientation
+   * (PLAN §8.2). Returns false when there is nothing to pick.
+   */
+  pick(at: { x: number; y: number } | null = this.hover): boolean {
+    const h = at;
+    if (!h) return false;
     const b = this.world.buildingAt(h.x, h.y);
     if (b && b.type !== 'hub') {
-      if (!this.isAvailable(b.type)) return;
+      if (!this.isAvailable(b.type)) return false;
       this.rot = b.rot;
       this.forceTool(b.type);
-      return;
+      return true;
     }
     if (this.world.bridgeAt(h.x, h.y) && this.isAvailable('bridge')) {
       this.forceTool('bridge');
-      return;
+      return true;
     }
     const belt = this.world.beltAt(h.x, h.y);
     if (belt) {
       const d = singleOutput(belt);
       if (d !== null) this.rot = normalizeRot(d - 1); // beltDir = rot + 1 (East at 0)
       this.forceTool('belt');
+      return true;
     }
+    return false;
   }
 
   /** Create, edit or delete (empty text) a marker, as one undoable action. */
@@ -392,7 +414,7 @@ export class ToolController {
     if (drag?.moved) {
       return planBeltPath(
         this.world,
-        computeLPath(drag.x, drag.y, this.hover.x, this.hover.y, this.ctrl),
+        computeLPath(drag.x, drag.y, this.hover.x, this.hover.y, this.ctrl !== this.elbowSwap),
       );
     }
     const at = drag ?? this.hover;

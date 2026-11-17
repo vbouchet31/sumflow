@@ -2,7 +2,11 @@ import { type MessageKey, t } from '../i18n';
 import { el } from './dom';
 
 export type TopAction =
-  'undo' | 'redo' | 'home' | 'marker' | 'delivered' | 'levels' | 'upgrades' | 'menu';
+  'pause' | 'undo' | 'redo' | 'home' | 'marker' | 'delivered' | 'levels' | 'upgrades' | 'menu';
+
+/** Text symbols (U+FE0E keeps the triangle from turning into an emoji on phones). */
+const PAUSE_ICON = '❚❚';
+const RESUME_ICON = '▶\uFE0E';
 
 /** Top-right buttons (PLAN §9.1). */
 export class TopBar {
@@ -24,6 +28,7 @@ export class TopBar {
       bar.append(btn);
       this.buttons.set(id, btn);
     };
+    add('pause', 'btn.pause', PAUSE_ICON);
     add('undo', 'btn.undo', '↶');
     add('redo', 'btn.redo', '↷');
     add('home', 'btn.home', '⌂');
@@ -43,6 +48,17 @@ export class TopBar {
   setEnabled(id: TopAction, enabled: boolean): void {
     const btn = this.buttons.get(id);
     if (btn) btn.disabled = !enabled;
+  }
+
+  /** The pause button shows what a press will do: pause, or resume. */
+  setPaused(paused: boolean): void {
+    const btn = this.buttons.get('pause');
+    if (!btn || btn.getAttribute('aria-pressed') === String(paused)) return;
+    const label = t(paused ? 'btn.resume' : 'btn.pause');
+    btn.textContent = paused ? RESUME_ICON : PAUSE_ICON;
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('aria-pressed', String(paused));
   }
 
   /** Pressed state (toggle buttons such as the marker tool). */

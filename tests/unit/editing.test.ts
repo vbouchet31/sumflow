@@ -417,3 +417,66 @@ describe('interrupted gestures (touch)', () => {
     expect(world.state.belts.size).toBe(0);
   });
 });
+
+describe('touch replacements for keys', () => {
+  it('the elbow toggle swaps the first axis of a belt drag, and Ctrl inverts it back', () => {
+    const world = makeWorld();
+    const tools = new ToolController(world);
+    tools.setTool('belt');
+    const corner = (ctrl: boolean): string => {
+      tools.pointerDown(10, 10, NO_MODS);
+      tools.pointerMove(13, 12, { ...NO_MODS, ctrl });
+      const tiles = tools.ghost().belts.map((b) => `${b.x},${b.y}`);
+      tools.pointerCancel();
+      return tiles.includes('13,10') ? 'horizontal first' : 'vertical first';
+    };
+    const normal = corner(false);
+    expect(corner(true)).not.toBe(normal);
+    tools.toggleElbow();
+    expect(tools.elbowSwap).toBe(true);
+    expect(corner(false)).not.toBe(normal);
+    expect(corner(true)).toBe(normal);
+  });
+
+  it('pick works on a given tile, without a hovered one', () => {
+    const world = makeWorld();
+    unlockAll(world);
+    world.addBuilding('adder', 20, 20, 1);
+    world.setBelt(30, 30, dirMask(S));
+    const tools = new ToolController(world);
+    expect(tools.pick()).toBe(false); // nothing hovered
+    expect(tools.pick({ x: 0, y: 0 })).toBe(false); // the hub cannot be picked
+    expect(tools.pick({ x: 50, y: 50 })).toBe(false);
+    expect(tools.pick({ x: 20, y: 20 })).toBe(true);
+    expect(tools.tool).toBe('adder');
+    expect(tools.rot).toBe(1);
+    expect(tools.pick({ x: 30, y: 30 })).toBe(true);
+    expect(tools.tool).toBe('belt');
+    expect(tools.beltDir).toBe(S);
+  });
+
+  it('only tools whose result depends on the rotation offer to rotate', () => {
+    const world = makeWorld();
+    unlockAll(world);
+    world.setBelt(30, 30, dirMask(E));
+    const tools = new ToolController(world);
+    const rotatable = (tool: Parameters<ToolController['setTool']>[0]): boolean => {
+      tools.setTool(tool);
+      const yes = tools.canRotate;
+      tools.setTool('none');
+      return yes;
+    };
+    expect(['belt', 'bridge', 'adder', 'divider'].map((t) => rotatable(t as 'belt'))).toEqual([
+      true,
+      true,
+      true,
+      true,
+    ]);
+    expect(
+      ['extractor', 'storage', 'demolish', 'marker', 'priority'].map((t) => rotatable(t as 'belt')),
+    ).toEqual([false, false, false, false, false]);
+    expect(tools.copyRect({ x0: 30, y0: 30, x1: 30, y1: 30 }, false)).toBe(true);
+    expect(tools.tool).toBe('paste');
+    expect(tools.canRotate).toBe(true);
+  });
+});

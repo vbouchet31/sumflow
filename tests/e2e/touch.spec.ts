@@ -117,3 +117,101 @@ test('the mouse still works on a touch device', async ({ page }) => {
   await page.mouse.up();
   expect((await state(page)).belts).toBe(3);
 });
+
+test('the action bar replaces the keys: rotate, elbow, clipboard, quit', async ({ page }) => {
+  await page.goto('./?debug=1&seed=42');
+  const touch = await touchDriver(page);
+  const bar = page.locator('.tool-hint');
+  const action = (id: string) => bar.locator(`.hint-btn[data-action="${id}"]`);
+  await expect(bar).toBeHidden();
+
+  // Belt: rotate and elbow. A tap places one belt facing the rotation (East, then South).
+  await page.locator('.build-btn[data-tool="belt"]').tap();
+  await expect(bar).toBeVisible();
+  await expect(action('mirror')).toBeHidden();
+  await touch.tap(tileCentre(page, 5, -3));
+  await action('rotate').tap();
+  await touch.tap(tileCentre(page, 6, -3));
+  const dirs = await page.evaluate(() => {
+    const api = window.__sumflow;
+    return api ? [api.layout()] : [];
+  });
+  // Two different belts: the rotation changed the direction of the second one.
+  const rows = (dirs[0] ?? '').split('|')[1]?.trim().split('\n') ?? [];
+  expect(rows).toHaveLength(2);
+  expect(rows[0]?.replace(/^\[-?\d+,/, '')).not.toBe(rows[1]?.replace(/^\[-?\d+,/, ''));
+
+  await action('elbow').tap();
+  await expect(action('elbow')).toHaveAttribute('aria-pressed', 'true');
+
+  // Copy the two belts with a drag: paste mode, with its own actions.
+  await page.locator('.build-btn[data-tool="copy"]').tap();
+  await touch.drag(tileCentre(page, 5, -3), tileCentre(page, 6, -3));
+  await expect(bar).toContainText('1 / 1');
+  await expect(action('mirror')).toBeVisible();
+  await expect(action('nextClip')).toBeHidden(); // a single entry
+  await action('removeClip').tap();
+  expect((await state(page)).clipboard).toBe(0);
+  expect((await state(page)).tool).toBe('none');
+
+  // Quit.
+  await page.locator('.build-btn[data-tool="demolish"]').tap();
+  await action('quit').tap();
+  expect((await state(page)).tool).toBe('none');
+  await expect(bar).toBeHidden();
+});
+
+test('a long press picks the object under the finger', async ({ page }) => {
+  await page.goto('./?debug=1&seed=42');
+  const touch = await touchDriver(page);
+  await page.evaluate(() => {
+    const api = window.__sumflow;
+    if (!api) throw new Error('debug API missing');
+    api.unlockAll();
+    api.place('adder', 5, -3, 0);
+  });
+
+  await touch.start(tileCentre(page, 5, -3));
+  await expect.poll(async () => (await state(page)).tool).toBe('adder');
+  await touch.end();
+  // The press was a pick, not a build.
+  expect((await state(page)).buildings).toBe(2);
+
+  // With a tool, holding still over empty ground still builds on release.
+  await touch.start(tileCentre(page, 9, 0));
+  await page.waitForTimeout(600);
+  await touch.end();
+  expect((await state(page)).buildings).toBe(3);
+});
+
+test('a tap without a tool pins the tooltip of the object', async ({ page }) => {
+  await page.goto('./?debug=1&seed=42');
+  const touch = await touchDriver(page);
+  const tooltip = page.locator('.tooltip');
+  await page.evaluate(() => window.__sumflow?.place('belt', 5, -3, 0));
+  await expect(tooltip).toBeHidden();
+
+  await touch.tap(tileCentre(page, 5, -3));
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip.locator('.tooltip-title')).toHaveText(/^(Tapis|Belt)$/);
+  // Moving the map keeps it; choosing a tool drops it.
+  await touch.drag(tileCentre(page, 7, -1), tileCentre(page, 6, -1));
+  await expect(tooltip).toBeVisible();
+  await page.locator('.build-btn[data-tool="belt"]').tap();
+  await expect(tooltip).toBeHidden();
+});
+
+test('the pause button pauses and resumes the simulation', async ({ page }) => {
+  await page.goto('./?debug=1&seed=42');
+  const pause = page.locator('.top-btn[data-action="pause"]');
+  await pause.tap();
+  expect((await state(page)).paused).toBe(true);
+  await expect(pause).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.status-paused')).toBeVisible();
+  const tick = (await state(page)).tick;
+  await page.waitForTimeout(200);
+  expect((await state(page)).tick).toBe(tick);
+  await pause.tap();
+  expect((await state(page)).paused).toBe(false);
+  await expect.poll(async () => (await state(page)).tick).toBeGreaterThan(tick);
+});
