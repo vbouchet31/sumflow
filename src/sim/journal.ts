@@ -17,6 +17,8 @@ export interface BuildingSnap {
   mirror: boolean;
   priority: number | null;
   extractValue: number | null;
+  /** Extractor on a meteorite (proposal 13). */
+  meteor?: number;
 }
 
 export interface SlotChange<T> {

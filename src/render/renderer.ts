@@ -17,6 +17,7 @@ import { drawGrid } from './layers/grid';
 import { drawItems } from './layers/items';
 import { drawMarkers } from './layers/markers';
 import { drawWave } from './layers/wave';
+import { drawMeteorPointers, drawMeteors } from './layers/meteors';
 
 /** Maximum device pixel ratio honoured by the canvas (PLAN §10.4). */
 const MAX_DPR = 2;
@@ -88,6 +89,7 @@ export class Renderer {
       drawDeposits(ctx, camera, world.deposits, state);
     }
 
+    drawMeteors(ctx, camera, state, this.reducedMotion);
     const v = camera.visibleTiles(1);
     // From zoom 0.6 chevrons move: only the tile bases are cached, chevrons are drawn live.
     const liveChevrons = camera.zoom >= LOD.full;
@@ -132,6 +134,7 @@ export class Renderer {
       ctx.strokeRect(p.x + 1, p.y + 1, sel.w * camera.scale - 2, sel.h * camera.scale - 2);
     }
     drawMarkers(ctx, camera, state.markers.values());
+    drawMeteorPointers(ctx, camera, state);
     if (this.waveStart !== null && !this.reducedMotion)
       drawWave(ctx, camera, nowMs - this.waveStart);
   }

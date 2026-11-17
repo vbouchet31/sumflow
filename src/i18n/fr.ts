@@ -290,4 +290,13 @@ export const fr = {
   'toast.importError': 'Import impossible : fichier invalide. Rien n’a été modifié.',
   'toast.loadError': 'Sauvegarde illisible : nouvelle partie. L’ancienne est gardée à part.',
   'toast.exported': 'Partie exportée : {file}',
+  'tip.meteor': 'Météorite de {value}',
+  'tip.meteorLeft': 'Disparaît dans {time}',
+  'tip.meteorAny': 'Extractible quel que soit ton niveau',
+  'tip.meteorGone': 'Météorite épuisée : plus rien à extraire',
+  'toast.meteorFell': 'Une météorite de {value} est tombée !',
+  'toast.meteorFellBody': 'Elle disparaîtra dans 4 minutes. Suis la flèche.',
+  'toast.meteorFaded': 'La météorite de {value} s’est éteinte',
+  'help.meteor':
+    'Météorites : de temps en temps, un grand nombre tombe près du Hub. Pose un extracteur dessus avant qu’il ne s’éteigne (4 min), même s’il dépasse ton niveau d’extraction.',
 } as const;

@@ -243,6 +243,7 @@ export class World {
       mirror: b.mirror === true,
       priority: b.priority,
       extractValue: b.extractValue ?? null,
+      ...(b.meteor !== undefined ? { meteor: b.meteor } : {}),
     };
   }
 
@@ -465,6 +466,7 @@ export class World {
       b.extractValue = s.extractValue;
       b.extractAcc = 0;
     }
+    if (s.meteor !== undefined) b.meteor = s.meteor;
     if (s.type === 'storage') {
       b.storeValue = null;
       b.storeCount = 0;

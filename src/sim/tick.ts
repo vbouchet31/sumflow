@@ -1,4 +1,5 @@
 import { stepBelts } from './belts';
+import { stepMeteors } from './meteors';
 import { stepExtractors } from './extractor';
 import { stepOperators, stepOutputs } from './operators';
 import { stepStorages } from './storage';
@@ -11,6 +12,7 @@ import type { World } from './world';
 export function tick(world: World): void {
   world.state.tick += 1;
   world.stats.advance(world.state.tick);
+  stepMeteors(world, world.emit);
   stepExtractors(world);
   stepBelts(world);
   stepOutputs(world);

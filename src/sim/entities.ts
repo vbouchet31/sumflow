@@ -97,6 +97,8 @@ export interface Building {
   /** Storage: stored value (null when empty) and count (PLAN §6.3). */
   storeValue?: number | null;
   storeCount?: number;
+  /** Extractor on a meteorite (proposal 13): its id; production stops once it has faded. */
+  meteor?: number;
 }
 
 export type OperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent';

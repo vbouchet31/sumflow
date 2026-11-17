@@ -272,3 +272,21 @@ export const EDIT = {
   /** Most copies placed by one paste drag. */
   maxPasteRow: 32,
 } as const;
+
+/** Meteorites (proposal 13): short-lived deposits of big numbers near the hub. */
+export const METEORS = {
+  fromLevel: 8,
+  /** Seconds before the first one, then between the end of one and the next fall. */
+  firstDelay: 60,
+  interval: 240,
+  /** Seconds a meteorite can be mined. */
+  lifetime: 240,
+  /** Distance from the hub centre, in tiles. */
+  minDistance: 14,
+  maxDistance: 34,
+  /** Value: drawn in [maxExtraction + minAbove, maxExtraction × maxFactor + minAbove]. */
+  minAbove: 5,
+  maxFactor: 4,
+  /** Landing attempts before giving up until the next interval. */
+  attempts: 40,
+} as const;

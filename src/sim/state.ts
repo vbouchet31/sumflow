@@ -9,6 +9,7 @@ import {
 } from '../config/balance';
 import { toSeed } from '../core/rng';
 import type { Clip, Marker } from './clip';
+import { initialMeteors, type MeteorState } from './meteors';
 import type { Belt, Bridge, Building } from './entities';
 import { ensureLevels, type GeneratedLevel } from './levels';
 
@@ -56,6 +57,8 @@ export interface GameState {
   helpSeen: string[];
   /** Clipboard history, most recent first, at most `EDIT.clipboardSize` entries (PLAN §8.2). */
   clipboard: Clip[];
+  /** Meteorites (proposal 13). */
+  meteors: MeteorState;
 }
 
 export const HUB_ID = 0;
@@ -101,6 +104,7 @@ export function createInitialState(seed: number): GameState {
     markers: new Map(),
     helpSeen: [],
     clipboard: [],
+    meteors: initialMeteors(),
   };
   state.levelRequirement = requirementFor(state, 1);
   return state;

@@ -3,6 +3,7 @@ import { TRACKS } from '../config/balance';
 import type { BuildingType } from '../config/buildings';
 import { COORD_MAX, COORD_MIN, type Dir, type Rot } from '../core/grid';
 import type { Clip } from '../sim/clip';
+import type { MeteorState } from '../sim/meteors';
 
 /** Current save format version (PLAN §11.3). Bump it with a migration (§11.4). */
 export const SAVE_VERSION = 1;
@@ -53,6 +54,7 @@ export interface SavedBuilding {
   cycle?: number;
   storeValue?: number | null;
   storeCount?: number;
+  meteor?: number;
 }
 
 export interface SavedRequirement {
@@ -88,6 +90,8 @@ export interface SaveData {
   markers: { x: number; y: number; text: string }[];
   clipboard: Clip[];
   helpSeen: string[];
+  /** Meteorites (proposal 13). Optional: older saves have none. */
+  meteors?: MeteorState;
   camera: { x: number; y: number; zoom: number };
 }
 
@@ -230,6 +234,7 @@ function building(v: unknown, path: string): SavedBuilding {
     b.storeValue = o['storeValue'] === null ? null : int32(o['storeValue'], `${path}.storeValue`);
   }
   if (o['storeCount'] !== undefined) b.storeCount = int(o['storeCount'], `${path}.storeCount`, 0);
+  if (o['meteor'] !== undefined) b.meteor = int(o['meteor'], `${path}.meteor`, 0);
   return b;
 }
 
@@ -288,6 +293,25 @@ function clip(v: unknown, path: string): Clip {
  * Check that `raw` is a valid save of the current version and return a clean copy
  * (unknown fields dropped). Throws `SaveError` with the path of the first problem.
  */
+function meteors(v: unknown): MeteorState {
+  const o = obj(v, '$.meteors');
+  return {
+    active: arr(o['active'], '$.meteors.active').map((x, i) => {
+      const m = obj(x, `$.meteors.active[${i}]`);
+      const p = `$.meteors.active[${i}]`;
+      return {
+        id: int(m['id'], `${p}.id`, 0),
+        x: coord(m['x'], `${p}.x`),
+        y: coord(m['y'], `${p}.y`),
+        value: int32(m['value'], `${p}.value`),
+        endsAt: int(m['endsAt'], `${p}.endsAt`, 0),
+      };
+    }),
+    nextAt: int(o['nextAt'], '$.meteors.nextAt', -1),
+    count: int(o['count'], '$.meteors.count', 0),
+  };
+}
+
 export function validateSave(raw: unknown): SaveData {
   const o = obj(raw, '$');
   const version = int(o['version'], '$.version', 1);
@@ -366,6 +390,7 @@ export function validateSave(raw: unknown): SaveData {
     }),
     clipboard: arr(o['clipboard'], '$.clipboard').map((x, i) => clip(x, `$.clipboard[${i}]`)),
     helpSeen: arr(o['helpSeen'], '$.helpSeen').map((x, i) => str(x, `$.helpSeen[${i}]`)),
+    ...(o['meteors'] === undefined ? {} : { meteors: meteors(o['meteors']) }),
     camera: {
       x: num(cam['x'], '$.camera.x'),
       y: num(cam['y'], '$.camera.y'),
