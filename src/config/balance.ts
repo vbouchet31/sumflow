@@ -272,3 +272,24 @@ export const EDIT = {
   /** Most copies placed by one paste drag. */
   maxPasteRow: 32,
 } as const;
+
+/** Hub contracts (proposal 04): optional timed orders that grant a temporary boost. */
+export const CONTRACTS = {
+  /** Contracts start once this level is reached. */
+  fromLevel: 3,
+  /** Seconds before the first contract, and between the end of one and the next. */
+  firstDelay: 45,
+  cooldown: 90,
+  /** Time to fulfil a contract, in seconds. */
+  duration: 180,
+  /** Quantity: base + step × level, rounded to 5. */
+  quantityBase: 20,
+  quantityStep: 4,
+  quantityMax: 400,
+  /** Value: drawn in [2, max(minSpan, factor × maxExtraction)], never the level target. */
+  valueFactor: 4,
+  minSpan: 8,
+  /** Reward: belts, extractors and operators run this much faster for `boostSeconds`. */
+  boostFactor: 1.5,
+  boostSeconds: 120,
+} as const;

@@ -290,4 +290,15 @@ export const fr = {
   'toast.importError': 'Import impossible : fichier invalide. Rien n’a été modifié.',
   'toast.loadError': 'Sauvegarde illisible : nouvelle partie. L’ancienne est gardée à part.',
   'toast.exported': 'Partie exportée : {file}',
+  'contract.title': 'Contrat du Hub',
+  'contract.order': 'Livrer {n} × {value}',
+  'contract.left': '{time} restantes',
+  'contract.reward': 'Prime : Surcharge ×{f} pendant {s} s',
+  'contract.boost': 'Surcharge ×{f}',
+  'contract.boostLeft': 'Tout tourne plus vite : {time}',
+  'toast.contractOffered': 'Nouveau contrat : {n} × {value}',
+  'toast.contractDone': 'Contrat rempli ! Surcharge activée',
+  'toast.contractExpired': 'Contrat expiré : {value}',
+  'help.contracts':
+    'Contrats : le Hub propose parfois une commande bonus chronométrée. Remplis-la pour une Surcharge (tout va plus vite). Rien n’est perdu en cas d’échec.',
 } as const;

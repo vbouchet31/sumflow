@@ -10,6 +10,7 @@ import { dirMask, type FreeBuildingType } from '../sim/entities';
 import type { SimLoop } from '../sim/loop';
 import { applyReward, deliver, setLevel } from '../sim/progression';
 import { runTicks } from '../sim/tick';
+import { drawContract, stepContracts } from '../sim/contracts';
 import { setUpgradeLevel } from '../sim/upgrades';
 import type { World } from '../sim/world';
 import { layoutString } from '../sim/layout';
@@ -101,6 +102,8 @@ export interface DebugApi {
   loadReference: () => void;
   /** Frame timings of the last half second (the numbers of the F3 overlay). */
   perf: () => PerfStats;
+  /** Offer the next hub contract now (proposal 04), optionally forcing its value. */
+  offerContract: (value?: number) => void;
   /** Move the camera (tiles) and optionally set the zoom. */
   lookAt: (x: number, y: number, zoom?: number) => void;
 }
@@ -189,6 +192,18 @@ export function installDebugApi(ctx: DebugContext): void {
       runTicks(world, REFERENCE.warmupSeconds * TICK_RATE);
     },
     perf: () => ({ ...perf.stats }),
+    offerContract: (value) => {
+      const c = world.state.contracts;
+      c.current = null;
+      c.nextAt = world.state.tick;
+      if (value !== undefined) {
+        const next = drawContract(world.state, c.completed + c.failed + 1);
+        c.current = { ...next, value };
+        world.emit('contractOffered', { value, required: next.required });
+        return;
+      }
+      stepContracts(world.state, world.emit);
+    },
     lookAt: (x, y, zoom) => {
       camera.centerOn(x, y);
       if (zoom !== undefined) camera.zoomAt(camera.viewW / 2, camera.viewH / 2, zoom / camera.zoom);

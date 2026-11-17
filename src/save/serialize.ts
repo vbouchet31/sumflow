@@ -137,6 +137,7 @@ export function serialize(world: World, camera: CameraState, savedAt = ''): Save
     markers: markers.map((m) => ({ x: m.x, y: m.y, text: m.text })),
     clipboard: structuredClone(s.clipboard),
     helpSeen: [...s.helpSeen],
+    contracts: structuredClone(s.contracts),
     camera: { x: camera.x, y: camera.y, zoom: camera.zoom },
   };
 }
@@ -162,6 +163,7 @@ export function deserialize(data: SaveData): { state: GameState; camera: CameraS
   state.totalDelivered = data.totalDelivered;
   state.nextBuildingId = data.nextBuildingId;
   state.helpSeen = [...data.helpSeen];
+  if (data.contracts) state.contracts = structuredClone(data.contracts);
   state.clipboard = structuredClone(data.clipboard);
 
   const occupied = new Set<number>();

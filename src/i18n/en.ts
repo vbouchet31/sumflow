@@ -290,4 +290,15 @@ export const en: Record<MessageKey, string> = {
   'toast.importError': 'Import failed: invalid file. Nothing was changed.',
   'toast.loadError': 'Unreadable save: new game started. The old one is kept aside.',
   'toast.exported': 'Game exported: {file}',
+  'contract.title': 'Hub contract',
+  'contract.order': 'Deliver {n} × {value}',
+  'contract.left': '{time} left',
+  'contract.reward': 'Bonus: Overdrive ×{f} for {s} s',
+  'contract.boost': 'Overdrive ×{f}',
+  'contract.boostLeft': 'Everything runs faster: {time}',
+  'toast.contractOffered': 'New contract: {n} × {value}',
+  'toast.contractDone': 'Contract fulfilled! Overdrive on',
+  'toast.contractExpired': 'Contract expired: {value}',
+  'help.contracts':
+    'Contracts: the hub sometimes offers a timed bonus order. Fill it for an Overdrive (everything runs faster). Nothing is lost if it fails.',
 };
