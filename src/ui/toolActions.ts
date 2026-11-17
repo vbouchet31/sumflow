@@ -3,7 +3,15 @@ import { type MessageKey, t } from '../i18n';
 import { el } from './dom';
 
 type ActionId =
-  'rotate' | 'mirror' | 'elbow' | 'prevClip' | 'nextClip' | 'removeClip' | 'place' | 'quit';
+  | 'rotate'
+  | 'mirror'
+  | 'beltMode'
+  | 'elbow'
+  | 'prevClip'
+  | 'nextClip'
+  | 'removeClip'
+  | 'place'
+  | 'quit';
 
 interface ActionDef {
   id: ActionId;
@@ -32,11 +40,19 @@ const ACTIONS: readonly ActionDef[] = [
     shown: (tools) => tools.tool === 'paste',
   },
   {
+    id: 'beltMode',
+    label: 'act.beltMode',
+    icon: '〰',
+    run: (tools) => tools.toggleBeltMode(),
+    shown: (tools) => tools.tool === 'belt',
+    pressed: (tools) => tools.beltMode === 'line',
+  },
+  {
     id: 'elbow',
     label: 'act.elbow',
     icon: '↳',
     run: (tools) => tools.toggleElbow(),
-    shown: (tools) => tools.tool === 'belt',
+    shown: (tools) => tools.tool === 'belt' && tools.drawsLine,
     pressed: (tools) => tools.elbowSwap,
   },
   {
@@ -131,6 +147,8 @@ export class ToolActions {
       }
       case 'marker':
         return t('hint.marker');
+      case 'belt':
+        return t(tools.drawsLine ? 'hint.beltLine' : 'hint.beltFree');
       default:
         return t(`tool.${tools.tool}`);
     }

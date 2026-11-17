@@ -423,6 +423,7 @@ describe('touch replacements for keys', () => {
     const world = makeWorld();
     const tools = new ToolController(world);
     tools.setTool('belt');
+    tools.beltMode = 'line';
     const corner = (ctrl: boolean): string => {
       tools.pointerDown(10, 10, NO_MODS);
       tools.pointerMove(13, 12, { ...NO_MODS, ctrl });

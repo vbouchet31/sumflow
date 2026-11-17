@@ -27,6 +27,7 @@ const CONTROLS = [
   'zoom',
   'home',
   'build',
+  'beltDraw',
   'rotate',
   'priority',
   'demolish',

@@ -40,7 +40,8 @@ export interface KeyboardHandlers {
 /** Tracks held physical keys for camera panning and dispatches shortcuts (PLAN §8). */
 export class Keyboard {
   private readonly held = new Set<string>();
-  private shift = false;
+  /** Shift is held (faster panning; straight belt lines while drawing). */
+  shift = false;
   private modifier = false;
   /** Ctrl state, readable by tools (elbow swap while dragging). */
   ctrl = false;

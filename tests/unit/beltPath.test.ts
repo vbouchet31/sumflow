@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   applyBeltPlan,
   computeLPath,
+  extendTrail,
   planBeltPath,
   planSingleBelt,
+  trailPath,
 } from '../../src/build/beltPath';
 import { demolishAt, planExtractor, applyBuildingPlan } from '../../src/build/placement';
 import { ToolController } from '../../src/build/tools';
@@ -118,5 +120,77 @@ describe('ToolController', () => {
     tools.pointerDown(10, 10, NO_MODS);
     tools.pointerUp(10, 10, NO_MODS);
     expect(world.beltAt(10, 10)?.outputs).toBe(dirMask(S));
+  });
+});
+
+describe('freehand trail', () => {
+  const tiles = (trail: { x: number; y: number }[]): string =>
+    trail.map((t) => `${t.x},${t.y}`).join(' ');
+
+  it('follows the pointer tile by tile and fills skipped tiles', () => {
+    const trail = [{ x: 0, y: 0 }];
+    extendTrail(trail, 1, 0);
+    extendTrail(trail, 1, 1);
+    extendTrail(trail, 3, 2); // fast move: joined with an L, larger gap first
+    expect(tiles(trail)).toBe('0,0 1,0 1,1 2,1 3,1 3,2');
+  });
+
+  it('going back over the trail cuts it', () => {
+    const trail = [{ x: 0, y: 0 }];
+    for (const [x, y] of [
+      [1, 0],
+      [2, 0],
+      [2, 1],
+    ] as const)
+      extendTrail(trail, x, y);
+    extendTrail(trail, 2, 0);
+    expect(tiles(trail)).toBe('0,0 1,0 2,0');
+  });
+
+  it('each tile faces the next one; the last keeps the last step', () => {
+    const path = trailPath(
+      [
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+        { x: 1, y: 1 },
+        { x: 0, y: 1 },
+      ],
+      N,
+    );
+    expect(path.map((t) => t.dir)).toEqual([E, S, W, W]);
+  });
+});
+
+describe('freehand drag', () => {
+  it('a belt drag around a corner builds where the pointer went', () => {
+    const world = makeWorld();
+    const tools = new ToolController(world);
+    tools.setTool('belt');
+    const mods = { ctrl: false, shift: false, alt: false };
+    tools.pointerDown(20, 20, mods);
+    for (const [x, y] of [
+      [20, 21],
+      [20, 22],
+      [21, 22],
+      [22, 22],
+    ] as const)
+      tools.pointerMove(x, y, mods);
+    tools.pointerUp(22, 22, mods);
+    // An L would have gone along x first (tie): freehand went down first.
+    expect(world.beltAt(20, 21)?.outputs).toBe(dirMask(S));
+    expect(world.beltAt(21, 20)).toBeNull();
+    expect(world.beltAt(20, 22)?.outputs).toBe(dirMask(E));
+  });
+
+  it('Shift draws a straight L instead', () => {
+    const world = makeWorld();
+    const tools = new ToolController(world);
+    tools.setTool('belt');
+    const mods = { ctrl: false, shift: true, alt: false };
+    tools.pointerDown(20, 20, mods);
+    tools.pointerMove(20, 21, mods);
+    tools.pointerMove(22, 22, mods);
+    tools.pointerUp(22, 22, mods);
+    expect(world.beltAt(21, 20)?.outputs).toBe(dirMask(E));
   });
 });
