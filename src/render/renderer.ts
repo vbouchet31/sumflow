@@ -13,6 +13,7 @@ import { priorityTiles } from '../sim/priority';
 import { drawBuildings } from './layers/buildings';
 import { drawDeposits } from './layers/deposits';
 import { drawGhosts } from './layers/ghosts';
+import { FlowView } from './layers/flowView';
 import { drawGrid } from './layers/grid';
 import { drawItems } from './layers/items';
 import { drawMarkers } from './layers/markers';
@@ -31,6 +32,10 @@ export class Renderer {
   /** Time (ms, same clock as `draw`'s `nowMs`) of the last level-complete wave. */
   waveStart: number | null = null;
   reducedMotion = false;
+  /** Flow view (V): belts tinted by state. */
+  showFlow = false;
+  readonly flowView = new FlowView();
+  private lastDraw = 0;
   /** Options (PLAN §9.4). */
   showGrid = true;
   itemValuesAlways = false;
@@ -123,6 +128,9 @@ export class Renderer {
       }
       drawPriorities(ctx, camera, priorityTiles(world, belts.concat(lanes), buildings));
     }
+    const dt = Math.min(0.25, Math.max(0, (nowMs - this.lastDraw) / 1000));
+    this.lastDraw = nowMs;
+    if (this.showFlow) this.flowView.draw(ctx, camera, world, belts, dt);
     drawGhosts(ctx, camera, ghost);
     if (this.selection) {
       const sel = this.selection;
