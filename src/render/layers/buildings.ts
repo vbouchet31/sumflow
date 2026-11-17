@@ -5,7 +5,8 @@ import type { Camera } from '../camera';
 import { LOD } from '../lod';
 import { roundRect } from '../shapes';
 import { drawHub } from './hub';
-import { drawOperator } from './operators';
+import { drawOperator, drawOperatorStatus } from './operators';
+import { operatorStatus } from '../../sim/operators';
 import { drawStorage } from './storage';
 
 /** Cycle-end flash duration in ticks (150 ms, PLAN §6.2). */
@@ -70,5 +71,20 @@ export function drawBuildings(
       const flash = !reducedMotion && age < FLASH_TICKS ? 1 - age / FLASH_TICKS : 0;
       drawOperator(ctx, cam, b.type, b.x, b.y, b.rot, { flash, mirror: b.mirror === true });
     }
+  }
+}
+
+/** Stalled operators, drawn above the items so a waiting number never hides a badge. */
+export function drawStatuses(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  buildings: Iterable<Building>,
+  state: GameState,
+  reducedMotion = false,
+): void {
+  if (cam.zoom < LOD.buildingText) return;
+  const pulse = reducedMotion ? 0 : (state.tick / 60) % 1;
+  for (const b of buildings) {
+    if (isOperator(b.type)) drawOperatorStatus(ctx, cam, b, operatorStatus(b, state.tick), pulse);
   }
 }

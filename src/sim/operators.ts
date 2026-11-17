@@ -110,3 +110,27 @@ export function stepOperators(world: World): void {
     b.cycle = cycle;
   }
 }
+
+/** Seconds an operator must stay without finishing a cycle before it shows as stalled. */
+export const STALL_SECONDS = 1.5;
+
+/**
+ * Why an operator is not working, for the map badges and the tooltip:
+ * - `ok`: working, or stopped for less than `STALL_SECONDS`;
+ * - `starved`: an input has nothing (`missing` lists which: A, B or both);
+ * - `blocked`: its results cannot leave (output full).
+ */
+export type OperatorStatus =
+  { kind: 'ok' } | { kind: 'starved'; missing: ('A' | 'B')[] } | { kind: 'blocked' };
+
+export function operatorStatus(b: Building, tick: number): OperatorStatus {
+  if ((b.cycle ?? -1) >= 0) return { kind: 'ok' };
+  const last = b.flashTick;
+  if (last !== undefined && tick - last < STALL_SECONDS / TICK_DT) return { kind: 'ok' };
+  const missing: ('A' | 'B')[] = [];
+  if (!b.inA?.length) missing.push('A');
+  if (!b.inB?.length) missing.push('B');
+  if (missing.length > 0) return { kind: 'starved', missing };
+  if (!canStart(b)) return { kind: 'blocked' };
+  return { kind: 'ok' };
+}
