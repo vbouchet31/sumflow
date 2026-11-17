@@ -35,6 +35,8 @@ import { StatusBar } from './ui/statusBar';
 import { MarkerEditor } from './ui/markerEditor';
 import { ToolActions } from './ui/toolActions';
 import { describeTile, Tooltip } from './ui/tooltip';
+import { changeArea, summarizeChange } from './ui/changeSummary';
+import type { Change } from './sim/journal';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
 import { setAutoBuy } from './sim/progression';
@@ -166,11 +168,33 @@ async function bootstrap(): Promise<void> {
   const toggleUpgrades = (): void => {
     if (upgradesAvailable()) upgradesPanel.toggle();
   };
+  /**
+   * Undo and redo say what they did (toast), outline what changed for a moment and, when
+   * none of it is on screen, bring it into view.
+   */
+  const replay = (change: Change | undefined, ok: boolean, title: string): void => {
+    if (!ok || !change) {
+      sfx.error();
+      return;
+    }
+    toasts.show(title, summarizeChange(change) || undefined, 2500, 'undo');
+    const area = changeArea(change);
+    renderer.flashRects(area.rects, performance.now());
+    const b = area.bounds;
+    if (!b) return;
+    const v = camera.visibleTiles();
+    const seen = area.rects.some(
+      (r) => r.x + r.w > v.x0 && r.x <= v.x1 && r.y + r.h > v.y0 && r.y <= v.y1,
+    );
+    if (!seen) camera.centerOn((b.x0 + b.x1 + 1) / 2, (b.y0 + b.y1 + 1) / 2);
+  };
   const undo = (): void => {
-    if (!tools.undo()) sfx.error();
+    const change = tools.history.peekUndo();
+    replay(change, tools.undo(), t('undo.undone'));
   };
   const redo = (): void => {
-    if (!tools.redo()) sfx.error();
+    const change = tools.history.peekRedo();
+    replay(change, tools.redo(), t('undo.redone'));
   };
   const togglePause = (): void => {
     loop.paused = !loop.paused;

@@ -40,6 +40,16 @@ export class History {
     return this.redoStack.length > 0;
   }
 
+  /** The action an undo would revert, or undefined. */
+  peekUndo(): Change | undefined {
+    return this.undoStack[this.undoStack.length - 1];
+  }
+
+  /** The action a redo would replay, or undefined. */
+  peekRedo(): Change | undefined {
+    return this.redoStack[this.redoStack.length - 1];
+  }
+
   get undoSize(): number {
     return this.undoStack.length;
   }

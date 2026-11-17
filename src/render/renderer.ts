@@ -18,6 +18,9 @@ import { drawItems } from './layers/items';
 import { drawMarkers } from './layers/markers';
 import { drawWave } from './layers/wave';
 
+/** How long undone / redone tiles stay outlined (ms). */
+const FLASH_MS = 1100;
+
 /** Maximum device pixel ratio honoured by the canvas (PLAN §10.4). */
 const MAX_DPR = 2;
 /**
@@ -31,6 +34,14 @@ export class Renderer {
   /** Time (ms, same clock as `draw`'s `nowMs`) of the last level-complete wave. */
   waveStart: number | null = null;
   reducedMotion = false;
+  /** Tiles outlined for a moment after an undo or redo. */
+  private flash: { rects: { x: number; y: number; w: number; h: number }[]; start: number } | null =
+    null;
+
+  /** Outline these tile rectangles for a moment (undo / redo feedback). */
+  flashRects(rects: { x: number; y: number; w: number; h: number }[], now: number): void {
+    this.flash = rects.length > 0 ? { rects: rects.slice(0, 2000), start: now } : null;
+  }
   /** Options (PLAN §9.4). */
   showGrid = true;
   itemValuesAlways = false;
@@ -122,6 +133,22 @@ export class Renderer {
         if (b.v) lanes.push(b.v);
       }
       drawPriorities(ctx, camera, priorityTiles(world, belts.concat(lanes), buildings));
+    }
+    if (this.flash) {
+      const t = (nowMs - this.flash.start) / FLASH_MS;
+      if (t >= 1) this.flash = null;
+      else {
+        const s = camera.scale;
+        const a = this.reducedMotion ? 0.8 : 0.9 * (1 - t);
+        ctx.fillStyle = `rgba(120, 190, 255, ${0.22 * a})`;
+        ctx.strokeStyle = `rgba(150, 205, 255, ${a})`;
+        ctx.lineWidth = 2;
+        for (const r of this.flash.rects) {
+          const p = camera.worldToScreen(r.x, r.y);
+          ctx.fillRect(p.x, p.y, r.w * s, r.h * s);
+          ctx.strokeRect(p.x + 1, p.y + 1, r.w * s - 2, r.h * s - 2);
+        }
+      }
     }
     drawGhosts(ctx, camera, ghost);
     if (this.selection) {
