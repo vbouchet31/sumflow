@@ -26,7 +26,7 @@ const BUTTONS: readonly ToolButton[] = [
   { tool: 'demolish', label: 'tool.demolish', key: 'X', icon: '✕', edit: true },
   { tool: 'clear', label: 'tool.clear', key: 'C', icon: '○', edit: true },
   { tool: 'copy', label: 'tool.copy', key: 'Ctrl+C', short: '^C', icon: '⧉', edit: true },
-  { tool: 'cut', label: 'tool.cut', key: 'Ctrl+X', short: '^X', icon: '✂', edit: true },
+  { tool: 'cut', label: 'tool.cut', key: 'Ctrl+X', short: '^X', icon: '✂\uFE0E', edit: true },
   { tool: 'paste', label: 'tool.paste', key: 'Ctrl+V', short: '^V', icon: '⎘', edit: true },
   { tool: 'marker', label: 'tool.marker', key: 'B', icon: '⚑', edit: true },
 ];
@@ -34,12 +34,13 @@ const BUTTONS: readonly ToolButton[] = [
 /** Bottom-centre build bar (PLAN §9.1). Locked buildings are hidden (later milestones). */
 export class BuildBar {
   private readonly buttons = new Map<ToolId, HTMLButtonElement>();
+  private readonly bar = document.createElement('div');
 
   constructor(
     root: HTMLElement,
     private readonly tools: ToolController,
   ) {
-    const bar = document.createElement('div');
+    const bar = this.bar;
     bar.className = 'build-bar';
     bar.setAttribute('role', 'toolbar');
     bar.setAttribute('aria-label', t('toolbar.label'));
@@ -83,12 +84,28 @@ export class BuildBar {
     }
     root.append(bar);
     const sync = (): void => {
-      for (const [tool, btn] of this.buttons)
-        btn.setAttribute('aria-pressed', String(tools.tool === tool));
+      for (const [tool, btn] of this.buttons) {
+        const pressed = tools.tool === tool;
+        btn.setAttribute('aria-pressed', String(pressed));
+        // A tool chosen by a key or the pipette may be scrolled out of the bar.
+        if (pressed) btn.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+      }
     };
     tools.onChange(sync);
     sync();
+    bar.addEventListener('scroll', () => this.updateOverflow(), { passive: true });
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(() => this.updateOverflow()).observe(bar);
+    }
     this.refresh();
+  }
+
+  /** Tell the style sheet on which sides more buttons can be scrolled into view. */
+  private updateOverflow(): void {
+    const { scrollLeft, scrollWidth, clientWidth } = this.bar;
+    const left = scrollLeft > 1;
+    const right = scrollLeft + clientWidth < scrollWidth - 1;
+    this.bar.dataset['more'] = left && right ? 'both' : left ? 'left' : right ? 'right' : 'none';
   }
 
   /**
@@ -100,5 +117,6 @@ export class BuildBar {
       if (tool === 'paste') btn.disabled = !this.tools.isAvailable(tool);
       else btn.hidden = !this.tools.isAvailable(tool);
     }
+    this.updateOverflow();
   }
 }

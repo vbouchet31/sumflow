@@ -42,6 +42,19 @@ const CONTROLS = [
   'perf',
 ] as const;
 
+/** Rows of the touch controls list (PLAN-tactile §3.1). */
+const TOUCH_CONTROLS = [
+  'pan',
+  'zoom',
+  'build',
+  'edge',
+  'cancel',
+  'actions',
+  'paste',
+  'inspect',
+  'pick',
+] as const;
+
 /**
  * Game menu (PLAN §9.4, Escape): resume, new game, save, export, import, options, help,
  * about. A modal card whose content switches between views; Escape goes back, then closes.
@@ -226,6 +239,23 @@ export class GameMenu {
       c.addEventListener('change', () => onChange(c.checked));
       return c;
     };
+    // Full screen, where the browser offers it and the game is not already installed.
+    const fullscreen = this.button('opt.fullscreen.on', () => undefined, 'secondary-btn');
+    const syncFullscreen = (): void => {
+      fullscreen.textContent = t(
+        document.fullscreenElement ? 'opt.fullscreen.off' : 'opt.fullscreen.on',
+      );
+    };
+    fullscreen.addEventListener('click', () => {
+      const change = document.fullscreenElement
+        ? document.exitFullscreen()
+        : document.documentElement.requestFullscreen();
+      void change.then(syncFullscreen, syncFullscreen);
+    });
+    syncFullscreen();
+    const canFullscreen =
+      document.fullscreenEnabled &&
+      !window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
     const volume = el('input', 'opt-range');
     volume.type = 'range';
     volume.min = '0';
@@ -234,17 +264,25 @@ export class GameMenu {
     volume.value = String(s.volume);
     volume.addEventListener('input', () => change({ volume: Number(volume.value) }));
 
-    const controls = el('table', 'levels-table controls-table');
-    for (const c of CONTROLS) {
-      controls.append(
-        el(
-          'tr',
-          undefined,
-          el('td', undefined, t(`ctl.${c}`)),
-          el('td', 'ctl-keys', t(`ctlKey.${c}`)),
-        ),
-      );
-    }
+    const table = (rows: [MessageKey, MessageKey][]): HTMLElement => {
+      const out = el('table', 'levels-table controls-table');
+      for (const [action, how] of rows) {
+        out.append(
+          el('tr', undefined, el('td', undefined, t(action)), el('td', 'ctl-keys', t(how))),
+        );
+      }
+      return out;
+    };
+    const keys = [
+      el('h3', undefined, t('opt.keyControls')),
+      table(CONTROLS.map((c) => [`ctl.${c}`, `ctlKey.${c}`])),
+    ];
+    const touch = [
+      el('h3', undefined, t('opt.touchControls')),
+      table(TOUCH_CONTROLS.map((c) => [`touch.${c}`, `touchKey.${c}`])),
+    ];
+    // The list that matches the main pointer of the device comes first.
+    const touchFirst = window.matchMedia('(pointer: coarse)').matches;
     return [
       this.header('menu.options', true),
       el(
@@ -261,6 +299,7 @@ export class GameMenu {
           'opt-lang',
         ),
         el('p', 'menu-note', t('opt.languageNote')),
+        ...(canFullscreen ? [row('opt.fullscreen', fullscreen, 'opt-fullscreen')] : []),
         row('opt.volume', volume, 'opt-volume'),
         row(
           'opt.grid',
@@ -298,8 +337,8 @@ export class GameMenu {
           'opt-motion',
         ),
       ),
-      el('h3', undefined, t('opt.controls')),
-      controls,
+      el('h2', 'menu-section', t('opt.controls')),
+      ...(touchFirst ? [...touch, ...keys] : [...keys, ...touch]),
     ];
   }
 

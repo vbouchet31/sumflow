@@ -6,11 +6,16 @@ export class Sfx {
   private ctx: AudioContext | null = null;
   volume = 0.5;
 
-  /** Call from a user gesture handler; safe to call repeatedly. */
+  /**
+   * Call from a user gesture handler; safe to call repeatedly. A context created outside a
+   * real activation (a touch `pointerdown` is not one) starts suspended, and mobile browsers
+   * suspend it again in the background: resume it on every later gesture.
+   */
   unlock(): void {
-    if (this.ctx || typeof AudioContext === 'undefined') return;
+    if (typeof AudioContext === 'undefined') return;
     try {
-      this.ctx = new AudioContext();
+      this.ctx ??= new AudioContext();
+      if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => undefined);
     } catch {
       this.ctx = null;
     }

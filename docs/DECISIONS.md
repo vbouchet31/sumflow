@@ -151,6 +151,36 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Clavier** : fermer un panneau ou une fenêtre retire le focus de ses éléments (sinon l'`Échap` suivant était avalé par l'élément masqué). Un clic à la souris sur un bouton rend le clavier au jeu ; une activation au clavier garde le focus sur le bouton.
 - **Lighthouse** : pas ajouté aux dépendances (liste fermée du §1.6) ni à la CI. À lancer à la main avec `npx lighthouse`.
 
+## Tactile (PLAN-tactile.md)
+
+- **Cible** : tablette et téléphone en paysage d'abord. Téléphone portrait utilisable, sans plus.
+- **Par type de pointeur, pas par appareil** : `pointerType` décide (`mouse` d'un côté, `touch` et `pen` de l'autre). Une souris branchée sur une tablette marche comme sur un PC.
+- **Modèle de gestes** : sans outil, un doigt déplace la carte ; avec un outil, il construit. Deux doigts déplacent et zooment toujours. Le choix est fait quand le doigt se pose (changer d'outil pendant un geste ne le change pas).
+- **Seuil de 10 px** avant qu'un appui devienne un glisser. Un appui bref agit sur la tuile touchée en premier, même si le doigt a un peu glissé.
+- **Rien n'est posé avant le relâchement**, donc un deuxième doigt annule sans trace dans l'historique. Après un pincement, le doigt restant ne fait que déplacer la carte : lever un doigt ne pose jamais rien.
+- **Le fantôme apparaît dès que le doigt se pose** (avec un outil) et disparaît quand il se lève : il n'y a pas de tuile survolée sur un écran tactile.
+- **Appui long** : 450 ms sans dépasser le seuil. Il abandonne l'appui en cours avant de se déclencher.
+- **Pas de minuteur dans les gestes** : `Gestures.update(now)` est appelé à chaque image, avec l'horloge des événements. Tout est testable sans DOM.
+- **Outils sans glisser (extracteur, pont, priorité, marqueur)** : un doigt qui glisse déplace le fantôme, l'objet est posé là où le doigt se lève. Cela permet d'ajuster la position avant de lâcher.
+- **Barre d'actions pour tout le monde** : pas de détection d'appareil. Le texte de la barre ne cite plus de touches (elles sont dans les infobulles des boutons).
+- **Appui long sur rien** : le geste continue comme si de rien n'était. Garder le doigt immobile pour viser, puis lâcher, pose bien l'objet. L'appui long ne prend la main que s'il y a un objet à prendre à la pipette.
+- **Info-bulle épinglée** : seulement sans outil. Elle tombe dès qu'un outil est choisi ou qu'une souris bouge (le survol reprend la main).
+- **Coude** : le bouton est un état qui reste jusqu'à ce qu'on le rebascule ; `Ctrl` l'inverse pendant qu'il est tenu.
+- **Points de rupture en un seul endroit** : `src/ui/layout.ts` pose des classes sur `<html>`, la feuille de style s'écrit contre ces classes. Les requêtes média ne servent plus qu'au type de pointeur (`pointer: coarse`, `hover`).
+- **Barre de construction en bas, même sur téléphone couché** : la largeur y est abondante (15 boutons visibles sur 16), une barre verticale n'en montrerait que 6.
+- **Panneaux sur téléphone couché** : feuille pleine hauteur à droite plutôt qu'en bas, car c'est la hauteur qui manque.
+- **Chip « Sauvegardé il y a… » masquée sur téléphone** : la place manque. Les échecs de sauvegarde restent signalés par un toast.
+- **Téléphone debout** : mêmes contrôles de mise en page que les autres gabarits (ils passent), mais pas de test de gestes dédié.
+- **Icônes** : toujours des symboles Unicode. Le ciseau et le triangle de reprise portent le sélecteur U+FE0E pour ne pas devenir des emojis. À vérifier sur appareil : présence des glyphes `⧉`, `⎘`, `⌫`, `↻` dans les polices d'Android.
+- **Collage au doigt** : pose en deux temps, seulement pour le collage (objet large, il remplace des tapis). Les autres outils posent au relâchement, Annuler rattrape une erreur. Pas de rangée de copies au doigt. Si rien ne peut être posé, l'aperçu reste pour être déplacé. Un geste annulé (pincement) remet l'aperçu où il était.
+- **Vitesse d'inertie** : distance des 100 dernières millisecondes divisée par le temps écoulé jusqu'au lâcher, en partant de l'échantillon juste avant la fenêtre. Un doigt qui s'arrête plus de 100 ms avant de se lever ne lance pas la carte. Seuil de départ 150 px/s, arrêt à 20 px/s, constante de temps 325 ms.
+- **Défilement au bord réservé au doigt** : à la souris, le clavier déplace déjà la caméra pendant un tracé.
+- **Icônes d'installation en PNG** : écart assumé au « aucun fichier image » du PLAN §10.1. iOS n'accepte pas de SVG pour l'icône d'écran d'accueil. Les PNG sont produits par un script depuis le favicon, pas dessinés à la main.
+- **Pas de service worker** : l'installation n'en a plus besoin sur Chrome, et le jeu hors ligne n'est pas demandé. Le jeu installé a donc besoin du réseau pour se charger.
+- **`storage.persist()` au niveau 2** et non au chargement : Firefox pose la question au joueur, autant attendre qu'il ait quelque chose à perdre.
+- **`display: fullscreen`** dans le manifeste, avec repli `standalone` (iOS). Orientation libre : la tablette debout est prise en charge.
+- **Pas de réduction du ratio de pixels pendant le pincement** : la mesure disponible ne la justifie pas. À revoir après un essai sur un téléphone Android milieu de gamme.
+
 ## Audit de `balance.ts` (après M11)
 
 - **Constantes** : toutes conformes aux §4, §5, §6 et §7 (table des niveaux, vitesses, coûts `C(L)`, facteurs, suites `t_k`, génération de carte, tampons, stockage).

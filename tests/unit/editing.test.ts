@@ -389,3 +389,177 @@ describe('clipboard history, markers, pipette', () => {
     expect(tools.beltDir).toBe(W);
   });
 });
+
+describe('interrupted gestures (touch)', () => {
+  it('a cancelled drag builds nothing', () => {
+    const world = makeWorld();
+    const tools = new ToolController(world);
+    tools.setTool('belt');
+    tools.pointerDown(10, 10, NO_MODS);
+    tools.pointerMove(14, 10, NO_MODS);
+    expect(tools.ghost().belts.length).toBe(5);
+    tools.pointerCancel();
+    // The drag is gone: only the single hovered tile is previewed, and nothing was built.
+    expect(tools.ghost().belts.length).toBe(1);
+    expect(world.state.belts.size).toBe(0);
+    expect(tools.history.canUndo).toBe(false);
+  });
+
+  it('clearing the hover removes the ghost and the hovered tile', () => {
+    const world = makeWorld();
+    const tools = new ToolController(world);
+    tools.setTool('belt');
+    tools.pointerDown(10, 10, NO_MODS);
+    tools.pointerMove(12, 10, NO_MODS);
+    tools.clearHover();
+    expect(tools.hovered).toBeNull();
+    expect(tools.ghost()).toEqual({ belts: [], buildings: [], demolish: null, area: null });
+    expect(world.state.belts.size).toBe(0);
+  });
+});
+
+describe('touch replacements for keys', () => {
+  it('the elbow toggle swaps the first axis of a belt drag, and Ctrl inverts it back', () => {
+    const world = makeWorld();
+    const tools = new ToolController(world);
+    tools.setTool('belt');
+    const corner = (ctrl: boolean): string => {
+      tools.pointerDown(10, 10, NO_MODS);
+      tools.pointerMove(13, 12, { ...NO_MODS, ctrl });
+      const tiles = tools.ghost().belts.map((b) => `${b.x},${b.y}`);
+      tools.pointerCancel();
+      return tiles.includes('13,10') ? 'horizontal first' : 'vertical first';
+    };
+    const normal = corner(false);
+    expect(corner(true)).not.toBe(normal);
+    tools.toggleElbow();
+    expect(tools.elbowSwap).toBe(true);
+    expect(corner(false)).not.toBe(normal);
+    expect(corner(true)).toBe(normal);
+  });
+
+  it('pick works on a given tile, without a hovered one', () => {
+    const world = makeWorld();
+    unlockAll(world);
+    world.addBuilding('adder', 20, 20, 1);
+    world.setBelt(30, 30, dirMask(S));
+    const tools = new ToolController(world);
+    expect(tools.pick()).toBe(false); // nothing hovered
+    expect(tools.pick({ x: 0, y: 0 })).toBe(false); // the hub cannot be picked
+    expect(tools.pick({ x: 50, y: 50 })).toBe(false);
+    expect(tools.pick({ x: 20, y: 20 })).toBe(true);
+    expect(tools.tool).toBe('adder');
+    expect(tools.rot).toBe(1);
+    expect(tools.pick({ x: 30, y: 30 })).toBe(true);
+    expect(tools.tool).toBe('belt');
+    expect(tools.beltDir).toBe(S);
+  });
+
+  it('only tools whose result depends on the rotation offer to rotate', () => {
+    const world = makeWorld();
+    unlockAll(world);
+    world.setBelt(30, 30, dirMask(E));
+    const tools = new ToolController(world);
+    const rotatable = (tool: Parameters<ToolController['setTool']>[0]): boolean => {
+      tools.setTool(tool);
+      const yes = tools.canRotate;
+      tools.setTool('none');
+      return yes;
+    };
+    expect(['belt', 'bridge', 'adder', 'divider'].map((t) => rotatable(t as 'belt'))).toEqual([
+      true,
+      true,
+      true,
+      true,
+    ]);
+    expect(
+      ['extractor', 'storage', 'demolish', 'marker', 'priority'].map((t) => rotatable(t as 'belt')),
+    ).toEqual([false, false, false, false, false]);
+    expect(tools.copyRect({ x0: 30, y0: 30, x1: 30, y1: 30 }, false)).toBe(true);
+    expect(tools.tool).toBe('paste');
+    expect(tools.canRotate).toBe(true);
+  });
+});
+
+describe('pasting with a finger: put down, then confirm', () => {
+  const TOUCH_MODS = { ...NO_MODS, touch: true };
+
+  function pasteTool(): { world: World; tools: ToolController } {
+    const world = makeWorld();
+    world.setBelt(30, 30, dirMask(E));
+    const tools = new ToolController(world);
+    expect(tools.copyRect({ x0: 30, y0: 30, x1: 30, y1: 30 }, false)).toBe(true);
+    return { world, tools };
+  }
+
+  it('a tap only puts the preview down; confirming builds, once', () => {
+    const { world, tools } = pasteTool();
+    expect(tools.pastePending).toBe(false);
+    tools.pointerDown(40, 40, TOUCH_MODS);
+    tools.pointerUp(40, 40, TOUCH_MODS);
+    tools.clearHover(); // the finger is up
+    expect(world.state.belts.size).toBe(1);
+    expect(tools.pastePending).toBe(true);
+    expect(tools.ghost().belts.map((b) => [b.x, b.y])).toEqual([[40, 40]]);
+
+    expect(tools.confirmPaste()).toBe(true);
+    expect(world.beltAt(40, 40)).toBeTruthy();
+    expect(tools.pastePending).toBe(false);
+    expect(tools.ghost().belts).toEqual([]);
+    expect(tools.confirmPaste()).toBe(false);
+    expect(world.state.belts.size).toBe(2);
+    expect(tools.undo()).toBe(true);
+    expect(world.state.belts.size).toBe(1);
+  });
+
+  it('dragging moves the preview instead of laying a row of copies', () => {
+    const { world, tools } = pasteTool();
+    tools.pointerDown(40, 40, TOUCH_MODS);
+    tools.pointerMove(46, 40, TOUCH_MODS);
+    expect(tools.ghost().belts.map((b) => [b.x, b.y])).toEqual([[46, 40]]);
+    tools.pointerUp(47, 41, TOUCH_MODS);
+    tools.clearHover();
+    expect(tools.ghost().belts.map((b) => [b.x, b.y])).toEqual([[47, 41]]);
+    expect(world.state.belts.size).toBe(1);
+  });
+
+  it('a cancelled gesture puts the preview back where it was', () => {
+    const { tools } = pasteTool();
+    tools.placePastePreview(40, 40);
+    tools.pointerDown(50, 50, TOUCH_MODS); // first finger of a pinch
+    tools.pointerCancel();
+    tools.clearHover();
+    expect(tools.ghost().belts.map((b) => [b.x, b.y])).toEqual([[40, 40]]);
+  });
+
+  it('rotating and leaving the tool', () => {
+    const { tools } = pasteTool();
+    tools.placePastePreview(40, 40);
+    tools.rotate(1);
+    expect(tools.pastePending).toBe(true);
+    tools.setTool('none');
+    expect(tools.pastePending).toBe(false);
+    tools.placePastePreview(40, 40); // ignored outside paste mode
+    expect(tools.pastePending).toBe(false);
+  });
+
+  it('a mouse takes the preview back, and a click still pastes at once', () => {
+    const { world, tools } = pasteTool();
+    tools.placePastePreview(40, 40);
+    tools.pointerMove(60, 60, NO_MODS);
+    expect(tools.pastePending).toBe(false);
+    expect(tools.ghost().belts.map((b) => [b.x, b.y])).toEqual([[60, 60]]);
+    tools.pointerDown(60, 60, NO_MODS);
+    tools.pointerUp(60, 60, NO_MODS);
+    expect(world.beltAt(60, 60)).toBeTruthy();
+  });
+
+  it('when nothing can be placed the preview stays, to be moved', () => {
+    const { world, tools } = pasteTool();
+    unlockAll(world);
+    world.addBuilding('adder', 50, 50, 0);
+    tools.placePastePreview(50, 50); // a belt cannot be pasted on a building
+    expect(tools.confirmPaste()).toBe(false);
+    expect(tools.pastePending).toBe(true);
+  });
+});

@@ -226,3 +226,38 @@ describe('settings and export', () => {
     expect(exportFileName(new Date(2026, 10, 6, 9, 5))).toBe('sumflow-20261106-0905.json');
   });
 });
+
+describe('persistent storage (mobile browsers may evict an unvisited site)', () => {
+  it('asks only when the storage is not persistent yet', async () => {
+    const { requestPersistence } = await import('../../src/save/persist');
+    let asked = 0;
+    const already = {
+      persisted: () => Promise.resolve(true),
+      persist: () => {
+        asked++;
+        return Promise.resolve(true);
+      },
+    };
+    expect(await requestPersistence(already)).toBe(true);
+    expect(asked).toBe(0);
+
+    const granted = { ...already, persisted: () => Promise.resolve(false) };
+    expect(await requestPersistence(granted)).toBe(true);
+    expect(asked).toBe(1);
+  });
+
+  it('reports false when refused, unsupported or failing', async () => {
+    const { requestPersistence } = await import('../../src/save/persist');
+    const refused = {
+      persisted: () => Promise.resolve(false),
+      persist: () => Promise.resolve(false),
+    };
+    expect(await requestPersistence(refused)).toBe(false);
+    expect(await requestPersistence(undefined)).toBe(false);
+    const failing = {
+      persisted: () => Promise.reject(new Error('blocked')),
+      persist: () => Promise.resolve(true),
+    };
+    expect(await requestPersistence(failing)).toBe(false);
+  });
+});

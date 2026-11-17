@@ -83,3 +83,76 @@ export async function contrastIssues(page: Page, min = 4.5): Promise<ContrastIss
     return issues;
   }, min);
 }
+
+export type Point = readonly [number, number];
+
+export interface TouchDriver {
+  /** Put fingers down (one per point). */
+  start: (...points: Point[]) => Promise<void>;
+  /** Move the fingers currently down to these points (same order as `start`). */
+  move: (...points: Point[]) => Promise<void>;
+  /** Lift fingers: the points given are the fingers that stay down (none = lift all). */
+  end: (...remaining: Point[]) => Promise<void>;
+  cancel: () => Promise<void>;
+  tap: (p: Point) => Promise<void>;
+  /** One finger from `from` to `to`, in `steps` moves, then lifted. */
+  drag: (from: Point, to: Point, steps?: number) => Promise<void>;
+  /** Two fingers around `centre`, their distance going from `from` to `to` pixels. */
+  pinch: (centre: Point, from: number, to: number, steps?: number) => Promise<void>;
+}
+
+/**
+ * Real multi-touch input through the DevTools protocol (Chromium only): Playwright's own
+ * `touchscreen` can only tap. Moves are spaced by a frame so the game sees each of them.
+ */
+export async function touchDriver(page: Page): Promise<TouchDriver> {
+  const cdp = await page.context().newCDPSession(page);
+  const send = (
+    type: 'touchStart' | 'touchMove' | 'touchEnd' | 'touchCancel',
+    points: Point[],
+  ): Promise<unknown> =>
+    cdp.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: points.map(([x, y], id) => ({ x, y, id })),
+    });
+  const frame = (): Promise<void> => page.waitForTimeout(16);
+  const lerp = (a: Point, b: Point, k: number): Point => [
+    a[0] + (b[0] - a[0]) * k,
+    a[1] + (b[1] - a[1]) * k,
+  ];
+  const driver: TouchDriver = {
+    start: async (...points) => void (await send('touchStart', points)),
+    move: async (...points) => {
+      await send('touchMove', points);
+      await frame();
+    },
+    end: async (...remaining) => void (await send('touchEnd', remaining)),
+    cancel: async () => void (await send('touchCancel', [])),
+    tap: async (p) => {
+      await driver.start(p);
+      await driver.end();
+    },
+    drag: async (from, to, steps = 8) => {
+      await driver.start(from);
+      for (let i = 1; i <= steps; i++) await driver.move(lerp(from, to, i / steps));
+      await driver.end();
+    },
+    pinch: async ([cx, cy], from, to, steps = 8) => {
+      const at = (d: number): Point[] => [
+        [cx - d / 2, cy],
+        [cx + d / 2, cy],
+      ];
+      await driver.start(...at(from));
+      for (let i = 1; i <= steps; i++) await driver.move(...at(from + ((to - from) * i) / steps));
+      await driver.end();
+    },
+  };
+  return driver;
+}
+
+/** Screen centre of tile `(tx, ty)` at zoom 1 with the camera on the hub. */
+export function tileCentre(page: Page, tx: number, ty: number): Point {
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error('no viewport');
+  return [viewport.width / 2 + tx * 32 + 16, viewport.height / 2 + ty * 32 + 16];
+}

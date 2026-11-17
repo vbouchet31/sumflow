@@ -15,6 +15,93 @@
 | M10 Sauvegarde, options, i18n, menu, aide, audio | ✅ terminé        |                                             |
 | M11 Performance et finition                      | ✅ terminé (code) | Score Lighthouse à relever (voir le détail) |
 
+## Tactile (PLAN-tactile.md)
+
+Cible : tablette et téléphone en paysage d'abord. Branche `dev-mobile`.
+
+| Jalon                            | État       |
+| -------------------------------- | ---------- |
+| T0 Plomberie                     | ✅ terminé |
+| T1 Gestes caméra et construction | ✅ terminé |
+| T2 Remplacement du clavier       | ✅ terminé |
+| T3 Mise en page                  | ✅ terminé |
+| T4 Confort                       | ✅ terminé |
+| T5 Installation                  | ✅ terminé |
+
+### T5 : détail
+
+- [x] **Manifeste** (`public/manifest.webmanifest`) : plein écran, toute orientation, chemins relatifs (le jeu s'installe depuis `/sumflow/` sur GitHub Pages). Balises d'écran d'accueil pour iOS.
+- [x] **Icônes** : PNG 192, 512, 512 « maskable » et 180 pour iOS, générés depuis le favicon par `scripts/make-icons.mjs`.
+- [x] **Stockage persistant** : `navigator.storage.persist()` demandé une fois par session, à la première sauvegarde réussie à partir du niveau 2.
+- [x] **Plein écran** : bouton dans Options, là où le navigateur le permet et hors installation.
+- [x] Tests : `requestPersistence` (unitaire), `install.spec.ts` (manifeste, icônes présentes et de la bonne taille).
+- [x] **Mesure de performance** (indicative) : scénario de référence, émulation Chromium **sans GPU**, pincement continu. Processeur normal : 60 images/s, rendu 2 à 2,5 ms pendant le pincement. Processeur ralenti 4 fois : rendu 9 à 14 ms pendant le pincement sur téléphone, 10 à 12 ms sur tablette. Le pincement (caches coupés) n'est pas plus lent que l'affichage immobile dans cet environnement, donc pas de réduction du ratio de pixels pendant le geste.
+
+### Reste à vérifier sur de vrais appareils
+
+L'émulation Chromium ne reproduit ni Safari ni un vrai écran. Liste du `PLAN-tactile.md` §7.3 :
+
+- [ ] Pincement et glisser sans zoom ni défilement de page sur iPhone, iPad et Android, y compris en partant d'un bouton.
+- [ ] Pas de menu ni de sélection sur appui long.
+- [ ] Pas de zoom à la saisie d'un marqueur ; l'éditeur reste visible au-dessus du clavier.
+- [ ] Son audible après le premier appui, et après un retour d'arrière-plan.
+- [ ] Rotation de l'écran, encoche, barre d'accueil.
+- [ ] Export et import d'une sauvegarde depuis Safari iOS.
+- [ ] Partie retrouvée après fermeture brutale de l'onglet.
+- [ ] Icônes de la barre (symboles Unicode) toutes présentes sur Android.
+- [ ] Fluidité du pincement sur une grosse usine, avec un vrai GPU.
+- [ ] Installation sur l'écran d'accueil, ouverture en plein écran.
+
+### T4 : détail
+
+- [x] **Collage au doigt en deux temps** : l'aperçu se pose au milieu de l'écran à l'entrée en mode Coller, un appui ou un glisser le déplace, le bouton « Poser » construit (`ToolController.confirmPaste`). À la souris, rien ne change (clic = poser, glisser = rangée).
+- [x] **Défilement au bord** : pendant un tracé, un doigt à moins de 56 px d'un bord fait défiler la carte, de plus en plus vite (`edgeScroll`).
+- [x] **Inertie** : la carte continue sur sa lancée après un déplacement lâché en mouvement (`PanInertia`). Coupée par « Réduire les animations ».
+- [x] **Textes** : consignes d'outils sans « clic », liste « Écran tactile » dans Options > Commandes (en premier quand le pointeur principal est un doigt).
+- [x] Tests : unitaires (collage en deux temps, défilement au bord, inertie), e2e tactiles (collage, tracé au-delà de l'écran, inertie avec et sans animations, **niveau 1 terminé au doigt seul**).
+
+### T3 : détail
+
+- [x] **Gabarits** (`src/ui/layout.ts`) : trois classes sur `<html>`, tenues à jour par `matchMedia`. `ui-icons` (≤ 1200 px de large : barre sans libellés), `ui-compact` (≤ 500 px de haut ou ≤ 600 px de large : téléphone), `ui-narrow` (≤ 600 px de large : téléphone debout).
+- [x] **Barre de construction** : jamais plus large que l'écran, défilement horizontal, fondu du côté où il reste des boutons, l'outil actif est ramené dans la vue.
+- [x] **HUD compact** sur téléphone : une ligne (niveau, cible, compte), un appui le déplie. HUD et bulle d'aide empilés dans une même colonne.
+- [x] **Barre du haut** : sur téléphone debout, Marqueur, Nombres livrés et Niveaux se replient derrière un bouton « Plus ».
+- [x] **Panneaux** : feuille sur toute la hauteur à droite (téléphone couché), feuille en bas (téléphone debout). Au-dessus des barres, sous les fenêtres modales.
+- [x] **Cibles de 44 px** quand le pointeur principal est un doigt (`pointer: coarse`) ; champs à 16 px (pas de zoom à la saisie sur Safari).
+- [x] **Zones sûres** (`env(safe-area-inset-*)`), `100dvh`, styles de survol réservés aux pointeurs qui survolent.
+- [x] **Clavier virtuel** : l'éditeur de marqueur se place en haut de l'écran, sur une ligne quand la hauteur manque.
+- [x] **Événements souris de compatibilité** coupés après un contact tactile : leur `mousedown` retirait le focus du champ de l'éditeur de marqueur que l'appui venait d'ouvrir.
+- [x] Chips d'état sous la barre du haut sur tablette et téléphone ; la chip de sauvegarde disparaît sur téléphone.
+- [x] `layout.spec.ts` sur quatre gabarits (tablette couchée et debout, téléphone couché et debout) : aucun contrôle hors écran, trop petit ou recouvert, aucun bloc qui en chevauche un autre, panneaux, menu et éditeur dans l'écran.
+
+### T2 : détail
+
+- [x] **Barre d'actions** (`src/ui/toolActions.ts`, remplace `toolHint.ts`) au-dessus de la barre de construction : nom ou consigne de l'outil, puis Pivoter, Miroir, Inverser le coude, entrée précédente / suivante, Retirer, Quitter, selon l'outil. Visible aussi à la souris.
+- [x] **Pause** : bouton en haut à droite (il montre ce que fera l'appui : pause ou reprise).
+- [x] **Pipette** : appui long sur un objet (`ToolController.pick(tuile)`).
+- [x] **Info-bulle** : un appui sans outil l'épingle sur l'objet, encadré sur la carte.
+- [x] **Coude du tapis** : `ToolController.toggleElbow()`, `Ctrl` l'inverse le temps d'un tracé.
+- [x] Étiquettes de touches masquées sans survol (`@media (hover: none)`).
+- [x] Tests : unitaires (coude, pipette, rotation), e2e tactiles (barre d'actions, appui long, info-bulle, pause).
+
+### T1 : détail
+
+- [x] `src/input/gestures.ts` : machine à états sans DOM ni minuteur (`pending`, `build`, `pan`, `pinch`, `spent`), testée sous Node.
+- [x] `src/input/pointer.ts` remplace `mouse.ts` : la souris garde son chemin (boutons, molette), le doigt et le stylet au contact passent par les gestes. Un stylet en survol déplace le fantôme comme une souris.
+- [x] Sans outil : un doigt déplace la carte. Avec un outil : un doigt construit. Deux doigts déplacent et zooment (`Camera.pinch`), et abandonnent le tracé en cours.
+- [x] Le fantôme disparaît quand le doigt se lève (`ToolController.clearHover`).
+- [x] Les blocs en lecture seule (HUD, info-bulle, état, toasts) laissent passer clics et touches vers la carte : la règle `#ui-root > *` écrasait leur `pointer-events: none`.
+- [x] Tests : `gestures.test.ts`, pincement dans `camera.test.ts`, `touch.spec.ts` sur les trois gabarits (déplacement, pincement, tracé, deuxième doigt, souris sur appareil tactile).
+
+### T0 : détail
+
+- [x] `touch-action: none` sur le canvas : les gestes arrivent au jeu au lieu de faire défiler ou zoomer la page. `touch-action: pan-x pan-y` sur `html, body` : pas de zoom de page en pinçant l'interface, les panneaux défilent toujours.
+- [x] Pas de sélection de texte ni de menu sur appui long, pas de rebond ni de tirer-pour-rafraîchir, `viewport-fit=cover`.
+- [x] Un geste interrompu (`pointercancel`) ne laisse plus de tracé armé dans les outils (`ToolController.pointerCancel`).
+- [x] Audio : le contexte est repris à chaque geste (un `pointerdown` tactile n'est pas une activation, et le mobile le suspend en arrière-plan).
+- [x] Sauvegarde synchrone à `pagehide` en plus de `beforeunload`.
+- [x] e2e : trois projets tactiles (tablette paysage, tablette portrait, téléphone paysage), gestes multi-doigts envoyés par CDP (`touchDriver` dans `tests/e2e/helpers.ts`).
+
 ## M11 : détail
 
 - [x] **Bench** : scénario de référence (`src/debug/reference.ts`, 20 000 tapis, 1 000 bâtiments, 14 750 items). `npm run bench` échoue au-delà de 4 ms/tick ; il tourne aussi en CI.

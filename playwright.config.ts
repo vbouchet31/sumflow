@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 4173;
+/** Specs that need a touch screen: run on the touch projects only. */
+const TOUCH_SPECS = /(touch|layout)\.spec\.ts$/;
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -12,7 +14,31 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     trace: 'off',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: TOUCH_SPECS },
+    // Touch layouts (PLAN-tactile §7.2). Chromium only: multi-touch gestures go through CDP.
+    {
+      name: 'tablet',
+      use: { ...devices['iPad (gen 7) landscape'], browserName: 'chromium' },
+      testMatch: TOUCH_SPECS,
+    },
+    {
+      name: 'tablet-portrait',
+      use: { ...devices['iPad (gen 7)'], browserName: 'chromium' },
+      testMatch: TOUCH_SPECS,
+    },
+    // A phone held upright is supported, not polished: layout checks only.
+    {
+      name: 'phone-portrait',
+      use: { ...devices['iPhone 13'], browserName: 'chromium' },
+      testMatch: /layout\.spec\.ts$/,
+    },
+    {
+      name: 'phone-landscape',
+      use: { ...devices['iPhone 13 landscape'], browserName: 'chromium' },
+      testMatch: TOUCH_SPECS,
+    },
+  ],
   webServer: {
     command: `npm run preview -- --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,

@@ -11,7 +11,7 @@
 - **Stack** : TypeScript strict + Vite, rendu Canvas 2D, UI en DOM vanilla, zéro dépendance runtime.
 - **Hébergement** : repo GitHub, déploiement GitHub Pages via GitHub Actions.
 - **Pas de serveur, pas de compte.** Sauvegarde locale (`localStorage`) + export/import fichier `.json`.
-- **Cible** : desktop, souris + clavier. Navigateurs evergreen (Chrome, Firefox, Edge, Safari récents).
+- **Cible** : desktop, souris + clavier. Tablette et téléphone en paysage au doigt (ajout, voir [`PLAN-tactile.md`](PLAN-tactile.md)). Navigateurs evergreen (Chrome, Firefox, Edge, Safari récents).
 - **Langues** : français (défaut) et anglais.
 - **Livraison** : 12 jalons (M0 à M11), chacun testable et déployé.
 
@@ -71,7 +71,9 @@
 - Les nombres sont toujours lisibles : c'est le cœur du jeu.
 
 ### 3.3 Hors périmètre (ne pas faire)
-Multijoueur, comptes, backend, mods, succès Steam, musique composée, mobile/tactile, éditeur de cartes, mode bac à sable dédié (le debug suffit).
+Multijoueur, comptes, backend, mods, succès Steam, musique composée, éditeur de cartes, mode bac à sable dédié (le debug suffit), application native, mode hors ligne (service worker).
+
+Le tactile, d'abord hors périmètre, a été ajouté après la v1 : voir [`PLAN-tactile.md`](PLAN-tactile.md) et la section 8.3.
 
 ---
 
@@ -477,6 +479,23 @@ Bulles non bloquantes, une à la fois, masquables, réaffichables dans le menu A
 - Toutes les actions de construction, démolition, collage, priorité, vidage sont **annulables** (pile de 100). Annuler restaure les bâtiments, **pas les items détruits** (documenté).
 - Les raccourcis sont listés dans Options > Commandes (lecture seule pour la v1).
 
+### 8.3 Écran tactile
+Le type de pointeur décide (`pointerType`), pas l'appareil : une souris garde les commandes de 8.1 et 8.2 sur une tablette.
+
+| Geste | Effet |
+|---|---|
+| Glisser à un doigt, sans outil | déplacer la carte (elle continue sur sa lancée, sauf si « Réduire les animations ») |
+| Deux doigts | déplacer et zoomer ; abandonne le tracé en cours sans rien poser |
+| Appui, avec un outil | comme un clic |
+| Glisser à un doigt, avec un outil | construire (tracé, rangée, zone) ; près d'un bord, la carte défile |
+| Appui, sans outil | inspecter l'objet (info-bulle épinglée) ou ouvrir un marqueur |
+| Appui long sur un objet | pipette |
+| Coller | l'aperçu se pose, se déplace au doigt, puis bouton « Poser » |
+
+- Seuil de 10 px entre appui et glisser ; appui long à 450 ms.
+- Tout raccourci a un bouton : barre d'actions au-dessus de la barre de construction (Pivoter, Miroir, Inverser le coude, historique du presse-papiers, Retirer, Poser, Quitter) et bouton Pause en haut à droite.
+- Liste des gestes dans Options > Commandes.
+
 ---
 
 ## 9. Interface
@@ -488,6 +507,8 @@ Bulles non bloquantes, une à la fois, masquables, réaffichables dans le menu A
 - **Bas centre** : barre de construction (icônes des bâtiments débloqués avec touche, outils d'édition). Bâtiments verrouillés masqués.
 - **Bas gauche** : info-bulle contextuelle de l'objet survolé (type, valeur, tampons A/B/sortie, cycle en cours, débit).
 - **Bas droit** : indicateur de pause, de sauvegarde (« Sauvegardé il y a 12 s »), coordonnées du curseur.
+- **Au-dessus de la barre de construction** : barre d'actions de l'outil actif (8.3).
+- **Petits écrans** : barre de construction en icônes, défilable ; sur téléphone, HUD sur une ligne, panneaux en feuilles, boutons de 44 px au moins, zones sûres respectées (`PLAN-tactile.md` §5.5).
 - Toasts : niveau terminé, amélioration prête, sauvegarde, erreurs d'import.
 
 ### 9.2 Panneau « Nombres livrés »
@@ -521,7 +542,7 @@ Reprendre, Nouvelle partie (seed aléatoire ou saisi), Sauvegarder, Exporter (.j
 - Hub : grand carré `#2b6cb0` arrondi, texte blanc.
 - Items : disque de couleur (5.) avec la valeur en blanc. Ombre légère.
 - Police : pile système `ui-monospace, "SF Mono", Menlo, Consolas, monospace` pour les nombres ; `system-ui` pour l'UI.
-- Tous les visuels sont **dessinés par code** (Canvas) et mis en cache dans des canvas hors écran. **Aucun fichier image** sauf favicon (SVG original).
+- Tous les visuels sont **dessinés par code** (Canvas) et mis en cache dans des canvas hors écran. **Aucun fichier image** sauf favicon (SVG original) et les icônes d'installation (PNG générés depuis ce SVG par `scripts/make-icons.mjs`).
 
 ### 10.2 Couches (ordre de dessin)
 1. Fond + grille.
@@ -594,7 +615,8 @@ Reprendre, Nouvelle partie (seed aléatoire ou saisi), Sauvegarder, Exporter (.j
 .
 ├── .github/workflows/deploy.yml
 ├── docs/ DECISIONS.md, PROGRESS.md
-├── public/ favicon.svg
+├── public/ favicon.svg, manifest.webmanifest, icônes d'installation (PNG)
+├── scripts/ make-icons.mjs
 ├── index.html
 ├── src/
 │   ├── main.ts                  # bootstrap
@@ -606,7 +628,7 @@ Reprendre, Nouvelle partie (seed aléatoire ou saisi), Sauvegarder, Exporter (.j
 │   │        progression.ts, upgrades.ts, stats.ts
 │   ├── build/ placement.ts, beltPath.ts, history.ts, clipboard.ts, tools/*.ts
 │   ├── render/ renderer.ts, camera.ts, cache.ts, layers/*.ts, lod.ts
-│   ├── input/ input.ts, keyboard.ts, mouse.ts
+│   ├── input/ keyboard.ts, pointer.ts (souris, doigt, stylet), gestures.ts (gestes tactiles, sans DOM)
 │   ├── ui/ hud.ts, buildBar.ts, tooltip.ts, toasts.ts, panels/{upgrades,levels,delivered,menu,options,help}.ts, styles.css
 │   ├── save/ serialize.ts, persist.ts, migrations.ts, schema.ts
 │   ├── i18n/ index.ts, fr.ts, en.ts
@@ -728,6 +750,7 @@ Chaque jalon se termine par : CI verte, déploiement Pages fonctionnel, `docs/PR
 - **Unitaires (Vitest)** sur `core/`, `world/`, `sim/`, `build/`, `save/`, `i18n/`. Couverture visée ≥ 80 % sur `sim/` et `core/`.
 - **Scénarios de simulation** : helper `runScenario(setup, seconds)` qui construit un mini-monde, simule N ticks et renvoie les livraisons. Les tests de débit (sections 14) utilisent ce helper.
 - **e2e (Playwright, Chromium)** : chargement, absence d'erreur console, interaction via `window.__sumflow`, une interaction souris réelle (tracer un tapis), sauvegarde/rechargement.
+- **e2e tactiles** : projets tablette (couchée, debout) et téléphone (couché, debout), gestes multi-doigts envoyés par CDP ; `touch.spec.ts` (gestes) et `layout.spec.ts` (aucun contrôle hors écran, trop petit ou recouvert).
 - **Bench** : `bench/sim.bench.ts` génère le scénario de référence (10.4).
 
 ---

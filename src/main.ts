@@ -9,11 +9,12 @@ import { PerfMeter } from './debug/perfMeter';
 import { countItems } from './debug/reference';
 import { detectLocale, getLocale, setLocale } from './i18n';
 import { Keyboard } from './input/keyboard';
-import { Mouse } from './input/mouse';
+import { PointerInput } from './input/pointer';
 import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
 import { SimLoop } from './sim/loop';
 import { createInitialState } from './sim/state';
+import { buildingSize } from './sim/entities';
 import { World } from './sim/world';
 import { BuildBar } from './ui/buildBar';
 import { CatchUpBar } from './ui/catchUp';
@@ -22,6 +23,7 @@ import { DebugPanel } from './ui/debugPanel';
 import { EndScreen } from './ui/endScreen';
 import { Hud } from './ui/hud';
 import { rewardLabel } from './ui/labels';
+import { watchLayout } from './ui/layout';
 import { LevelsPanel } from './ui/panels/levels';
 import { Toasts } from './ui/toasts';
 import { TopBar } from './ui/topBar';
@@ -31,7 +33,7 @@ import { TRACKS } from './config/balance';
 import { isTrackUnlocked, isUpgradeReady } from './sim/upgrades';
 import { StatusBar } from './ui/statusBar';
 import { MarkerEditor } from './ui/markerEditor';
-import { ToolHint } from './ui/toolHint';
+import { ToolActions } from './ui/toolActions';
 import { describeTile, Tooltip } from './ui/tooltip';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
@@ -45,6 +47,7 @@ import {
   exportText,
   importSave,
   readStorage,
+  requestPersistence,
   SAVE_KEY,
   writeStorage,
 } from './save/persist';
@@ -65,6 +68,17 @@ function initialSeed(search: string): number {
   const param = new URLSearchParams(search).get('seed');
   const parsed = param === null ? NaN : Number(param);
   return Number.isFinite(parsed) ? toSeed(parsed) : toSeed(Math.random() * 2 ** 32);
+}
+
+/** Tiles to outline for the object at `(x, y)`: a whole building, else the tile. */
+function inspectedRect(
+  world: World,
+  x: number,
+  y: number,
+): { x: number; y: number; w: number; h: number } {
+  const b = world.buildingAt(x, y);
+  if (!b) return { x, y, w: 1, h: 1 };
+  return { x: b.x, y: b.y, ...buildingSize(b.type, b.rot) };
 }
 
 type Loaded = { state: GameState; camera: CameraState | null; error: boolean };
@@ -136,7 +150,12 @@ async function bootstrap(): Promise<void> {
   };
   applySettings();
 
-  const hud = new Hud(uiRoot);
+  // HUD and help bubble stack in one column, whatever the height of the HUD.
+  const topLeft = document.createElement('div');
+  topLeft.className = 'top-left';
+  uiRoot.append(topLeft);
+  const hud = new Hud(topLeft);
+  watchLayout(document.documentElement, (layout) => hud.setCompact(layout.compact));
   const goHome = (): void => camera.centerOn(0, 0);
   const levelsPanel = new LevelsPanel(uiRoot, world);
   const upgradesPanel = new UpgradesPanel(uiRoot, world);
@@ -153,7 +172,12 @@ async function bootstrap(): Promise<void> {
   const redo = (): void => {
     if (!tools.redo()) sfx.error();
   };
+  const togglePause = (): void => {
+    loop.paused = !loop.paused;
+    statusBar.setPaused(loop.paused);
+  };
   const topBar = new TopBar(uiRoot, {
+    pause: togglePause,
     undo,
     redo,
     marker: () => tools.setTool('marker'),
@@ -168,9 +192,20 @@ async function bootstrap(): Promise<void> {
   const statusBar = new StatusBar(uiRoot);
   const toasts = new Toasts(uiRoot);
   const endScreen = new EndScreen(uiRoot);
-  const toolHint = new ToolHint(uiRoot, tools);
+  const toolActions = new ToolActions(uiRoot, tools);
+  /** Tile inspected by a tap, on a touch screen (there is no hover to show the tooltip). */
+  let pinned: { x: number; y: number } | null = null;
+  tools.onChange(() => {
+    pinned = null;
+    // Paste mode without a hovering pointer (touch): show the preview at once, in the
+    // middle of the screen, ready to be moved and confirmed.
+    if (tools.tool === 'paste' && !pointer.hovering && !tools.pastePending) {
+      const centre = pointer.tileAt(camera.viewW / 2, camera.viewH / 2);
+      tools.placePastePreview(centre.x, centre.y);
+    }
+  });
   markerEditor = new MarkerEditor(uiRoot);
-  const help = new HelpBubble(uiRoot, state);
+  const help = new HelpBubble(topLeft, state);
   const catchUpBar = new CatchUpBar(uiRoot);
   const perfOverlay = new PerfOverlay(uiRoot);
   const perf = new PerfMeter();
@@ -232,6 +267,13 @@ async function bootstrap(): Promise<void> {
     },
   });
 
+  // Once there is progress worth keeping, ask the browser not to evict the save.
+  let persistenceAsked = false;
+  saves.events.on('saved', ({ result }) => {
+    if (persistenceAsked || result !== 'ok' || state.level < 2) return;
+    persistenceAsked = true;
+    void requestPersistence();
+  });
   saves.events.on('saved', ({ result, manual }) => {
     if (result === 'quota') toasts.show(t('toast.saveQuota'));
     else if (result === 'unavailable') toasts.show(t('toast.saveFailed'));
@@ -250,6 +292,9 @@ async function bootstrap(): Promise<void> {
     }
   });
   window.addEventListener('beforeunload', () => saves.saveSync());
+  // Mobile browsers often skip `beforeunload` and may kill the tab before the async save
+  // of `visibilitychange` ends: `pagehide` writes synchronously.
+  window.addEventListener('pagehide', () => saves.saveSync());
   if (loaded.error) toasts.show(t('toast.loadError'));
   // Soft click on every UI button (PLAN §12).
   uiRoot.addEventListener('click', (e) => {
@@ -274,9 +319,12 @@ async function bootstrap(): Promise<void> {
     toasts.show(t('toast.upgradeBought', { track: t(`track.${track}`), n: level }));
   });
   // The audio context needs a user gesture (PLAN §12).
+  // Kept for the whole session: the context may be suspended again later (mobile). In the
+  // capture phase, so the sound of the very gesture that unlocks it can play.
   const unlockAudio = (): void => sfx.unlock();
-  window.addEventListener('pointerdown', unlockAudio, { once: true });
-  window.addEventListener('keydown', unlockAudio, { once: true });
+  for (const type of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) {
+    window.addEventListener(type, unlockAudio, { capture: true, passive: true });
+  }
 
   const keyboard = new Keyboard(
     window,
@@ -303,17 +351,28 @@ async function bootstrap(): Promise<void> {
         else menu.open();
       },
       onQuickDemolish: () => tools.deletePressed(),
-      onTogglePause: () => {
-        loop.paused = !loop.paused;
-        statusBar.setPaused(loop.paused);
-      },
+      onTogglePause: togglePause,
     },
     () => menu.isOpen || endScreen.isOpen || (markerEditor?.isOpen ?? false),
   );
-  const mouse = new Mouse(canvas, camera, {
+  const pointer = new PointerInput(canvas, camera, {
     onDown: (x, y, mods) => tools.pointerDown(x, y, mods),
     onMove: (x, y, mods) => tools.pointerMove(x, y, mods),
     onUp: (x, y, mods) => tools.pointerUp(x, y, mods),
+    onCancel: () => tools.pointerCancel(),
+    onLeave: () => tools.clearHover(),
+    // Touch: a tap without a tool inspects the object, a long press picks it (like `E`).
+    onTap: (x, y) => {
+      pinned = tools.tool === 'none' && describeTile(world, x, y).length > 0 ? { x, y } : null;
+    },
+    onLongPress: (x, y) => {
+      if (!tools.pick({ x, y })) return false;
+      sfx.click();
+      navigator.vibrate?.(10);
+      return true;
+    },
+    // Touch: with a tool one finger builds, without one it moves the map.
+    buildsOnDrag: () => tools.tool !== 'none',
     onWheel: (delta, mods) => {
       if (!mods.shift || tools.tool !== 'paste') return false;
       // Accumulate so a trackpad does not skip through the history.
@@ -350,9 +409,16 @@ async function bootstrap(): Promise<void> {
       // Keys move the view, so the world moves the opposite way.
       camera.panScreen((-pan.dx / len) * speed, (-pan.dy / len) * speed);
     }
-    // Keep the drag preview in sync with Ctrl even when the mouse is still.
-    const hover = mouse.tileAt(mouse.x, mouse.y);
-    tools.pointerMove(hover.x, hover.y, { ctrl: keyboard.ctrl, shift: false, alt: false });
+    pointer.inertia = !settings.reduceMotion;
+    pointer.update(now);
+    const hover = pointer.tileAt(pointer.x, pointer.y);
+    // Keep the drag preview in sync with Ctrl even when the mouse is still. A finger
+    // leaves no hovered tile behind: the gestures drive the tools themselves.
+    if (pointer.hovering) {
+      tools.pointerMove(hover.x, hover.y, { ctrl: keyboard.ctrl, shift: false, alt: false });
+      pinned = null;
+    }
+    renderer.selection = pinned ? inspectedRect(world, pinned.x, pinned.y) : null;
 
     const simStart = performance.now();
     const ticks = loop.advance(dt, () => performance.now() - simStart > CATCH_UP.frameBudgetMs);
@@ -383,14 +449,16 @@ async function bootstrap(): Promise<void> {
     topBar.setEnabled('undo', tools.history.canUndo);
     topBar.setEnabled('redo', tools.history.canRedo);
     topBar.setPressed('marker', tools.tool === 'marker');
-    toolHint.update();
+    topBar.setPaused(loop.paused);
+    toolActions.update();
     help.update();
     saves.update();
     statusBar.update(
       saves.lastSavedAt === null ? null : now - saves.lastSavedAt,
-      mouse.inside ? hover : null,
+      pointer.inside ? hover : null,
     );
-    tooltip.update(mouse.inside ? describeTile(world, hover.x, hover.y) : []);
+    const inspected = pointer.inside ? hover : pinned;
+    tooltip.update(inspected ? describeTile(world, inspected.x, inspected.y) : []);
     debugPanel?.update({
       seed: state.seed,
       tick: state.tick,
