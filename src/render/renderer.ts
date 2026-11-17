@@ -13,6 +13,7 @@ import { priorityTiles } from '../sim/priority';
 import { drawBuildings } from './layers/buildings';
 import { drawDeposits } from './layers/deposits';
 import { drawGhosts } from './layers/ghosts';
+import { Effects } from './layers/effects';
 import { drawGrid } from './layers/grid';
 import { drawItems } from './layers/items';
 import { drawMarkers } from './layers/markers';
@@ -31,6 +32,8 @@ export class Renderer {
   /** Time (ms, same clock as `draw`'s `nowMs`) of the last level-complete wave. */
   waveStart: number | null = null;
   reducedMotion = false;
+  /** Placement and demolition animations. */
+  readonly effects = new Effects();
   /** Options (PLAN §9.4). */
   showGrid = true;
   itemValuesAlways = false;
@@ -123,6 +126,8 @@ export class Renderer {
       }
       drawPriorities(ctx, camera, priorityTiles(world, belts.concat(lanes), buildings));
     }
+    if (this.reducedMotion) this.effects.clear();
+    else this.effects.draw(ctx, camera, nowMs);
     drawGhosts(ctx, camera, ghost);
     if (this.selection) {
       const sel = this.selection;
