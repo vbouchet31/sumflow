@@ -473,7 +473,7 @@ export class World {
       b.inA = [];
       b.inB = [];
       b.cycle = -1;
-      if (s.type === 'divider') {
+      if (s.type === 'divider' || s.type === 'factor') {
         b.outQ = [];
         b.outR = [];
       } else {

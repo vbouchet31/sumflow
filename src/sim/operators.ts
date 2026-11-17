@@ -1,5 +1,5 @@
 import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT, type Track } from '../config/balance';
-import { add, divmod, mul, pow, sub } from '../core/intmath';
+import { add, divmod, mul, pow, smallestPrimeFactor, sub } from '../core/intmath';
 import { EPS } from './belts';
 import { type Building, isOperator, type OperatorType } from './entities';
 import { outputGroup, pushOut } from './outputs';
@@ -12,6 +12,7 @@ export const OPERATOR_TRACK: Record<OperatorType, Track> = {
   subtractor: 'subdiv',
   divider: 'subdiv',
   exponent: 'exponent',
+  factor: 'subdiv',
 };
 
 /** Result(s) of one operation. The divider emits R only when non-zero (PLAN §6.3). */
@@ -29,6 +30,11 @@ export function compute(
       return { o: sub(a, b) };
     case 'exponent':
       return { o: pow(a, b) };
+    case 'factor': {
+      // n = p × (n / p); 0 and ±1 cannot be split and leave by p unchanged.
+      const p = smallestPrimeFactor(a);
+      return p === null ? { q: a } : { q: p, r: a / p };
+    }
     case 'divider': {
       const { q, r } = divmod(a, b);
       return r === 0 ? { q } : { q, r };
@@ -47,14 +53,16 @@ function hasRoom(buf: number[] | undefined): boolean {
 }
 
 function canStart(b: Building): boolean {
-  if (!b.inA?.length || !b.inB?.length) return false;
-  if (b.type === 'divider') return hasRoom(b.outQ) && hasRoom(b.outR);
+  if (!b.inA?.length) return false;
+  if (b.type !== 'factor' && !b.inB?.length) return false;
+  if (b.type === 'divider' || b.type === 'factor') return hasRoom(b.outQ) && hasRoom(b.outR);
   return hasRoom(b.out);
 }
 
 function finishCycle(world: World, b: Building, type: OperatorType): void {
   const a = b.inA?.shift();
-  const c = b.inB?.shift();
+  // The decomposer reads A only.
+  const c = type === 'factor' ? 0 : b.inB?.shift();
   if (a === undefined || c === undefined) return;
   const res = compute(type, a, c);
   if (res.o !== undefined) b.out?.push(res.o);

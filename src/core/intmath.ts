@@ -67,3 +67,19 @@ export function pow(a: number, b: number): number {
   }
   return negative ? -result : result;
 }
+
+/**
+ * Smallest prime factor of `n` (trial division up to √n, at most ~23 000 steps in 32 bits).
+ * Negative numbers use |n|; 0 and ±1 have none (null).
+ */
+export function smallestPrimeFactor(n: number): number | null {
+  const m = Math.abs(n);
+  if (m < 2) return null;
+  if (m % 2 === 0) return 2;
+  if (m % 3 === 0) return 3;
+  for (let d = 5; d * d <= m; d += 6) {
+    if (m % d === 0) return d;
+    if (m % (d + 2) === 0) return d + 2;
+  }
+  return m;
+}

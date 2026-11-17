@@ -14,6 +14,7 @@ const OPERATOR_SYMBOLS: Partial<Record<string, string>> = {
   subtractor: '−',
   divider: '÷',
   exponent: '^',
+  factor: '⁂',
 };
 
 /** Glyph and colour of the reward icon drawn on the hub. */

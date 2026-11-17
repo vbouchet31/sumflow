@@ -49,6 +49,7 @@ export const fr = {
   'reward.subtractor': 'Soustracteur',
   'reward.divider': 'Diviseur',
   'reward.exponent': 'Exposant',
+  'reward.factor': 'Décomposeur',
   'reward.storage': 'Stockage',
   'reward.bridge': 'Pont',
   'reward.extractor': 'Extracteur',
@@ -80,6 +81,7 @@ export const fr = {
   'tool.subtractor': 'Soustracteur',
   'tool.divider': 'Diviseur',
   'tool.exponent': 'Exposant',
+  'tool.factor': 'Décomposeur',
   'tip.bufA': 'A : {items}',
   'tip.bufB': 'B : {items}',
   'tip.bufOut': 'Sortie : {items}',
@@ -273,6 +275,8 @@ export const fr = {
   'help.subtractor': 'Soustracteur : l’ordre A − B compte.',
   'help.divider': 'Diviseur : le reste sort à part, jamais 0.',
   'help.exponent': 'Exposant : A à la puissance B. Les résultats grandissent vite.',
+  'help.factor':
+    'Décomposeur : sépare un nombre en son plus petit facteur premier (sortie p) et le reste du produit (sortie n/p). 91 donne 7 et 13. Un nombre premier donne lui-même et 1.',
   'help.storage':
     'Stockage : il garde jusqu’à 10 000 exemplaires d’une seule valeur et les ressort à pleine vitesse.',
   'about.body':
@@ -290,4 +294,6 @@ export const fr = {
   'toast.importError': 'Import impossible : fichier invalide. Rien n’a été modifié.',
   'toast.loadError': 'Sauvegarde illisible : nouvelle partie. L’ancienne est gardée à part.',
   'toast.exported': 'Partie exportée : {file}',
+  'tip.bufP': 'p : {items}',
+  'tip.bufNP': 'n/p : {items}',
 } as const;
