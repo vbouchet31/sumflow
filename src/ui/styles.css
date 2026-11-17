@@ -1292,9 +1292,11 @@ textarea {
     height: 44px;
   }
 
+  /* A fixed minimum: the height of a text line depends on the system font. */
   .about-links a {
-    display: inline-block;
-    padding: 12px 0;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
 
   /* The on-screen keyboard covers the bottom of the screen: the marker editor sits high. */
