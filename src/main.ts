@@ -35,6 +35,7 @@ import { StatusBar } from './ui/statusBar';
 import { MarkerEditor } from './ui/markerEditor';
 import { ToolActions } from './ui/toolActions';
 import { describeTile, Tooltip } from './ui/tooltip';
+import { Loupe } from './ui/loupe';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
 import { setAutoBuy } from './sim/progression';
@@ -188,6 +189,7 @@ async function bootstrap(): Promise<void> {
     menu: () => menu.toggle(),
   });
   const tooltip = new Tooltip(uiRoot);
+  const loupe = new Loupe(uiRoot, canvas);
   const buildBar = new BuildBar(uiRoot, tools);
   const statusBar = new StatusBar(uiRoot);
   const toasts = new Toasts(uiRoot);
@@ -424,6 +426,7 @@ async function bootstrap(): Promise<void> {
     const ticks = loop.advance(dt, () => performance.now() - simStart > CATCH_UP.frameBudgetMs);
     const drawStart = performance.now();
     renderer.draw(world, tools.ghost(), now);
+    loupe.update(settings.touchLoupe ? pointer.aimPoint : null, camera.viewW);
     const drawEnd = performance.now();
     catchUpBar.update(loop.catchUpProgress);
     if (perf.frame(now, drawStart - simStart, ticks, drawEnd - drawStart) && perfOverlay.visible) {

@@ -272,3 +272,26 @@ describe('PanInertia', () => {
     expect(inertia.step(16)).toBeNull();
   });
 });
+
+describe('aim point (touch loupe)', () => {
+  it('follows the finger that aims with a tool, from the press to the release', () => {
+    const g = new Gestures(recorder(true).sink);
+    expect(g.aimPoint).toBeNull();
+    g.pointerDown(1, 100, 100, 0);
+    expect(g.aimPoint).toEqual({ x: 100, y: 100 });
+    g.pointerMove(1, 160, 100);
+    expect(g.aimPoint).toEqual({ x: 160, y: 100 });
+    g.pointerUp(1, 160, 100);
+    expect(g.aimPoint).toBeNull();
+  });
+
+  it('is null when the finger pans the map or a second finger joins', () => {
+    const pan = new Gestures(recorder(false).sink);
+    pan.pointerDown(1, 100, 100, 0);
+    expect(pan.aimPoint).toBeNull();
+    const pinch = new Gestures(recorder(true).sink);
+    pinch.pointerDown(1, 100, 100, 0);
+    pinch.pointerDown(2, 200, 100, 10);
+    expect(pinch.aimPoint).toBeNull();
+  });
+});

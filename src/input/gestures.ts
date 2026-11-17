@@ -82,6 +82,14 @@ export class Gestures {
     return this.fingers.get(this.primary) ?? null;
   }
 
+  /** Position of the finger aiming with a tool: pressed (before it moves) or building. */
+  get aimPoint(): { x: number; y: number } | null {
+    if (this.state === 'build' || (this.state === 'pending' && this.armed)) {
+      return this.fingers.get(this.primary) ?? null;
+    }
+    return null;
+  }
+
   pointerDown(id: number, x: number, y: number, t: number): void {
     this.fingers.set(id, { x, y });
     if (this.fingers.size === 1) {
