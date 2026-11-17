@@ -11,7 +11,9 @@ export type PlaceableType =
   | 'divider'
   | 'exponent'
   | 'storage'
-  | 'bridge';
+  | 'bridge'
+  | 'reverse'
+  | 'digitsum';
 
 export type Feature = 'upgrades' | 'priorities';
 
@@ -40,7 +42,7 @@ export const LEVEL_TABLE: readonly LevelDef[] = [
   { target: 10, quantity: 50, reward: x(3) },
   { target: 19, quantity: 100, reward: x(4) },
   { target: 27, quantity: 150, reward: b('multiplier') },
-  { target: 36, quantity: 300, reward: x(5) },
+  { target: 36, quantity: 300, reward: b('reverse') },
   { target: 47, quantity: 450, reward: x(6) },
   { target: 50, quantity: 500, reward: f('priorities') },
   { target: 82, quantity: 600, reward: x(7) },
@@ -49,7 +51,7 @@ export const LEVEL_TABLE: readonly LevelDef[] = [
   { target: 324, quantity: 2_000, reward: x(9) },
   { target: 466, quantity: 3_000, reward: x(11) },
   { target: 594, quantity: 4_000, reward: b('divider') },
-  { target: 631, quantity: 5_000, reward: x(12) },
+  { target: 631, quantity: 5_000, reward: b('digitsum') },
   { target: 727, quantity: 6_000, reward: x(13) },
   { target: 891, quantity: 7_000, reward: b('exponent') },
   { target: 928, quantity: 8_000, reward: x(14) },

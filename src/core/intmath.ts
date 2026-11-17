@@ -67,3 +67,25 @@ export function pow(a: number, b: number): number {
   }
   return negative ? -result : result;
 }
+
+/** Digits of `n` in reverse order, sign kept (120 → 21, −34 → −43). Saturates. */
+export function reverseDigits(n: number): number {
+  let m = Math.abs(n);
+  let r = 0;
+  while (m > 0) {
+    r = r * 10 + (m % 10);
+    m = Math.floor(m / 10);
+  }
+  return clamp(n < 0 ? -r : r);
+}
+
+/** Sum of the decimal digits of `n`, sign kept (1234 → 10, −99 → −18). */
+export function digitSum(n: number): number {
+  let m = Math.abs(n);
+  let s = 0;
+  while (m > 0) {
+    s += m % 10;
+    m = Math.floor(m / 10);
+  }
+  return n < 0 ? -s : s;
+}

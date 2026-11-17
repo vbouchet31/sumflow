@@ -154,3 +154,23 @@ describe('level 2 with an adder', () => {
     expect(world.state.level).toBe(3);
   });
 });
+
+describe('unary operators', () => {
+  it('reverser and reducer work from a single input', () => {
+    expect(compute('reverse', 123, 0)).toEqual({ o: 321 });
+    expect(compute('digitsum', 123, 0)).toEqual({ o: 6 });
+  });
+});
+
+describe('unary operator simulation', () => {
+  it('runs with only A fed and never needs B', () => {
+    const world = makeWorld();
+    const rev = world.addBuilding('reverse', 50, 0, 0); // A (50,0), O (50,1)
+    for (let i = 0; i < 60 * 10; i++) {
+      while ((rev.inA?.length ?? 4) < 4) rev.inA?.push(120);
+      runTicks(world, 1);
+    }
+    expect(rev.inB).toEqual([]);
+    expect(rev.out).toEqual([21, 21]);
+  });
+});

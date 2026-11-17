@@ -1,7 +1,7 @@
 import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT, type Track } from '../config/balance';
-import { add, divmod, mul, pow, sub } from '../core/intmath';
+import { add, digitSum, divmod, mul, pow, reverseDigits, sub } from '../core/intmath';
 import { EPS } from './belts';
-import { type Building, isOperator, type OperatorType } from './entities';
+import { type Building, isOperator, isUnary, type OperatorType } from './entities';
 import { outputGroup, pushOut } from './outputs';
 import type { World } from './world';
 
@@ -12,6 +12,8 @@ export const OPERATOR_TRACK: Record<OperatorType, Track> = {
   subtractor: 'subdiv',
   divider: 'subdiv',
   exponent: 'exponent',
+  digitsum: 'adder',
+  reverse: 'adder',
 };
 
 /** Result(s) of one operation. The divider emits R only when non-zero (PLAN §6.3). */
@@ -29,6 +31,10 @@ export function compute(
       return { o: sub(a, b) };
     case 'exponent':
       return { o: pow(a, b) };
+    case 'reverse':
+      return { o: reverseDigits(a) };
+    case 'digitsum':
+      return { o: digitSum(a) };
     case 'divider': {
       const { q, r } = divmod(a, b);
       return r === 0 ? { q } : { q, r };
@@ -47,14 +53,16 @@ function hasRoom(buf: number[] | undefined): boolean {
 }
 
 function canStart(b: Building): boolean {
-  if (!b.inA?.length || !b.inB?.length) return false;
+  if (!b.inA?.length) return false;
+  if (!isUnary(b.type) && !b.inB?.length) return false;
   if (b.type === 'divider') return hasRoom(b.outQ) && hasRoom(b.outR);
   return hasRoom(b.out);
 }
 
 function finishCycle(world: World, b: Building, type: OperatorType): void {
   const a = b.inA?.shift();
-  const c = b.inB?.shift();
+  // Unary operators read A only.
+  const c = isUnary(type) ? 0 : b.inB?.shift();
   if (a === undefined || c === undefined) return;
   const res = compute(type, a, c);
   if (res.o !== undefined) b.out?.push(res.o);
