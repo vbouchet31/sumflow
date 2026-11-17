@@ -11,7 +11,8 @@ export type PlaceableType =
   | 'divider'
   | 'exponent'
   | 'storage'
-  | 'bridge';
+  | 'bridge'
+  | 'beacon';
 
 export type Feature = 'upgrades' | 'priorities';
 
@@ -50,7 +51,7 @@ export const LEVEL_TABLE: readonly LevelDef[] = [
   { target: 466, quantity: 3_000, reward: x(11) },
   { target: 594, quantity: 4_000, reward: b('divider') },
   { target: 631, quantity: 5_000, reward: x(12) },
-  { target: 727, quantity: 6_000, reward: x(13) },
+  { target: 727, quantity: 6_000, reward: b('beacon') },
   { target: 891, quantity: 7_000, reward: b('exponent') },
   { target: 928, quantity: 8_000, reward: x(14) },
   { target: 1_779, quantity: 9_000, reward: x(15) },
@@ -271,4 +272,15 @@ export const EDIT = {
   markerMaxLength: 40,
   /** Most copies placed by one paste drag. */
   maxPasteRow: 32,
+} as const;
+
+/** Beacons (proposal 09). */
+export const BEACON = {
+  /** Seconds of glow bought by one item, and the most it can store. */
+  secondsPerItem: 2,
+  maxSeconds: 8,
+  /** Buildings with a tile at most this far (Chebyshev, in tiles) are boosted. */
+  radius: 4,
+  /** Speed multiplier of boosted buildings (several beacons do not stack). */
+  factor: 1.5,
 } as const;

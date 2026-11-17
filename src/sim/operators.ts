@@ -1,5 +1,6 @@
 import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT, type Track } from '../config/balance';
 import { add, divmod, mul, pow, sub } from '../core/intmath';
+import { beaconFactor } from './beacon';
 import { EPS } from './belts';
 import { type Building, isOperator, type OperatorType } from './entities';
 import { outputGroup, pushOut } from './outputs';
@@ -96,7 +97,7 @@ export function stepOperators(world: World): void {
     let cycle = b.cycle ?? -1;
     if (cycle < 0) {
       if (!canStart(b)) continue;
-      cycle = cycleDuration(world, type);
+      cycle = cycleDuration(world, type) / beaconFactor(world, b);
     }
     cycle -= TICK_DT;
     while (cycle <= EPS) {
@@ -105,7 +106,7 @@ export function stepOperators(world: World): void {
         cycle = -1;
         break;
       }
-      cycle += cycleDuration(world, type);
+      cycle += cycleDuration(world, type) / beaconFactor(world, b);
     }
     b.cycle = cycle;
   }

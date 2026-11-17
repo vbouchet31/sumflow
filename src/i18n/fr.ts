@@ -49,6 +49,7 @@ export const fr = {
   'reward.subtractor': 'Soustracteur',
   'reward.divider': 'Diviseur',
   'reward.exponent': 'Exposant',
+  'reward.beacon': 'Balise',
   'reward.storage': 'Stockage',
   'reward.bridge': 'Pont',
   'reward.extractor': 'Extracteur',
@@ -80,6 +81,7 @@ export const fr = {
   'tool.subtractor': 'Soustracteur',
   'tool.divider': 'Diviseur',
   'tool.exponent': 'Exposant',
+  'tool.beacon': 'Balise',
   'tip.bufA': 'A : {items}',
   'tip.bufB': 'B : {items}',
   'tip.bufOut': 'Sortie : {items}',
@@ -273,6 +275,8 @@ export const fr = {
   'help.subtractor': 'Soustracteur : l’ordre A − B compte.',
   'help.divider': 'Diviseur : le reste sort à part, jamais 0.',
   'help.exponent': 'Exposant : A à la puissance B. Les résultats grandissent vite.',
+  'help.beacon':
+    "Balise : nourris-la avec n'importe quel nombre (un toutes les 2 s). Tant qu'elle brille, opérateurs et extracteurs proches vont 50 % plus vite.",
   'help.storage':
     'Stockage : il garde jusqu’à 10 000 exemplaires d’une seule valeur et les ressort à pleine vitesse.',
   'about.body':
@@ -290,4 +294,8 @@ export const fr = {
   'toast.importError': 'Import impossible : fichier invalide. Rien n’a été modifié.',
   'toast.loadError': 'Sauvegarde illisible : nouvelle partie. L’ancienne est gardée à part.',
   'toast.exported': 'Partie exportée : {file}',
+  'tip.beaconOn': 'Allumée : encore {s} s',
+  'tip.beaconOff': 'Éteinte : amène-lui des nombres',
+  'tip.beaconBoosted': 'Bâtiments accélérés : {n}',
+  'tip.boosted': 'Accéléré par une balise (×1,5)',
 } as const;

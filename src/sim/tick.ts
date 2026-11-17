@@ -1,3 +1,4 @@
+import { stepBeacons } from './beacon';
 import { stepBelts } from './belts';
 import { stepExtractors } from './extractor';
 import { stepOperators, stepOutputs } from './operators';
@@ -11,6 +12,7 @@ import type { World } from './world';
 export function tick(world: World): void {
   world.state.tick += 1;
   world.stats.advance(world.state.tick);
+  stepBeacons(world);
   stepExtractors(world);
   stepBelts(world);
   stepOutputs(world);

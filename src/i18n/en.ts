@@ -51,6 +51,7 @@ export const en: Record<MessageKey, string> = {
   'reward.subtractor': 'Subtractor',
   'reward.divider': 'Divider',
   'reward.exponent': 'Exponent',
+  'reward.beacon': 'Beacon',
   'reward.storage': 'Storage',
   'reward.bridge': 'Bridge',
   'reward.extractor': 'Extractor',
@@ -82,6 +83,7 @@ export const en: Record<MessageKey, string> = {
   'tool.subtractor': 'Subtractor',
   'tool.divider': 'Divider',
   'tool.exponent': 'Exponent',
+  'tool.beacon': 'Beacon',
   'tip.bufA': 'A: {items}',
   'tip.bufB': 'B: {items}',
   'tip.bufOut': 'Output: {items}',
@@ -274,6 +276,8 @@ export const en: Record<MessageKey, string> = {
   'help.subtractor': 'Subtractor: the order A − B matters.',
   'help.divider': 'Divider: the remainder comes out separately, never 0.',
   'help.exponent': 'Exponent: A to the power of B. Results grow fast.',
+  'help.beacon':
+    'Beacon: feed it any number (one every 2 s). While it glows, nearby operators and extractors run 50% faster.',
   'help.storage':
     'Storage: it holds up to 10,000 copies of a single value and outputs them at full speed.',
   'about.body': 'Fan project, inspired by Beltmatic by Notional Games. Original code and visuals.',
@@ -290,4 +294,8 @@ export const en: Record<MessageKey, string> = {
   'toast.importError': 'Import failed: invalid file. Nothing was changed.',
   'toast.loadError': 'Unreadable save: new game started. The old one is kept aside.',
   'toast.exported': 'Game exported: {file}',
+  'tip.beaconOn': 'Glowing: {s} s left',
+  'tip.beaconOff': 'Off: bring it numbers',
+  'tip.beaconBoosted': 'Buildings sped up: {n}',
+  'tip.boosted': 'Sped up by a beacon (×1.5)',
 };

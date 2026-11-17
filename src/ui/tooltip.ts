@@ -8,6 +8,7 @@ import { currentExtractorRate } from '../sim/upgrades';
 import { isOperator } from '../sim/entities';
 import { cycleDuration } from '../sim/operators';
 import { type MessageKey } from '../i18n';
+import { inBeaconRange } from '../sim/beacon';
 import type { World } from '../sim/world';
 import { isExtractable } from '../world/deposits';
 
@@ -19,7 +20,15 @@ export function describeTile(world: World, x: number, y: number): string[] {
   return lines;
 }
 
+/** A building sped up by a beacon says so on its last line. */
 function describeObject(world: World, x: number, y: number): string[] {
+  const lines = describeObjectBase(world, x, y);
+  const b = world.buildingAt(x, y);
+  if (b && world.boosted.has(b.id)) lines.push(t('tip.boosted'));
+  return lines;
+}
+
+function describeObjectBase(world: World, x: number, y: number): string[] {
   const num = (n: number): string => formatFull(n, getLocale());
   const b = world.buildingAt(x, y);
   if (b?.type === 'hub') {
@@ -52,6 +61,22 @@ function describeObject(world: World, x: number, y: number): string[] {
         ? t('tip.storeValue', { value: num(b.storeValue) })
         : t('tip.storeEmpty'),
       t('tip.storeFill', { n: num(count), max: num(STORAGE_CAPACITY) }),
+    ];
+  }
+  if (b?.type === 'beacon') {
+    const fuel = b.fuel ?? 0;
+    let n = 0;
+    if (fuel > 0) {
+      for (const o of world.state.buildings.values())
+        if (o.id !== b.id && o.type !== 'hub' && o.type !== 'beacon' && inBeaconRange(o, b.x, b.y))
+          n++;
+    }
+    return [
+      t('tool.beacon'),
+      fuel > 0
+        ? t('tip.beaconOn', { s: fuel.toLocaleString(getLocale(), { maximumFractionDigits: 1 }) })
+        : t('tip.beaconOff'),
+      t('tip.beaconBoosted', { n }),
     ];
   }
   if (b && isOperator(b.type)) {
