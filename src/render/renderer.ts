@@ -13,6 +13,8 @@ import { priorityTiles } from '../sim/priority';
 import { drawBuildings } from './layers/buildings';
 import { drawDeposits } from './layers/deposits';
 import { drawGhosts } from './layers/ghosts';
+import { drawFlow } from './layers/flow';
+import type { FlowTrace } from '../sim/trace';
 import { drawGrid } from './layers/grid';
 import { drawItems } from './layers/items';
 import { drawMarkers } from './layers/markers';
@@ -36,6 +38,8 @@ export class Renderer {
   itemValuesAlways = false;
   /** Tile rectangle outlined on the map: the object inspected by a tap (touch screens). */
   selection: { x: number; y: number; w: number; h: number } | null = null;
+  /** Line under the pointer (no tool): highlighted, the rest of the map dimmed. */
+  flow: FlowTrace | null = null;
   private dpr = 1;
   private readonly depositCache = new RegionCache();
   private readonly beltCache = new RegionCache();
@@ -123,6 +127,7 @@ export class Renderer {
       }
       drawPriorities(ctx, camera, priorityTiles(world, belts.concat(lanes), buildings));
     }
+    if (this.flow) drawFlow(ctx, camera, world, this.flow);
     drawGhosts(ctx, camera, ghost);
     if (this.selection) {
       const sel = this.selection;

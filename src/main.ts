@@ -35,6 +35,7 @@ import { StatusBar } from './ui/statusBar';
 import { MarkerEditor } from './ui/markerEditor';
 import { ToolActions } from './ui/toolActions';
 import { describeTile, Tooltip } from './ui/tooltip';
+import { traceFlow } from './sim/trace';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
 import { setAutoBuy } from './sim/progression';
@@ -397,6 +398,8 @@ async function bootstrap(): Promise<void> {
   resize();
 
   let unlockedKey = '';
+  let flowKey = '';
+  let flowNetwork: object | null = null;
   let last = performance.now();
   const frame = (now: number): void => {
     const dt = Math.min(MAX_FRAME_DT, Math.max(0, (now - last) / 1000));
@@ -419,6 +422,15 @@ async function bootstrap(): Promise<void> {
       pinned = null;
     }
     renderer.selection = pinned ? inspectedRect(world, pinned.x, pinned.y) : null;
+    // Without a tool, the belt line under the pointer (or the tapped one) lights up.
+    const traced = tools.tool === 'none' ? (pointer.inside ? hover : pinned) : null;
+    const network = world.getNetwork();
+    const traceKey = traced ? `${traced.x},${traced.y}` : '';
+    if (traceKey !== flowKey || network !== flowNetwork) {
+      flowKey = traceKey;
+      flowNetwork = network;
+      renderer.flow = traced ? traceFlow(world, traced.x, traced.y) : null;
+    }
 
     const simStart = performance.now();
     const ticks = loop.advance(dt, () => performance.now() - simStart > CATCH_UP.frameBudgetMs);
