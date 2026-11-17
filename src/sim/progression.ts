@@ -1,5 +1,6 @@
 import { type Reward, type Track, TRACKS } from '../config/balance';
 import { rewardFor } from './levels';
+import { streakCredit } from './streak';
 import { type GameState, requirementFor } from './state';
 import { buyUpgrade, isUpgradeReady, syncUpgradeRequirements } from './upgrades';
 
@@ -8,6 +9,8 @@ export type ProgressionEvents = {
   levelCompleted: { level: number; reward: Reward | null; final: boolean };
   upgradeReady: { track: Track };
   upgradeBought: { track: Track; level: number };
+  streakTier: { factor: number; count: number };
+  streakLost: { count: number };
 };
 
 export type Emit = <K extends keyof ProgressionEvents>(
@@ -39,7 +42,7 @@ export function deliver(state: GameState, value: number, emit?: Emit): void {
   }
   const req = state.levelRequirement;
   if (req && req.value === value && req.delivered < req.required) {
-    req.delivered += 1;
+    req.delivered = Math.min(req.required, req.delivered + streakCredit(state, emit));
     if (req.delivered >= req.required) completeLevel(state, emit);
   }
 }

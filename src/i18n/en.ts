@@ -290,4 +290,12 @@ export const en: Record<MessageKey, string> = {
   'toast.importError': 'Import failed: invalid file. Nothing was changed.',
   'toast.loadError': 'Unreadable save: new game started. The old one is kept aside.',
   'toast.exported': 'Game exported: {file}',
+  'streak.title': 'Streak: {n}',
+  'streak.next': '{n} more without a break for ×{f}',
+  'streak.max': 'Top bonus · best {best}',
+  'toast.streakTier': 'Streak ×{f}!',
+  'toast.streakTierBody': 'Each target number counts for more',
+  'toast.streakLost': 'Streak broken ({n})',
+  'help.streak':
+    'Streak: deliver the target without a break. Past 40, 150 then 400 in a row, each number counts ×1.25, ×1.5 then ×2.',
 };
