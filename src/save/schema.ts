@@ -53,6 +53,7 @@ export interface SavedBuilding {
   cycle?: number;
   storeValue?: number | null;
   storeCount?: number;
+  fuel?: number;
 }
 
 export interface SavedRequirement {
@@ -150,6 +151,7 @@ const ints = (v: unknown, path: string): number[] =>
   arr(v, path).map((x, i) => int32(x, `${path}[${i}]`));
 
 const PLACEABLE: readonly PlaceableType[] = [
+  'beacon',
   'extractor',
   'adder',
   'multiplier',
@@ -161,6 +163,7 @@ const PLACEABLE: readonly PlaceableType[] = [
 ];
 const FEATURES: readonly Feature[] = ['upgrades', 'priorities'];
 const BUILDING_TYPES: readonly BuildingType[] = [
+  'beacon',
   'hub',
   'extractor',
   'adder',
@@ -230,6 +233,7 @@ function building(v: unknown, path: string): SavedBuilding {
     b.storeValue = o['storeValue'] === null ? null : int32(o['storeValue'], `${path}.storeValue`);
   }
   if (o['storeCount'] !== undefined) b.storeCount = int(o['storeCount'], `${path}.storeCount`, 0);
+  if (o['fuel'] !== undefined) b.fuel = num(o['fuel'], `${path}.fuel`);
   return b;
 }
 

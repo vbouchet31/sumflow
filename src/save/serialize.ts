@@ -67,6 +67,7 @@ function saveBuilding(b: Building): SavedBuilding {
   if (b.cycle !== undefined) s.cycle = b.cycle;
   if (b.storeValue !== undefined) s.storeValue = b.storeValue;
   if (b.storeCount !== undefined) s.storeCount = b.storeCount;
+  if (b.fuel !== undefined) s.fuel = b.fuel;
   return s;
 }
 
@@ -90,6 +91,7 @@ function loadBuilding(s: SavedBuilding): Building {
   if (s.cycle !== undefined) b.cycle = s.cycle;
   if (s.storeValue !== undefined) b.storeValue = s.storeValue;
   if (s.storeCount !== undefined) b.storeCount = s.storeCount;
+  if (s.fuel !== undefined) b.fuel = s.fuel;
   return b;
 }
 

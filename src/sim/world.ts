@@ -81,6 +81,8 @@ export class World {
   /** Output faces and their targets per building and port kind (see `outputGroup`). */
   readonly outputGroups = new Map<number, OutputGroup>();
   private network: BeltNetwork | null = null;
+  /** Ids of the buildings sped up by a glowing beacon this tick (runtime only). */
+  readonly boosted = new Set<number>();
   /** Slots touched by the open change, with their state before it (undo journal). */
   private journal: {
     tiles: Map<number, TileSnap | null>;
@@ -465,6 +467,7 @@ export class World {
       b.extractValue = s.extractValue;
       b.extractAcc = 0;
     }
+    if (s.type === 'beacon') b.fuel = 0;
     if (s.type === 'storage') {
       b.storeValue = null;
       b.storeCount = 0;
