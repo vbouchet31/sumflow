@@ -7,6 +7,7 @@ import { roundRect } from '../shapes';
 import { drawHub } from './hub';
 import { drawOperator } from './operators';
 import { drawStorage } from './storage';
+import { drawWarp } from './warps';
 
 /** Cycle-end flash duration in ticks (150 ms, PLAN §6.2). */
 const FLASH_TICKS = 9;
@@ -65,6 +66,8 @@ export function drawBuildings(
     if (b.type === 'hub') drawHub(ctx, cam, state);
     else if (b.type === 'extractor') drawExtractor(ctx, cam, b);
     else if (b.type === 'storage') drawStorage(ctx, cam, b);
+    else if (b.type === 'warpIn' || b.type === 'warpOut')
+      drawWarp(ctx, cam, b, state.tick, reducedMotion);
     else if (isOperator(b.type)) {
       const age = b.flashTick === undefined ? Infinity : state.tick - b.flashTick;
       const flash = !reducedMotion && age < FLASH_TICKS ? 1 - age / FLASH_TICKS : 0;

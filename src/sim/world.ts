@@ -81,6 +81,7 @@ export class World {
   /** Output faces and their targets per building and port kind (see `outputGroup`). */
   readonly outputGroups = new Map<number, OutputGroup>();
   private network: BeltNetwork | null = null;
+  private exits: Map<number, Building[]> | null = null;
   /** Slots touched by the open change, with their state before it (undo journal). */
   private journal: {
     tiles: Map<number, TileSnap | null>;
@@ -112,6 +113,7 @@ export class World {
 
   private invalidate(): void {
     this.network = null;
+    this.exits = null;
     this.outputGroups.clear();
     this.events.emit('networkChanged', {});
   }
@@ -243,6 +245,7 @@ export class World {
       mirror: b.mirror === true,
       priority: b.priority,
       extractValue: b.extractValue ?? null,
+      ...(b.channel !== undefined ? { channel: b.channel } : {}),
     };
   }
 
@@ -434,8 +437,11 @@ export class World {
     x: number,
     y: number,
     rot: Rot,
-    extra: { extractValue?: number; mirror?: boolean } = {},
+    extra: { extractValue?: number; mirror?: boolean; channel?: number } = {},
   ): Building {
+    const channel =
+      extra.channel ??
+      (type === 'warpIn' || type === 'warpOut' ? this.nextChannel(type) : undefined);
     const b = this.makeBuilding(this.state.nextBuildingId, {
       type,
       x,
@@ -444,8 +450,39 @@ export class World {
       mirror: extra.mirror === true,
       priority: null,
       extractValue: extra.extractValue ?? null,
+      ...(channel !== undefined ? { channel } : {}),
     });
     return this.insertBuilding(b, null);
+  }
+
+  /**
+   * Portal pairing (proposal 07): a new entrance opens a new channel; a new exit joins the
+   * channel of the last entrance placed. 0 = no entrance yet (an exit that leads nowhere).
+   */
+  private nextChannel(type: 'warpIn' | 'warpOut'): number {
+    let max = 0;
+    let lastIn: Building | null = null;
+    for (const b of this.state.buildings.values()) {
+      if (b.type !== 'warpIn') continue;
+      max = Math.max(max, b.channel ?? 0);
+      if (!lastIn || b.id > lastIn.id) lastIn = b;
+    }
+    return type === 'warpIn' ? max + 1 : (lastIn?.channel ?? 0);
+  }
+
+  /** Exits of every portal channel, rebuilt after each structural change. */
+  warpExits(): Map<number, Building[]> {
+    if (!this.exits) {
+      this.exits = new Map();
+      for (const b of this.state.buildings.values()) {
+        if (b.type !== 'warpOut' || !b.channel) continue;
+        const list = this.exits.get(b.channel) ?? [];
+        list.push(b);
+        this.exits.set(b.channel, list);
+      }
+      for (const list of this.exits.values()) list.sort((a, b) => a.id - b.id);
+    }
+    return this.exits;
   }
 
   /** A fresh building (empty buffers) from a layout snapshot. */
@@ -465,6 +502,8 @@ export class World {
       b.extractValue = s.extractValue;
       b.extractAcc = 0;
     }
+    if (s.channel !== undefined) b.channel = s.channel;
+    if (s.type === 'warpIn') b.warpBuf = [];
     if (s.type === 'storage') {
       b.storeValue = null;
       b.storeCount = 0;

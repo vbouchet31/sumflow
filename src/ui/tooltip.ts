@@ -54,6 +54,19 @@ function describeObject(world: World, x: number, y: number): string[] {
       t('tip.storeFill', { n: num(count), max: num(STORAGE_CAPACITY) }),
     ];
   }
+  if (b?.type === 'warpIn' || b?.type === 'warpOut') {
+    const exits = b.channel ? (world.warpExits().get(b.channel)?.length ?? 0) : 0;
+    const lines = [t(`tool.${b.type}`), t('tip.warpChannel', { n: b.channel ?? 0 })];
+    if (b.type === 'warpIn') {
+      lines.push(exits > 0 ? t('tip.warpExits', { n: exits }) : t('tip.warpNoExit'));
+      lines.push(
+        t('tip.bufA', { items: b.warpBuf?.length ? b.warpBuf.map(num).join(', ') : t('tip.none') }),
+      );
+    } else if (!b.channel) {
+      lines.push(t('tip.warpNoEntrance'));
+    }
+    return lines;
+  }
   if (b && isOperator(b.type)) {
     const list = (buf: number[] | undefined): string =>
       buf && buf.length > 0 ? buf.map(num).join(', ') : t('tip.none');

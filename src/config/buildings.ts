@@ -2,7 +2,16 @@ import type { Dir } from '../core/grid';
 
 /** Building kinds that occupy tiles (belts and bridges are handled separately). */
 export type BuildingType =
-  'hub' | 'extractor' | 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent' | 'storage';
+  | 'hub'
+  | 'extractor'
+  | 'adder'
+  | 'multiplier'
+  | 'subtractor'
+  | 'divider'
+  | 'exponent'
+  | 'storage'
+  | 'warpIn'
+  | 'warpOut';
 
 /** Role of a footprint tile (PLAN §6.1). `any` ports follow the building's `anyRole`. */
 export type PortRole = 'A' | 'B' | 'O' | 'Q' | 'R' | 'any' | 'body';
@@ -86,6 +95,10 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
       { x: 1, y: 1, role: 'R', faces: [S, E] },
     ],
   },
+  // Portal entrance: takes items on every face and sends them to the exits of its channel.
+  warpIn: { w: 1, h: 1, tiles: block(1), anyRole: 'input', rotatable: false },
+  // Portal exit: hands items over to every adjacent belt.
+  warpOut: { w: 1, h: 1, tiles: block(1), anyRole: 'output', rotatable: false },
   exponent: {
     w: 2,
     h: 2,

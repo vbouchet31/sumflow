@@ -101,7 +101,10 @@ export function offer(
     case 'storage':
       return storeItem(target.building, value);
     case 'port': {
-      const buf = inputBuffer(target.building, target.port);
+      const buf =
+        target.building.type === 'warpIn'
+          ? target.building.warpBuf
+          : inputBuffer(target.building, target.port);
       if (!buf || buf.length >= INPUT_BUFFER_SIZE) return false;
       buf.push(value);
       return true;

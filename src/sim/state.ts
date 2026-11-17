@@ -107,7 +107,9 @@ export function createInitialState(seed: number): GameState {
 }
 
 export function isBuildingUnlocked(state: GameState, type: PlaceableType): boolean {
-  return state.unlockedBuildings.includes(type);
+  // Portal exits come with the entrances.
+  const t = type === 'warpOut' ? 'warpIn' : type;
+  return state.unlockedBuildings.includes(t);
 }
 
 export function isFeatureUnlocked(state: GameState, feature: Feature): boolean {

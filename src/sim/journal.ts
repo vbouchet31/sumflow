@@ -17,6 +17,8 @@ export interface BuildingSnap {
   mirror: boolean;
   priority: number | null;
   extractValue: number | null;
+  /** Portal channel (proposal 07); absent for other buildings. */
+  channel?: number;
 }
 
 export interface SlotChange<T> {
