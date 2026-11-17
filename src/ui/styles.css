@@ -1312,3 +1312,38 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* ---- Rail: phones held sideways (short screens) ----------------------------------------- */
+
+/* The top bar becomes a two-column rail on the right: the row it took is given to the map. */
+.ui-rail .top-bar {
+  display: grid;
+  grid-template-rows: repeat(5, var(--top-h));
+  grid-auto-columns: var(--top-h);
+  grid-auto-flow: column;
+  gap: 6px;
+  /* The first column (pause, undo, redo, home…) is the one against the edge, under the thumb. */
+  direction: rtl;
+}
+
+.ui-rail .top-bar > * {
+  direction: ltr;
+}
+
+/* The status chips sit left of the rail, at the top. */
+.ui-rail .status-bar {
+  top: var(--edge-t);
+  bottom: auto;
+  right: calc(var(--edge-r) + 2 * var(--top-h) + 6px + 8px);
+}
+
+.ui-rail .toasts {
+  max-width: calc(100vw - 2 * (var(--edge-r) + 2 * var(--top-h) + 14px));
+}
+
+/* A finger leaves no cursor behind: its coordinates say nothing on a touch screen. */
+@media (pointer: coarse) {
+  .status-cursor {
+    display: none;
+  }
+}
