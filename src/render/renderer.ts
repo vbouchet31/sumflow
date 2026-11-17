@@ -17,6 +17,7 @@ import { drawGrid } from './layers/grid';
 import { drawItems } from './layers/items';
 import { drawMarkers } from './layers/markers';
 import { drawWave } from './layers/wave';
+import { drawWarpLinks } from './layers/warps';
 
 /** Maximum device pixel ratio honoured by the canvas (PLAN §10.4). */
 const MAX_DPR = 2;
@@ -113,6 +114,8 @@ export class Renderer {
     const bridges = [...world.bridgesInRect(v.x0, v.y0, v.x1, v.y1)];
     drawBridges(ctx, camera, bridges, phase, this.itemValuesAlways);
     const buildings = [...world.buildingsInRect(v.x0, v.y0, v.x1, v.y1)];
+    // Portal links run under the buildings, so they never hide the hub's numbers.
+    drawWarpLinks(ctx, camera, world, buildings);
     drawBuildings(ctx, camera, buildings, state, this.reducedMotion);
     drawItems(ctx, camera, belts, this.itemValuesAlways);
     if (camera.zoom >= LOD.depositText) {

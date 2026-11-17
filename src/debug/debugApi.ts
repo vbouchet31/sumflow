@@ -209,6 +209,8 @@ export function installDebugApi(ctx: DebugContext): void {
         'exponent',
         'storage',
         'bridge',
+        'warpOut',
+        'warpIn',
       ] as const)
         applyReward(world.state, { kind: 'building', building });
       applyReward(world.state, { kind: 'feature', feature: 'upgrades' });

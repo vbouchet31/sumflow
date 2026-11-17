@@ -11,7 +11,9 @@ export type PlaceableType =
   | 'divider'
   | 'exponent'
   | 'storage'
-  | 'bridge';
+  | 'bridge'
+  | 'warpIn'
+  | 'warpOut';
 
 export type Feature = 'upgrades' | 'priorities';
 
@@ -52,7 +54,7 @@ export const LEVEL_TABLE: readonly LevelDef[] = [
   { target: 631, quantity: 5_000, reward: x(12) },
   { target: 727, quantity: 6_000, reward: x(13) },
   { target: 891, quantity: 7_000, reward: b('exponent') },
-  { target: 928, quantity: 8_000, reward: x(14) },
+  { target: 928, quantity: 8_000, reward: b('warpIn') },
   { target: 1_779, quantity: 9_000, reward: x(15) },
   { target: 2_805, quantity: 10_000, reward: b('storage') },
   { target: 3_366, quantity: 10_500, reward: x(16) },

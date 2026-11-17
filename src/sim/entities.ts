@@ -97,6 +97,10 @@ export interface Building {
   /** Storage: stored value (null when empty) and count (PLAN §6.3). */
   storeValue?: number | null;
   storeCount?: number;
+  /** Portal (proposal 07): channel linking entrances and exits (same colour). */
+  channel?: number;
+  /** Portal entrance: items waiting to be sent. */
+  warpBuf?: number[];
 }
 
 export type OperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent';
@@ -114,10 +118,10 @@ export function isOperator(type: string): type is OperatorType {
 }
 
 /** Buildings placed freely with the generic tool (centred ghost, rows by dragging). */
-export type FreeBuildingType = OperatorType | 'storage';
+export type FreeBuildingType = OperatorType | 'storage' | 'warpIn' | 'warpOut';
 
 export function isFreeBuilding(type: string): type is FreeBuildingType {
-  return type === 'storage' || isOperator(type);
+  return type === 'storage' || type === 'warpIn' || type === 'warpOut' || isOperator(type);
 }
 
 export type PortKind = 'A' | 'B' | 'O' | 'Q' | 'R' | 'in' | 'out' | 'dynamic';

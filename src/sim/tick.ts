@@ -2,6 +2,7 @@ import { stepBelts } from './belts';
 import { stepExtractors } from './extractor';
 import { stepOperators, stepOutputs } from './operators';
 import { stepStorages } from './storage';
+import { stepWarps } from './warp';
 import type { World } from './world';
 
 /**
@@ -14,6 +15,7 @@ export function tick(world: World): void {
   stepExtractors(world);
   stepBelts(world);
   stepOutputs(world);
+  stepWarps(world);
   stepOperators(world);
   stepStorages(world);
 }

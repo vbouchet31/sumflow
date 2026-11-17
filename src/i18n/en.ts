@@ -51,6 +51,8 @@ export const en: Record<MessageKey, string> = {
   'reward.subtractor': 'Subtractor',
   'reward.divider': 'Divider',
   'reward.exponent': 'Exponent',
+  'reward.warpOut': 'Portal (exit)',
+  'reward.warpIn': 'Portal (entrance)',
   'reward.storage': 'Storage',
   'reward.bridge': 'Bridge',
   'reward.extractor': 'Extractor',
@@ -82,6 +84,8 @@ export const en: Record<MessageKey, string> = {
   'tool.subtractor': 'Subtractor',
   'tool.divider': 'Divider',
   'tool.exponent': 'Exponent',
+  'tool.warpOut': 'Portal (exit)',
+  'tool.warpIn': 'Portal (entrance)',
   'tip.bufA': 'A: {items}',
   'tip.bufB': 'B: {items}',
   'tip.bufOut': 'Output: {items}',
@@ -274,6 +278,8 @@ export const en: Record<MessageKey, string> = {
   'help.subtractor': 'Subtractor: the order A − B matters.',
   'help.divider': 'Divider: the remainder comes out separately, never 0.',
   'help.exponent': 'Exponent: A to the power of B. Results grow fast.',
+  'help.warpIn':
+    'Portals: place an entrance, then an exit: they are linked (same colour). What goes in comes out on the other side, no belt needed.',
   'help.storage':
     'Storage: it holds up to 10,000 copies of a single value and outputs them at full speed.',
   'about.body': 'Fan project, inspired by Beltmatic by Notional Games. Original code and visuals.',
@@ -290,4 +296,8 @@ export const en: Record<MessageKey, string> = {
   'toast.importError': 'Import failed: invalid file. Nothing was changed.',
   'toast.loadError': 'Unreadable save: new game started. The old one is kept aside.',
   'toast.exported': 'Game exported: {file}',
+  'tip.warpChannel': 'Channel {n}',
+  'tip.warpExits': 'Linked exits: {n}',
+  'tip.warpNoExit': 'No exit: place an exit portal',
+  'tip.warpNoEntrance': 'No entrance on this channel',
 };

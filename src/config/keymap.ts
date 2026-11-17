@@ -43,6 +43,8 @@ export const TOOL_CODES = {
   Digit7: 'exponent',
   Digit8: 'storage',
   Digit9: 'bridge',
+  Minus: 'warpOut',
+  Digit0: 'warpIn',
 } as const;
 
 /** Keys by event.key. */

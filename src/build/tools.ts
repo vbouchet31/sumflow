@@ -183,7 +183,10 @@ export class ToolController {
   get canRotate(): boolean {
     const t = this.tool;
     return (
-      t === 'belt' || t === 'bridge' || t === 'paste' || (isFreeBuilding(t) && t !== 'storage')
+      t === 'belt' ||
+      t === 'bridge' ||
+      t === 'paste' ||
+      (isFreeBuilding(t) && t !== 'storage' && t !== 'warpIn' && t !== 'warpOut')
     );
   }
 

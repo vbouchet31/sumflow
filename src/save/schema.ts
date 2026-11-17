@@ -53,6 +53,8 @@ export interface SavedBuilding {
   cycle?: number;
   storeValue?: number | null;
   storeCount?: number;
+  channel?: number;
+  warpBuf?: number[];
 }
 
 export interface SavedRequirement {
@@ -150,6 +152,8 @@ const ints = (v: unknown, path: string): number[] =>
   arr(v, path).map((x, i) => int32(x, `${path}[${i}]`));
 
 const PLACEABLE: readonly PlaceableType[] = [
+  'warpOut',
+  'warpIn',
   'extractor',
   'adder',
   'multiplier',
@@ -161,6 +165,8 @@ const PLACEABLE: readonly PlaceableType[] = [
 ];
 const FEATURES: readonly Feature[] = ['upgrades', 'priorities'];
 const BUILDING_TYPES: readonly BuildingType[] = [
+  'warpOut',
+  'warpIn',
   'hub',
   'extractor',
   'adder',
@@ -230,6 +236,8 @@ function building(v: unknown, path: string): SavedBuilding {
     b.storeValue = o['storeValue'] === null ? null : int32(o['storeValue'], `${path}.storeValue`);
   }
   if (o['storeCount'] !== undefined) b.storeCount = int(o['storeCount'], `${path}.storeCount`, 0);
+  if (o['channel'] !== undefined) b.channel = int(o['channel'], `${path}.channel`, 0);
+  if (o['warpBuf'] !== undefined) b.warpBuf = ints(o['warpBuf'], `${path}.warpBuf`);
   return b;
 }
 
