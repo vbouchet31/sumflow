@@ -1,4 +1,5 @@
 import { type Reward, type Track, TRACKS } from '../config/balance';
+import { inspectDelivery } from './codex';
 import { rewardFor } from './levels';
 import { type GameState, requirementFor } from './state';
 import { buyUpgrade, isUpgradeReady, syncUpgradeRequirements } from './upgrades';
@@ -8,6 +9,7 @@ export type ProgressionEvents = {
   levelCompleted: { level: number; reward: Reward | null; final: boolean };
   upgradeReady: { track: Track };
   upgradeBought: { track: Track; level: number };
+  curiosity: { id: string; value: number };
 };
 
 export type Emit = <K extends keyof ProgressionEvents>(
@@ -23,6 +25,7 @@ export type Emit = <K extends keyof ProgressionEvents>(
 export function deliver(state: GameState, value: number, emit?: Emit): void {
   state.totalDelivered += 1;
   emit?.('delivered', { value });
+  inspectDelivery(state, value, emit);
   for (const track of TRACKS) {
     const reqs = state.upgradeReqs[track];
     let hit = false;

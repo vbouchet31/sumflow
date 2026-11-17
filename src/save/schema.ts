@@ -88,6 +88,8 @@ export interface SaveData {
   markers: { x: number; y: number; text: string }[];
   clipboard: Clip[];
   helpSeen: string[];
+  /** Curiosities discovered (proposal 06). Optional: older saves have none. */
+  codex?: { id: string; value: number }[];
   camera: { x: number; y: number; zoom: number };
 }
 
@@ -366,6 +368,17 @@ export function validateSave(raw: unknown): SaveData {
     }),
     clipboard: arr(o['clipboard'], '$.clipboard').map((x, i) => clip(x, `$.clipboard[${i}]`)),
     helpSeen: arr(o['helpSeen'], '$.helpSeen').map((x, i) => str(x, `$.helpSeen[${i}]`)),
+    ...(o['codex'] === undefined
+      ? {}
+      : {
+          codex: arr(o['codex'], '$.codex').map((x, i) => {
+            const e = obj(x, `$.codex[${i}]`);
+            return {
+              id: str(e['id'], `$.codex[${i}].id`),
+              value: int32(e['value'], `$.codex[${i}].value`),
+            };
+          }),
+        }),
     camera: {
       x: num(cam['x'], '$.camera.x'),
       y: num(cam['y'], '$.camera.y'),
