@@ -18,6 +18,7 @@ export const BUILDING_COLORS = {
   exponent: '#c9a72c',
   storage: '#6b7a8f',
   bridge: '#4a6fa5',
+  copier: '#5a7fd6',
 } as const;
 
 export const HUB_COLORS = {

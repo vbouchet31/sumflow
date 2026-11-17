@@ -12,6 +12,7 @@ export const OPERATOR_TRACK: Record<OperatorType, Track> = {
   subtractor: 'subdiv',
   divider: 'subdiv',
   exponent: 'exponent',
+  copier: 'multiplier',
 };
 
 /** Result(s) of one operation. The divider emits R only when non-zero (PLAN §6.3). */
@@ -19,7 +20,7 @@ export function compute(
   type: OperatorType,
   a: number,
   b: number,
-): { o?: number; q?: number; r?: number } {
+): { o?: number; o2?: number; q?: number; r?: number } {
   switch (type) {
     case 'adder':
       return { o: add(a, b) };
@@ -29,6 +30,9 @@ export function compute(
       return { o: sub(a, b) };
     case 'exponent':
       return { o: pow(a, b) };
+    case 'copier':
+      // Two copies of A (`o2` is pushed after `o`); B was only fuel.
+      return { o: a, o2: a };
     case 'divider': {
       const { q, r } = divmod(a, b);
       return r === 0 ? { q } : { q, r };
@@ -49,6 +53,8 @@ function hasRoom(buf: number[] | undefined): boolean {
 function canStart(b: Building): boolean {
   if (!b.inA?.length || !b.inB?.length) return false;
   if (b.type === 'divider') return hasRoom(b.outQ) && hasRoom(b.outR);
+  // The copier needs room for both copies.
+  if (b.type === 'copier') return b.out !== undefined && b.out.length + 2 <= OUTPUT_BUFFER_SIZE;
   return hasRoom(b.out);
 }
 
@@ -58,6 +64,7 @@ function finishCycle(world: World, b: Building, type: OperatorType): void {
   if (a === undefined || c === undefined) return;
   const res = compute(type, a, c);
   if (res.o !== undefined) b.out?.push(res.o);
+  if (res.o2 !== undefined) b.out?.push(res.o2);
   if (res.q !== undefined) b.outQ?.push(res.q);
   if (res.r !== undefined) b.outR?.push(res.r);
   b.flashTick = world.state.tick;

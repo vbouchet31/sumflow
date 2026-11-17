@@ -154,3 +154,14 @@ describe('level 2 with an adder', () => {
     expect(world.state.level).toBe(3);
   });
 });
+
+describe('copier', () => {
+  it('burns B and makes two copies of A', () => {
+    expect(compute('copier', 47, 1)).toEqual({ o: 47, o2: 47 });
+    const world = makeWorld();
+    const c = world.addBuilding('copier', 70, 0, 0); // no output connection
+    feed(world, c.id, 47, 1, 60 * 12);
+    expect(c.out).toEqual([47, 47]);
+    expect(c.cycle).toBe(-1); // waits for room for both copies
+  });
+});
