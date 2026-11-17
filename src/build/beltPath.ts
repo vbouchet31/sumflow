@@ -1,5 +1,6 @@
 import { DIRS, type Dir, DX, DY, E, isInBounds, key, N, opposite, S, W } from '../core/grid';
 import { axisOf, type Belt, hasOutput } from '../sim/entities';
+import { resolveTarget } from '../sim/belts';
 import { isBuildingUnlocked } from '../sim/state';
 import { singleOutput } from '../sim/world';
 import { dirMask } from '../sim/entities';
@@ -85,7 +86,8 @@ export function isStraightBelt(world: World, b: Belt): Dir | null {
 
 /**
  * Decide what each tile of a path does (PLAN §6.5). The first tile adds an output to an
- * existing belt (split) instead of replacing it. Buildings and the hub are skipped. Once
+ * existing belt (split) instead of replacing it, unless that belt is the dead end of a line:
+ * the line then simply turns and goes on. Buildings and the hub are skipped. Once
  * bridges are unlocked, crossing a straight perpendicular belt (or a bridge) straight on
  * makes a bridge.
  */
@@ -110,11 +112,23 @@ export function planBeltPath(world: World, path: readonly PathTile[]): PlannedBe
       }
     }
     if (!existing) return { ...t, status: 'new', outputs: dirMask(t.dir) };
-    if (i === 0 && path.length > 1) {
+    if (i === 0 && path.length > 1 && !isDeadEnd(world, existing)) {
       return { ...t, status: 'addOutput', outputs: existing.outputs | dirMask(t.dir) };
     }
     return { ...t, status: 'replace', outputs: dirMask(t.dir) };
   });
+}
+
+/**
+ * Every output of the belt leads nowhere (no belt, building input or hub behind it): the
+ * end of a line. Drawing from it continues the line in the new direction instead of
+ * adding a branch that would only feed the void.
+ */
+export function isDeadEnd(world: World, b: Belt): boolean {
+  for (const d of DIRS) {
+    if (hasOutput(b, d) && resolveTarget(world, b.x, b.y, d).kind !== 'none') return false;
+  }
+  return true;
 }
 
 /** Plan for a simple click: one belt facing `dir`, replacing any belt there. */
