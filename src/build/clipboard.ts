@@ -259,7 +259,7 @@ export function pasteOrigin(clip: Clip, tx: number, ty: number): { x: number; y:
 }
 
 /** Most copies laid by one paste drag. */
-export const MAX_PASTE_ROW = 32;
+export const MAX_PASTE_ROW = EDIT.maxPasteRow;
 
 /**
  * Dragging in paste mode lays a row of copies spaced by the clip size along the dominant

@@ -1,6 +1,7 @@
 import {
   beltSpeed,
   extractorCapacity,
+  MAPGEN,
   operatorSpeed,
   type Track,
   TRACKS,
@@ -61,7 +62,7 @@ export function ensureSequence(seed: number, track: Track, seq: number[], upTo: 
       t = Math.round(prev * (min + (max - min) * draw(seed, track, k)));
     }
     if (t <= prev) t = prev + 1;
-    if (t === 10) t = 11;
+    if (t === MAPGEN.forbiddenValue) t += 1;
     seq.push(t);
   }
   return seq;
