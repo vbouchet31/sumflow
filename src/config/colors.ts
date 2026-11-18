@@ -1,42 +1,42 @@
 /** Visual palette (PLAN §10.1). Rendering only, no gameplay values here. */
 export const COLORS = {
-  background: '#0f1422',
-  gridLine: '#1a2236',
-  deposit: '#1e2740',
-  hub: '#2b6cb0',
+  background: '#f7f5f0',
+  gridLine: '#ebe7de',
+  deposit: '#2b2b2b',
+  hub: '#111111',
   text: '#ffffff',
-  depositLocked: '#6b7590',
+  depositLocked: '#c9c4b8',
 } as const;
 
 /** Building colours (PLAN §6.3). Operators are also told apart by symbol and shape (§9.5). */
 export const BUILDING_COLORS = {
-  extractor: '#3f6e8c',
-  adder: '#3f9a5c',
-  multiplier: '#d27a32',
-  subtractor: '#c84a4a',
-  divider: '#8a5cc2',
-  exponent: '#c9a72c',
-  storage: '#6b7a8f',
-  bridge: '#4a6fa5',
+  extractor: '#6b6b6b',
+  adder: '#1f4fbf',
+  multiplier: '#f5a300',
+  subtractor: '#e63022',
+  divider: '#2a9d8f',
+  exponent: '#8e44ad',
+  storage: '#9a958a',
+  bridge: '#1f4fbf',
 } as const;
 
 export const HUB_COLORS = {
-  fill: '#2b6cb0',
-  barTrack: '#1c4a7d',
-  barFill: '#ffffff',
-  textMuted: '#c8dcf2',
+  fill: '#111111',
+  barTrack: '#3a3a3a',
+  barFill: '#f5c400',
+  textMuted: '#d6d6d6',
 } as const;
 
-export const FONT_NUM = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
-export const FONT_UI = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+export const FONT_NUM = '"Jost", "Futura", system-ui, sans-serif';
+export const FONT_UI = '"Jost", "Futura", system-ui, sans-serif';
 
 export const BELT_COLORS = {
-  bridgeBase: '#1b2232',
-  bridgeDeck: '#34405a',
-  priority: '#48c774',
-  base: '#232b3d',
-  chevron: '#55627e',
-  line: '#3d4860',
+  bridgeBase: '#dcd7cc',
+  bridgeDeck: '#b9b3a6',
+  priority: '#e63022',
+  base: '#e6e1d6',
+  chevron: '#a39d90',
+  line: '#d0ccc2',
 } as const;
 
 /** Ghost fills: new, replace, bridge, impossible (PLAN §6.5). */
@@ -58,8 +58,8 @@ export const AREA_COLORS = {
 
 /** Text markers (PLAN §10.2 layer 8). */
 export const MARKER_COLORS = {
-  pin: '#ffd866',
-  pinEdge: '#0a0e1a',
-  labelBg: 'rgba(10, 14, 26, 0.85)',
-  labelText: '#ffe9a8',
+  pin: '#e63022',
+  pinEdge: '#111111',
+  labelBg: 'rgba(255, 255, 255, 0.95)',
+  labelText: '#111111',
 } as const;

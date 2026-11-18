@@ -82,7 +82,7 @@ export function drawOperator(
     ctx.fillStyle =
       opts.tint ?? (isIn ? shade(base, -0.3) : t.role === 'body' ? base : shade(base, 0.12));
     ctx.beginPath();
-    ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0.22 * s);
+    ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0 * s);
     ctx.fill();
   }
 
@@ -134,7 +134,7 @@ export function drawOperator(
       const p = transformLocal(t.x, t.y, def.w, def.h, rot, mirror);
       const sp = cam.worldToScreen(ox + p.x, oy + p.y);
       ctx.beginPath();
-      ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0.22 * s);
+      ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0 * s);
       ctx.fill();
     }
   }
