@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { E, N, S, W } from '../../src/core/grid';
 import { INT_MAX } from '../../src/core/intmath';
-import { dirMask, portFaces } from '../../src/sim/entities';
-import { compute } from '../../src/sim/operators';
+import { type Building, dirMask, portFaces } from '../../src/sim/entities';
+import { compute, operatorStatus } from '../../src/sim/operators';
 import { runTicks } from '../../src/sim/tick';
 import type { World } from '../../src/sim/world';
 import { beltLine, makeWorld } from './helpers/scenario';
@@ -152,5 +152,37 @@ describe('level 2 with an adder', () => {
     runTicks(world, 60 * 120);
     expect(add.flashTick).toBeGreaterThan(0);
     expect(world.state.level).toBe(3);
+  });
+});
+
+describe('operator status', () => {
+  const op = (extra: Partial<Building>): Building =>
+    ({
+      id: 1,
+      type: 'adder',
+      x: 0,
+      y: 0,
+      rot: 0,
+      rrOut: 0,
+      priority: null,
+      cycle: -1,
+      inA: [],
+      inB: [],
+      out: [],
+      ...extra,
+    }) as Building;
+
+  it('is fine while cycling or shortly after a cycle', () => {
+    expect(operatorStatus(op({ cycle: 0.2 }), 1000).kind).toBe('ok');
+    expect(operatorStatus(op({ flashTick: 990 }), 1000).kind).toBe('ok');
+  });
+
+  it('tells which inputs are empty once stopped for a while', () => {
+    expect(operatorStatus(op({ inA: [1] }), 1000)).toEqual({ kind: 'starved', missing: ['B'] });
+    expect(operatorStatus(op({}), 1000)).toEqual({ kind: 'starved', missing: ['A', 'B'] });
+  });
+
+  it('reports a full output', () => {
+    expect(operatorStatus(op({ inA: [1], inB: [2], out: [3, 3] }), 1000).kind).toBe('blocked');
   });
 });

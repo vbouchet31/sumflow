@@ -87,6 +87,8 @@ export const fr = {
   'tip.bufR': 'Reste : {items}',
   'tip.cycle': 'Cycle : {pct} %',
   'tip.idle': 'En attente',
+  'tip.starved': "À l'arrêt : rien sur l'entrée {ports}",
+  'tip.blocked': "À l'arrêt : sortie bloquée, les résultats ne partent pas",
   'tip.speed': 'Vitesse : {rate} op/s',
   'tip.none': '(vide)',
   'tool.bridge': 'Pont',

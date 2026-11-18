@@ -6,7 +6,7 @@ import { beltStatus } from '../sim/belts';
 import { connectedOutputs } from '../sim/outputs';
 import { currentExtractorRate } from '../sim/upgrades';
 import { isOperator } from '../sim/entities';
-import { cycleDuration } from '../sim/operators';
+import { cycleDuration, operatorStatus } from '../sim/operators';
 import { type MessageKey } from '../i18n';
 import type { World } from '../sim/world';
 import { isExtractable } from '../world/deposits';
@@ -66,6 +66,10 @@ function describeObject(world: World, x: number, y: number): string[] {
       lines.push(t('tip.bufOut', { items: list(b.out) }));
     }
     const cycle = b.cycle ?? -1;
+    const status = operatorStatus(b, world.state.tick);
+    if (status.kind === 'starved')
+      lines.push(t('tip.starved', { ports: status.missing.join(', ') }));
+    if (status.kind === 'blocked') lines.push(t('tip.blocked'));
     lines.push(
       cycle < 0 ? t('tip.idle') : t('tip.cycle', { pct: Math.round(100 * (1 - cycle / dur)) }),
       t('tip.speed', { rate: (1 / dur).toLocaleString(getLocale(), { maximumFractionDigits: 3 }) }),

@@ -1,7 +1,14 @@
 import { BUILDINGS } from '../../config/buildings';
-import { BUILDING_COLORS, COLORS, FONT_NUM } from '../../config/colors';
+import { BUILDING_COLORS, COLORS, FONT_NUM, STATUS_COLORS } from '../../config/colors';
 import { DX, DY, type Rot, transformLocal } from '../../core/grid';
-import { buildingSize, type OperatorType, portFaces } from '../../sim/entities';
+import {
+  type Building,
+  buildingSize,
+  isOperator,
+  type OperatorType,
+  portFaces,
+} from '../../sim/entities';
+import type { OperatorStatus } from '../../sim/operators';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
 
@@ -139,4 +146,56 @@ export function drawOperator(
     }
   }
   ctx.globalAlpha = 1;
+}
+
+/**
+ * Stalled operator (PLAN §6.2): dashed outline on each input that has nothing (amber) or
+ * on the outputs that cannot empty (red), and a badge on the corner of the footprint.
+ * `pulse` ∈ [0, 1] animates the outline (0 when animations are reduced).
+ */
+export function drawOperatorStatus(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  b: Building,
+  status: OperatorStatus,
+  pulse: number,
+): void {
+  if (status.kind === 'ok' || !isOperator(b.type)) return;
+  const s = cam.scale;
+  const def = BUILDINGS[b.type];
+  const mirror = b.mirror === true;
+  const color = status.kind === 'blocked' ? STATUS_COLORS.blocked : STATUS_COLORS.starved;
+  const roles: readonly string[] = status.kind === 'blocked' ? ['O', 'Q', 'R'] : status.missing;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(1.5, 0.07 * s);
+  ctx.setLineDash([0.16 * s, 0.1 * s]);
+  ctx.lineDashOffset = -pulse * 0.52 * s;
+  const inset = 0.1 * s;
+  for (const t of def.tiles) {
+    if (!roles.includes(t.role)) continue;
+    const p = transformLocal(t.x, t.y, def.w, def.h, b.rot, mirror);
+    const sp = cam.worldToScreen(b.x + p.x, b.y + p.y);
+    ctx.beginPath();
+    ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0.2 * s);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.lineDashOffset = 0;
+  // Badge on the top-right corner of the footprint box.
+  const size = buildingSize(b.type, b.rot);
+  const c = cam.worldToScreen(b.x + size.w - 0.1, b.y + 0.1);
+  const r = Math.max(7, 0.3 * s);
+  ctx.fillStyle = color;
+  ctx.strokeStyle = STATUS_COLORS.edge;
+  ctx.lineWidth = Math.max(1, 0.05 * s);
+  ctx.beginPath();
+  ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = STATUS_COLORS.text;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const label = status.kind === 'blocked' ? '!' : status.missing.join('');
+  ctx.font = `700 ${(label.length > 1 ? 0.95 : 1.25) * r}px ${FONT_NUM}`;
+  ctx.fillText(label, c.x, c.y + 0.05 * r);
 }

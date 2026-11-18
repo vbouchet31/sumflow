@@ -48,6 +48,14 @@ export const GHOST_COLORS = {
   demolish: 'rgba(230, 70, 70, 0.35)',
 } as const;
 
+/** Stalled operators: missing input, blocked output (PLAN §6.2). */
+export const STATUS_COLORS = {
+  starved: '#f0b429',
+  blocked: '#ef5350',
+  edge: '#0a0e1a',
+  text: '#0a0e1a',
+} as const;
+
 /** Zone selection rectangles (PLAN §8.2). */
 export const AREA_COLORS = {
   demolish: { fill: 'rgba(230, 70, 70, 0.18)', stroke: 'rgba(240, 100, 100, 0.9)' },

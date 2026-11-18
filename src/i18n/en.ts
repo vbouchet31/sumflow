@@ -89,6 +89,8 @@ export const en: Record<MessageKey, string> = {
   'tip.bufR': 'Remainder: {items}',
   'tip.cycle': 'Cycle: {pct} %',
   'tip.idle': 'Idle',
+  'tip.starved': 'Stopped: nothing on input {ports}',
+  'tip.blocked': 'Stopped: output blocked, results cannot leave',
   'tip.speed': 'Speed: {rate} op/s',
   'tip.none': '(empty)',
   'tool.bridge': 'Bridge',

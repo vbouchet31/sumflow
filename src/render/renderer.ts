@@ -10,7 +10,7 @@ import { LOD } from './lod';
 import { drawBelts } from './layers/belts';
 import { drawBridges, drawPriorities } from './layers/bridges';
 import { priorityTiles } from '../sim/priority';
-import { drawBuildings } from './layers/buildings';
+import { drawBuildings, drawStatuses } from './layers/buildings';
 import { drawDeposits } from './layers/deposits';
 import { drawGhosts } from './layers/ghosts';
 import { drawGrid } from './layers/grid';
@@ -115,6 +115,7 @@ export class Renderer {
     const buildings = [...world.buildingsInRect(v.x0, v.y0, v.x1, v.y1)];
     drawBuildings(ctx, camera, buildings, state, this.reducedMotion);
     drawItems(ctx, camera, belts, this.itemValuesAlways);
+    drawStatuses(ctx, camera, buildings, state, this.reducedMotion);
     if (camera.zoom >= LOD.depositText) {
       const lanes: Belt[] = [];
       for (const b of bridges) {
