@@ -233,7 +233,7 @@ function building(v: unknown, path: string): SavedBuilding {
   return b;
 }
 
-function clip(v: unknown, path: string): Clip {
+export function clip(v: unknown, path: string): Clip {
   const o = obj(v, path);
   return {
     w: int(o['w'], `${path}.w`, 1),
