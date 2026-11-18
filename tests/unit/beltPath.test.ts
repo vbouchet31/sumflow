@@ -3,6 +3,7 @@ import {
   applyBeltPlan,
   computeLPath,
   planBeltPath,
+  planLinks,
   planSingleBelt,
 } from '../../src/build/beltPath';
 import { demolishAt, planExtractor, applyBuildingPlan } from '../../src/build/placement';
@@ -118,5 +119,21 @@ describe('ToolController', () => {
     tools.pointerDown(10, 10, NO_MODS);
     tools.pointerUp(10, 10, NO_MODS);
     expect(world.beltAt(10, 10)?.outputs).toBe(dirMask(S));
+  });
+});
+
+describe('link preview', () => {
+  it('shows merges from the side, where the path leads, and head-on clashes', () => {
+    const world = makeWorld();
+    world.setBelt(22, 19, dirMask(S)); // pushes down into the path at (22, 20)
+    world.setBelt(25, 20, dirMask(E)); // the path leads into it
+    const links = planLinks(world, planBeltPath(world, computeLPath(20, 20, 24, 20, false)));
+    expect(links).toEqual([
+      { x: 22, y: 20, side: N, kind: 'in' },
+      { x: 24, y: 20, side: E, kind: 'out' },
+    ]);
+    world.setBelt(25, 20, dirMask(W));
+    const clash = planLinks(world, planBeltPath(world, computeLPath(20, 20, 24, 20, false)));
+    expect(clash.find((l) => l.x === 24)?.kind).toBe('clash');
   });
 });

@@ -1,5 +1,6 @@
 import { DIRS, type Dir, DX, DY, E, isInBounds, key, N, opposite, S, W } from '../core/grid';
-import { axisOf, type Belt, hasOutput } from '../sim/entities';
+import { axisOf, type Belt, hasOutput, isOutputKind } from '../sim/entities';
+import { resolveTarget } from '../sim/belts';
 import { isBuildingUnlocked } from '../sim/state';
 import { singleOutput } from '../sim/world';
 import { dirMask } from '../sim/entities';
@@ -172,4 +173,50 @@ export function planManualBridge(
   const h = keep !== null && axisOf(keep) === 0 ? keep : (fed(0) ?? (axisOf(dir) === 0 ? dir : E));
   const v = keep !== null && axisOf(keep) === 1 ? keep : (fed(1) ?? (axisOf(dir) === 1 ? dir : S));
   return { h, v };
+}
+
+/**
+ * How a planned belt meets what is already around it, on one tile edge:
+ * - `in`: something next to the path pushes into it (a merge the player may not want);
+ * - `out`: the path leads into a belt, a building input or the hub;
+ * - `clash`: the path and a belt point at each other (head-on: nothing will move).
+ */
+export interface PlannedLink {
+  x: number;
+  y: number;
+  /** Side of tile `(x, y)` (on the path) where the link is. */
+  side: Dir;
+  kind: 'in' | 'out' | 'clash';
+}
+
+/** Links between a planned path and its surroundings, for the ghost. */
+export function planLinks(world: World, plan: readonly PlannedBelt[]): PlannedLink[] {
+  const onPath = new Set<number>();
+  for (const t of plan) if (t.status !== 'blocked') onPath.add(key(t.x, t.y));
+  const links: PlannedLink[] = [];
+  for (const t of plan) {
+    if (t.status === 'blocked' || t.status === 'bridge') continue;
+    for (const side of DIRS) {
+      const nx = t.x + DX[side];
+      const ny = t.y + DY[side];
+      if (onPath.has(key(nx, ny))) continue;
+      const out = (t.outputs & (1 << side)) !== 0;
+      if (out) {
+        const target = resolveTarget(world, t.x, t.y, side);
+        if (target.kind === 'blocked') links.push({ x: t.x, y: t.y, side, kind: 'clash' });
+        else if (target.kind !== 'none') links.push({ x: t.x, y: t.y, side, kind: 'out' });
+        continue;
+      }
+      const lane = world.laneAt(nx, ny, axisOf(side));
+      if (lane) {
+        if (hasOutput(lane.belt, opposite(side))) links.push({ x: t.x, y: t.y, side, kind: 'in' });
+        continue;
+      }
+      const ref = world.portAt(nx, ny, opposite(side));
+      if (ref && (isOutputKind(ref.port.kind) || ref.port.kind === 'dynamic')) {
+        links.push({ x: t.x, y: t.y, side, kind: 'in' });
+      }
+    }
+  }
+  return links;
 }

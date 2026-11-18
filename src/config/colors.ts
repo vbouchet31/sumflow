@@ -48,6 +48,14 @@ export const GHOST_COLORS = {
   demolish: 'rgba(230, 70, 70, 0.35)',
 } as const;
 
+/** Badges where a planned belt joins existing ones (merge in, lead out, head-on). */
+export const LINK_COLORS = {
+  in: '#e0a020',
+  out: '#3fae68',
+  clash: '#e04848',
+  edge: '#0a0e1a',
+} as const;
+
 /** Zone selection rectangles (PLAN §8.2). */
 export const AREA_COLORS = {
   demolish: { fill: 'rgba(230, 70, 70, 0.18)', stroke: 'rgba(240, 100, 100, 0.9)' },

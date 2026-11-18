@@ -9,7 +9,9 @@ import {
   applyBeltPlan,
   computeLPath,
   type PlannedBelt,
+  type PlannedLink,
   planBeltPath,
+  planLinks,
   planManualBridge,
   planSingleBelt,
 } from './beltPath';
@@ -60,6 +62,8 @@ export interface Ghost {
   demolish: { x: number; y: number } | null;
   /** Selection rectangle of a zone tool while dragging. */
   area: { rect: Rect; kind: AreaTool } | null;
+  /** Belt tool: where the planned belts join what is already there. */
+  links?: PlannedLink[];
 }
 
 export interface ToolEvents {
@@ -519,7 +523,10 @@ export class ToolController {
     const drag = this.drag;
     if (tool === 'paste') return pasteGhost(this.pastePlans(drag));
     if (!this.hover) return empty;
-    if (tool === 'belt') return { ...empty, belts: this.beltPlan(drag) };
+    if (tool === 'belt') {
+      const belts = this.beltPlan(drag);
+      return { ...empty, belts, links: planLinks(this.world, belts) };
+    }
     if (tool === 'extractor') {
       return { ...empty, buildings: [planExtractor(this.world, this.hover.x, this.hover.y)] };
     }

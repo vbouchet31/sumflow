@@ -1,5 +1,6 @@
-import { AREA_COLORS, COLORS, GHOST_COLORS } from '../../config/colors';
-import { DX, DY } from '../../core/grid';
+import { AREA_COLORS, COLORS, GHOST_COLORS, LINK_COLORS } from '../../config/colors';
+import { DX, DY, opposite } from '../../core/grid';
+import type { PlannedLink } from '../../build/beltPath';
 import type { Ghost } from '../../build/tools';
 import { buildingSize, isOperator } from '../../sim/entities';
 import { drawOperator } from './operators';
@@ -42,6 +43,7 @@ export function drawGhosts(ctx: CanvasRenderingContext2D, cam: Camera, ghost: Gh
     );
     ctx.stroke();
   }
+  if (ghost.links) drawLinks(ctx, cam, ghost.links);
   for (const g of ghost.buildings) {
     if (isOperator(g.type)) {
       // Real look, translucent, so ports and letters are visible before placing.
@@ -83,5 +85,49 @@ export function drawGhosts(ctx: CanvasRenderingContext2D, cam: Camera, ghost: Gh
     const p = cam.worldToScreen(ghost.demolish.x, ghost.demolish.y);
     ctx.fillStyle = GHOST_COLORS.demolish;
     ctx.fillRect(p.x, p.y, s, s);
+  }
+}
+
+/**
+ * Badges on the edges where a planned belt meets the existing factory: amber when
+ * something will feed into it (a merge), green when it leads into something, red when two
+ * belts point at each other. Each carries an arrow in the direction items will go.
+ */
+function drawLinks(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  links: readonly PlannedLink[],
+): void {
+  const s = cam.scale;
+  const r = Math.max(5, 0.2 * s);
+  for (const l of links) {
+    const c = cam.worldToScreen(l.x + 0.5 + DX[l.side] * 0.5, l.y + 0.5 + DY[l.side] * 0.5);
+    ctx.fillStyle = LINK_COLORS[l.kind];
+    ctx.strokeStyle = LINK_COLORS.edge;
+    ctx.lineWidth = Math.max(1, 0.04 * s);
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = COLORS.text;
+    ctx.lineWidth = Math.max(1.5, 0.06 * s);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    const k = r * 0.45;
+    if (l.kind === 'clash') {
+      ctx.moveTo(c.x - k, c.y - k);
+      ctx.lineTo(c.x + k, c.y + k);
+      ctx.moveTo(c.x + k, c.y - k);
+      ctx.lineTo(c.x - k, c.y + k);
+    } else {
+      const d = l.kind === 'out' ? l.side : opposite(l.side);
+      const fx = DX[d];
+      const fy = DY[d];
+      ctx.moveTo(c.x - fx * k - fy * k, c.y - fy * k + fx * k);
+      ctx.lineTo(c.x + fx * k, c.y + fy * k);
+      ctx.lineTo(c.x - fx * k + fy * k, c.y - fy * k - fx * k);
+    }
+    ctx.stroke();
   }
 }
