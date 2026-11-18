@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('a seeded map is reproducible and shows the seed in the debug panel', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   await expect(page.locator('.debug-panel')).toContainText('42');
 
   const first = await page.evaluate(() => {

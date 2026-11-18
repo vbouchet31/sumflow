@@ -15,6 +15,8 @@ export interface MenuActions {
   autoBuy: () => boolean;
   setAutoBuy: (on: boolean) => void;
   knownTips: () => HelpTip[];
+  /** Show one tutorial card again (the menu closes first). */
+  replayTip: (tip: HelpTip) => void;
   reshowHelp: () => void;
 }
 
@@ -343,8 +345,19 @@ export class GameMenu {
   }
 
   private helpView(): HTMLElement[] {
-    const list = el('ul', 'help-list');
-    for (const tip of this.actions.knownTips()) list.append(el('li', undefined, t(tip.text)));
+    const list = el('div', 'menu-list help-list');
+    for (const tip of this.actions.knownTips()) {
+      const icon = el('span', 'help-icon', tip.icon);
+      icon.setAttribute('aria-hidden', 'true');
+      const b = el('button', 'menu-btn help-tip', icon, el('span', undefined, t(tip.title)));
+      b.type = 'button';
+      b.dataset['tip'] = tip.id;
+      b.addEventListener('click', () => {
+        this.close();
+        this.actions.replayTip(tip);
+      });
+      list.append(b);
+    }
     return [
       this.header('menu.help', true),
       el('p', 'menu-note', t('help.intro')),
@@ -355,7 +368,7 @@ export class GameMenu {
           this.actions.reshowHelp();
           this.close();
         },
-        'primary-btn',
+        'secondary-btn help-reshow',
       ),
     ];
   }

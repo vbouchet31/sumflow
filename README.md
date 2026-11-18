@@ -88,7 +88,7 @@ Scénario de référence (`src/debug/reference.ts`) : 20 000 tuiles de tapis, 1 
 - **Rendu** : ouvrir le jeu avec `?debug=1`, lancer `__sumflow.loadReference()` dans la console d'une partie neuve, puis `F3` pour lire les FPS à différents zooms.
 - **Lighthouse** : `npm run build && npm run preview`, puis `npx lighthouse http://localhost:4173/ --only-categories=performance` (objectif : 90 ou plus).
 
-Outils de debug : `?debug=1` expose `window.__sumflow` (poser des bâtiments, avancer le temps, débloquer, etc.) et affiche un petit panneau (graine, ticks, curseur, zoom).
+Outils de debug : `?debug=1` expose `window.__sumflow` (poser des bâtiments, avancer le temps, débloquer, etc.) et affiche un petit panneau (graine, ticks, curseur, zoom). `?tutorial=0` empêche les fiches tutoriel de s'ouvrir seules (tests e2e).
 
 ## Déploiement
 

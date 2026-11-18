@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('HUD, levels panel and level-complete toast', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
 
   await expect(page.locator('.hud-target')).toHaveText('1');
   await expect(page.locator('.hud-count')).toHaveText('0 / 10');
