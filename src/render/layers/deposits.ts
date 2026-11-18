@@ -48,7 +48,7 @@ export function drawDeposits(
   const s = cam.scale;
   const inset = cam.zoom >= LOD.buildingText ? 0.08 * s : 0;
   const size = 3 * s - 2 * inset;
-  const radius = cam.zoom >= LOD.buildingText ? 0.35 * s : 0;
+  const radius = cam.zoom >= LOD.buildingText ? 0.08 * s : 0;
 
   ctx.fillStyle = COLORS.deposit;
   ctx.beginPath();

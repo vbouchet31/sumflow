@@ -82,8 +82,10 @@ export function drawOperator(
     ctx.fillStyle =
       opts.tint ?? (isIn ? shade(base, -0.3) : t.role === 'body' ? base : shade(base, 0.12));
     ctx.beginPath();
-    ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0.22 * s);
+    ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0.06 * s);
+    ctx.shadowColor = base; ctx.shadowBlur = 0.5 * s;
     ctx.fill();
+    ctx.shadowBlur = 0;
   }
 
   if (cam.zoom >= LOD.buildingText && !opts.tint) {
@@ -134,7 +136,7 @@ export function drawOperator(
       const p = transformLocal(t.x, t.y, def.w, def.h, rot, mirror);
       const sp = cam.worldToScreen(ox + p.x, oy + p.y);
       ctx.beginPath();
-      ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0.22 * s);
+      ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0.06 * s);
       ctx.fill();
     }
   }

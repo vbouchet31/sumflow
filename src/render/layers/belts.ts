@@ -63,7 +63,7 @@ export function drawBelts(
     ctx.beginPath();
     for (const b of list) {
       const p = cam.worldToScreen(b.x, b.y);
-      ctx.roundRect(p.x + inset, p.y + inset, s - 2 * inset, s - 2 * inset, 0.15 * s);
+      ctx.roundRect(p.x + inset, p.y + inset, s - 2 * inset, s - 2 * inset, 0.04 * s);
     }
     ctx.fill();
   }

@@ -144,7 +144,7 @@ export class TutorialDemo {
           : 1 - this.age / FADE_MS;
       if (fade > 0) {
         ctx.globalAlpha = Math.min(1, fade);
-        ctx.fillStyle = '#0f1422';
+        ctx.fillStyle = '#0b0420';
         ctx.fillRect(0, 0, this.camera.viewW, this.camera.viewH);
       }
       ctx.restore();
@@ -192,7 +192,7 @@ export class TutorialDemo {
     ctx.fillStyle = '#ffffff';
     ctx.fill();
     ctx.lineWidth = 1.5;
-    ctx.strokeStyle = '#0f1422';
+    ctx.strokeStyle = '#0b0420';
     ctx.stroke();
   }
 
