@@ -182,8 +182,9 @@ test('a long press picks the object under the finger', async ({ page }) => {
   // The press was a pick, not a build.
   expect((await state(page)).buildings).toBe(2);
 
-  // With a tool, holding still over empty ground still builds on release.
-  await touch.start(tileCentre(page, 9, 0));
+  // With a tool, holding still over empty ground still builds on release (clear of the
+  // button rail a phone held sideways has on its right edge).
+  await touch.start(tileCentre(page, 6, 1));
   await page.waitForTimeout(600);
   await touch.end();
   expect((await state(page)).buildings).toBe(3);
