@@ -60,6 +60,7 @@ export const en: Record<MessageKey, string> = {
   'reward.none': 'End of game',
   'btn.home': 'Back to hub (H)',
   'btn.levels': 'Levels (L)',
+  'toolbar.operators': 'Operators',
   'btn.close': 'Close',
   'levels.title': 'Upcoming levels',
   'levels.colLevel': 'Lvl',
