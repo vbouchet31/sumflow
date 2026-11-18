@@ -84,6 +84,8 @@ const ACTIONS: readonly ActionDef[] = [
 export class ToolActions {
   private readonly box = el('div', 'tool-hint');
   private readonly label = el('span', 'tool-hint-text');
+  /** Arrow showing where what is placed faces (belt direction, operator rotation). */
+  private readonly compass = el('span', 'tool-hint-dir');
   private readonly buttons = new Map<ActionId, HTMLButtonElement>();
   private last = '';
 
@@ -94,7 +96,8 @@ export class ToolActions {
     this.box.setAttribute('role', 'toolbar');
     this.box.setAttribute('aria-label', t('act.label'));
     this.label.setAttribute('role', 'status');
-    this.box.append(this.label);
+    this.compass.setAttribute('aria-hidden', 'true');
+    this.box.append(this.compass, this.label);
     for (const def of ACTIONS) {
       const btn = el('button', 'hint-btn', def.icon ?? t(def.label));
       btn.type = 'button';
@@ -143,10 +146,15 @@ export class ToolActions {
     const active = tools.tool !== 'none';
     const shown = ACTIONS.map((def) => active && def.shown(tools));
     const pressed = ACTIONS.map((def) => def.pressed?.(tools) ?? false);
-    const key = `${text}|${shown.join()}|${pressed.join()}`;
+    const dir = tools.canRotate ? (tools.tool === 'paste' ? tools.pasteRot : tools.rot) : -1;
+    const key = `${text}|${shown.join()}|${pressed.join()}|${dir}`;
     if (key === this.last) return;
     this.last = key;
     this.label.textContent = text;
+    this.compass.hidden = dir < 0;
+    // Belts face East at rotation 0; buildings and pastes show their quarter turn the same way.
+    this.compass.style.transform = `rotate(${dir * 90}deg)`;
+    this.compass.textContent = '➜\uFE0E';
     this.box.hidden = !active;
     ACTIONS.forEach((def, i) => {
       const btn = this.buttons.get(def.id);

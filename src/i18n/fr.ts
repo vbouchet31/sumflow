@@ -234,7 +234,7 @@ export const fr = {
   'ctl.build': 'Bâtiments',
   'ctlKey.build': '1 à 9',
   'ctl.rotate': 'Pivoter',
-  'ctlKey.rotate': 'R / Maj+R',
+  'ctlKey.rotate': 'R / Maj+R, ou clic droit',
   'ctl.priority': 'Priorité',
   'ctlKey.priority': 'P ou Alt+clic en mode Tapis',
   'ctl.demolish': 'Démolir (zone)',

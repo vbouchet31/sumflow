@@ -1312,3 +1312,21 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Direction of what the active tool places, turned with R or a right click. */
+.tool-hint-dir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #24324f;
+  color: #cfe0ff;
+  font-size: 13px;
+  transition: transform 0.12s ease-out;
+}
+
+.reduce-motion .tool-hint-dir {
+  transition: none;
+}

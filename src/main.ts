@@ -371,6 +371,11 @@ async function bootstrap(): Promise<void> {
       navigator.vibrate?.(10);
       return true;
     },
+    // Mouse: a right click turns what is being placed, or puts a tool that cannot turn away.
+    onRightClick: () => {
+      if (tools.canRotate) tools.rotate(1);
+      else if (tools.tool !== 'none') tools.cancel();
+    },
     // Touch: with a tool one finger builds, without one it moves the map.
     buildsOnDrag: () => tools.tool !== 'none',
     onWheel: (delta, mods) => {
