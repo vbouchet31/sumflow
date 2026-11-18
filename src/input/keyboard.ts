@@ -32,6 +32,7 @@ export interface KeyboardHandlers {
   onQuickDemolish: () => void;
   onTogglePause: () => void;
   onLevels: () => void;
+  onOracle: () => void;
   onUpgrades: () => void;
   onDelivered: () => void;
   onTogglePerf: () => void;
@@ -110,6 +111,9 @@ export class Keyboard {
         break;
       case ACTION_KEYS.levels:
         this.handlers.onLevels();
+        break;
+      case ACTION_KEYS.oracle:
+        this.handlers.onOracle();
         break;
       case ACTION_KEYS.upgrades:
         this.handlers.onUpgrades();

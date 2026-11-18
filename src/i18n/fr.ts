@@ -308,4 +308,10 @@ export const fr = {
   'toast.importError': 'Import impossible : fichier invalide. Rien n’a été modifié.',
   'toast.loadError': 'Sauvegarde illisible : nouvelle partie. L’ancienne est gardée à part.',
   'toast.exported': 'Partie exportée : {file}',
+  'oracle.title': 'Oracle',
+  'oracle.intro':
+    'Les recettes les plus courtes pour tes prochaines cibles, avec les gisements extractibles et les opérateurs débloqués.',
+  'oracle.cost': '{ops} op. · {leaves} gis.',
+  'oracle.none': 'Pas de recette courte : il faudra être créatif !',
+  'btn.oracle': 'Oracle (O)',
 } as const;

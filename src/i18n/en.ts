@@ -309,4 +309,10 @@ export const en: Record<MessageKey, string> = {
   'toast.importError': 'Import failed: invalid file. Nothing was changed.',
   'toast.loadError': 'Unreadable save: new game started. The old one is kept aside.',
   'toast.exported': 'Game exported: {file}',
+  'oracle.title': 'Oracle',
+  'oracle.intro':
+    'The shortest recipes for your next targets, using extractable deposits and unlocked operators.',
+  'oracle.cost': '{ops} op. · {leaves} dep.',
+  'oracle.none': 'No short recipe: time to get creative!',
+  'btn.oracle': 'Oracle (O)',
 };

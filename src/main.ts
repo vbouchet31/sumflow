@@ -25,6 +25,7 @@ import { Hud } from './ui/hud';
 import { rewardLabel } from './ui/labels';
 import { watchLayout } from './ui/layout';
 import { LevelsPanel } from './ui/panels/levels';
+import { OraclePanel } from './ui/panels/oracle';
 import { Toasts } from './ui/toasts';
 import { TopBar } from './ui/topBar';
 import { UpgradesPanel } from './ui/panels/upgrades';
@@ -161,7 +162,8 @@ async function bootstrap(): Promise<void> {
   const levelsPanel = new LevelsPanel(uiRoot, world);
   const upgradesPanel = new UpgradesPanel(uiRoot, world);
   const deliveredPanel = new DeliveredPanel(uiRoot, world);
-  const panels = [levelsPanel, upgradesPanel, deliveredPanel];
+  const oraclePanel = new OraclePanel(uiRoot, world);
+  const panels = [levelsPanel, upgradesPanel, deliveredPanel, oraclePanel];
   for (const p of panels) p.onOpen = () => panels.forEach((o) => o !== p && o.close());
   const upgradesAvailable = (): boolean => TRACKS.some((tr) => isTrackUnlocked(state, tr));
   const toggleUpgrades = (): void => {
@@ -185,6 +187,7 @@ async function bootstrap(): Promise<void> {
     home: goHome,
     delivered: () => deliveredPanel.toggle(),
     levels: () => levelsPanel.toggle(),
+    oracle: () => oraclePanel.toggle(),
     upgrades: toggleUpgrades,
     menu: () => menu.toggle(),
   });
@@ -373,6 +376,7 @@ async function bootstrap(): Promise<void> {
     {
       onHome: goHome,
       onLevels: () => levelsPanel.toggle(),
+      onOracle: () => oraclePanel.toggle(),
       onUpgrades: toggleUpgrades,
       onDelivered: () => deliveredPanel.toggle(),
       onTogglePerf: () => perfOverlay.toggle(),
