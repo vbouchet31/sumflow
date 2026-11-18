@@ -4,7 +4,7 @@ import { type FreeBuildingType, isFreeBuilding } from '../sim/entities';
 import { togglePriorityAt } from '../sim/priority';
 import { isBuildingUnlocked, isFeatureUnlocked } from '../sim/state';
 import { singleOutput, type World } from '../sim/world';
-import { clearArea, demolishArea, type Rect, rectSize, selectionRect } from './area';
+import { areaTargets, clearArea, demolishArea, type Rect, rectSize, selectionRect } from './area';
 import {
   applyBeltPlan,
   computeLPath,
@@ -59,7 +59,11 @@ export interface Ghost {
   buildings: BuildingPlan[];
   demolish: { x: number; y: number } | null;
   /** Selection rectangle of a zone tool while dragging. */
-  area: { rect: Rect; kind: AreaTool } | null;
+  area: {
+    rect: Rect;
+    kind: AreaTool;
+    targets?: { x: number; y: number; w: number; h: number }[];
+  } | null;
 }
 
 export interface ToolEvents {
@@ -474,10 +478,11 @@ export class ToolController {
     return this.hover;
   }
 
-  /** Size of the zone being dragged, for the hint. */
-  get dragArea(): { w: number; h: number } | null {
+  /** Size of the zone being dragged and how many objects it touches, for the hint. */
+  get dragArea(): { w: number; h: number; n: number } | null {
     if (!this.drag?.moved || !this.hover || !isAreaTool(this.tool)) return null;
-    return rectSize(selectionRect(this.drag, this.hover));
+    const rect = selectionRect(this.drag, this.hover);
+    return { ...rectSize(rect), n: areaTargets(this.world, rect, this.tool).length };
   }
 
   private beltPlan(drag: { x: number; y: number; moved: boolean } | null): PlannedBelt[] {
@@ -524,8 +529,13 @@ export class ToolController {
       return { ...empty, buildings: [planExtractor(this.world, this.hover.x, this.hover.y)] };
     }
     if (isAreaTool(tool)) {
-      if (drag?.moved)
-        return { ...empty, area: { rect: selectionRect(drag, this.hover), kind: tool } };
+      if (drag?.moved) {
+        const rect = selectionRect(drag, this.hover);
+        return {
+          ...empty,
+          area: { rect, kind: tool, targets: areaTargets(this.world, rect, tool) },
+        };
+      }
       if (tool === 'demolish') {
         return demolishTarget(this.world, this.hover.x, this.hover.y)
           ? { ...empty, demolish: { ...this.hover } }

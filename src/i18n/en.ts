@@ -142,7 +142,7 @@ export const en: Record<MessageKey, string> = {
   'hint.clear': 'Drag: remove the numbers in an area (buildings stay)',
   'hint.copy': 'Drag: copy an area (128 × 128 max)',
   'hint.cut': 'Drag: cut an area (128 × 128 max)',
-  'hint.areaSize': 'Area: {w} × {h}',
+  'hint.areaSize': 'Area: {w} × {h} · {n} objects',
   'hint.paste': 'Clipboard {i} / {n}',
   'act.label': 'Tool actions',
   'act.rotate': 'Rotate',

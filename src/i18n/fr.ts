@@ -140,7 +140,7 @@ export const fr = {
   'hint.clear': 'Glisser : retirer les nombres d’une zone (bâtiments gardés)',
   'hint.copy': 'Glisser : copier une zone (128 × 128 max)',
   'hint.cut': 'Glisser : couper une zone (128 × 128 max)',
-  'hint.areaSize': 'Zone : {w} × {h}',
+  'hint.areaSize': 'Zone : {w} × {h} · {n} objets',
   'hint.paste': 'Presse-papiers {i} / {n}',
   'act.label': 'Actions de l’outil',
   'act.rotate': 'Pivoter',

@@ -50,10 +50,26 @@ export const GHOST_COLORS = {
 
 /** Zone selection rectangles (PLAN §8.2). */
 export const AREA_COLORS = {
-  demolish: { fill: 'rgba(230, 70, 70, 0.18)', stroke: 'rgba(240, 100, 100, 0.9)' },
-  clear: { fill: 'rgba(240, 190, 60, 0.15)', stroke: 'rgba(245, 205, 90, 0.9)' },
-  copy: { fill: 'rgba(80, 150, 240, 0.15)', stroke: 'rgba(120, 180, 255, 0.9)' },
-  cut: { fill: 'rgba(237, 150, 54, 0.18)', stroke: 'rgba(245, 170, 80, 0.9)' },
+  demolish: {
+    fill: 'rgba(230, 70, 70, 0.12)',
+    stroke: 'rgba(240, 100, 100, 0.9)',
+    target: 'rgba(230, 60, 60, 0.45)',
+  },
+  clear: {
+    fill: 'rgba(240, 190, 60, 0.1)',
+    stroke: 'rgba(245, 205, 90, 0.9)',
+    target: 'rgba(240, 190, 60, 0.4)',
+  },
+  copy: {
+    fill: 'rgba(80, 150, 240, 0.1)',
+    stroke: 'rgba(120, 180, 255, 0.9)',
+    target: 'rgba(80, 150, 240, 0.35)',
+  },
+  cut: {
+    fill: 'rgba(237, 150, 54, 0.12)',
+    stroke: 'rgba(245, 170, 80, 0.9)',
+    target: 'rgba(237, 150, 54, 0.4)',
+  },
 } as const;
 
 /** Text markers (PLAN §10.2 layer 8). */
