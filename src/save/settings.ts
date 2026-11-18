@@ -15,6 +15,9 @@ export interface Settings {
   itemValues: 'always' | 'zoom';
   autosave: AutosaveSeconds;
   reduceMotion: boolean;
+  /** Minimap open or closed by the player; `null`: not chosen yet, it depends on the screen. */
+  minimapOpen: boolean | null;
+  minimapSize: 'large' | 'small';
 }
 
 export function defaultSettings(locale: Locale, reduceMotion: boolean): Settings {
@@ -25,6 +28,8 @@ export function defaultSettings(locale: Locale, reduceMotion: boolean): Settings
     itemValues: 'zoom',
     autosave: 60,
     reduceMotion,
+    minimapOpen: null,
+    minimapSize: 'large',
   };
 }
 
@@ -50,6 +55,10 @@ export function parseSettings(text: string | null, defaults: Settings): Settings
     out.autosave = o['autosave'] as AutosaveSeconds;
   }
   if (typeof o['reduceMotion'] === 'boolean') out.reduceMotion = o['reduceMotion'];
+  if (typeof o['minimapOpen'] === 'boolean') out.minimapOpen = o['minimapOpen'];
+  if (o['minimapSize'] === 'large' || o['minimapSize'] === 'small') {
+    out.minimapSize = o['minimapSize'];
+  }
   return out;
 }
 

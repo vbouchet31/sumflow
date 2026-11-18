@@ -35,6 +35,8 @@ export interface KeyboardHandlers {
   onUpgrades: () => void;
   onDelivered: () => void;
   onTogglePerf: () => void;
+  /** `M`: the minimap. */
+  onMinimap?: () => void;
 }
 
 /** Tracks held physical keys for camera panning and dispatches shortcuts (PLAN §8). */
@@ -128,6 +130,9 @@ export class Keyboard {
         break;
       case ACTION_KEYS.mirror:
         this.handlers.onMirror();
+        break;
+      case ACTION_KEYS.minimap:
+        this.handlers.onMinimap?.();
         break;
       case SPECIAL_KEYS.quickDemolish.toLowerCase():
         this.handlers.onQuickDemolish();

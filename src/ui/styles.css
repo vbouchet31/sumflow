@@ -1459,3 +1459,97 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Minimap (M): under the top bar, on the right. */
+.minimap {
+  position: absolute;
+  right: var(--edge-r);
+  top: calc(var(--edge-t) + var(--top-h) + 10px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  /* Only the map and the buttons take clicks: the rest of the box is the game's. */
+  pointer-events: none;
+}
+
+.minimap > * {
+  pointer-events: auto;
+}
+
+/* A panel opens at the same spot: the map steps aside while it is open. */
+#ui-root:has(> .panel:not([hidden])) > .minimap {
+  visibility: hidden;
+}
+
+.minimap-canvas {
+  border-radius: 10px;
+  border: 1px solid #2c3754;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 40%);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.minimap-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.minimap-btn {
+  width: var(--top-h);
+  height: var(--top-h);
+  padding: 0;
+  border: 1px solid #26304a;
+  border-radius: 8px;
+  background: rgb(10 14 26 / 88%);
+  color: var(--fg);
+  font: 16px var(--font-ui);
+  cursor: pointer;
+}
+
+.minimap-btn[hidden] {
+  display: none;
+}
+
+.minimap-btn:focus-visible {
+  outline: 2px solid #7fb2ff;
+  outline-offset: 1px;
+}
+
+/* The status chips sit under the top bar on narrower screens: they go left of the map. */
+.ui-icons .status-bar {
+  right: calc(var(--edge-r) + var(--top-h) + 8px);
+}
+
+/* Open, the map is wider than its button: the chips go left of the map. */
+.ui-icons:has(.minimap.is-open) .status-bar {
+  right: calc(var(--edge-r) + 180px + 10px);
+}
+
+.ui-icons:has(.minimap.is-open.is-small) .status-bar {
+  right: calc(var(--edge-r) + 112px + 10px);
+}
+
+/* Phones: the small map, its buttons on its left so that they stay clear of the tool bar. */
+.ui-compact .minimap {
+  flex-direction: row-reverse;
+  align-items: flex-start;
+}
+
+.ui-compact .minimap-buttons {
+  flex-direction: column;
+}
+
+.ui-compact:has(.minimap.is-open) .status-bar {
+  right: calc(var(--edge-r) + 112px + var(--top-h) + 16px);
+}
+
+/*
+ * Phone held upright: no room beside the HUD for the chips: they go under the map.
+ */
+.ui-narrow:has(.minimap.is-open) .status-bar {
+  right: var(--edge-r);
+  top: calc(var(--edge-t) + var(--top-h) + 10px + 112px + 8px);
+  flex-direction: column;
+  align-items: flex-end;
+}

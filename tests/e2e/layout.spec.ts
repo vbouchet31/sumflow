@@ -2,7 +2,15 @@ import { expect, test, type Page } from '@playwright/test';
 import { tileCentre, touchDriver } from './helpers';
 
 /** Blocks that must never cover one another on the main screen. */
-const BLOCKS = ['.hud', '.top-bar', '.build-bar', '.tool-hint', '.tooltip', '.status-bar'];
+const BLOCKS = [
+  '.hud',
+  '.top-bar',
+  '.build-bar',
+  '.tool-hint',
+  '.tooltip',
+  '.status-bar',
+  '.minimap',
+];
 
 /**
  * Layout problems of the screen as it is now (PLAN-tactile §7.2), as readable strings:
@@ -185,6 +193,11 @@ test('everything unlocked: tools, action bar, tooltip and pause chip all fit', a
   await expect(page.locator('.tooltip')).toBeVisible();
   await expect(page.locator('.status-paused')).toBeVisible();
   expect(await layoutIssues(page), 'tooltip and pause').toEqual([]);
+
+  // Everything at once, with the minimap opened by its button.
+  await page.locator('.minimap-open').tap();
+  await expect(page.locator('.minimap-canvas')).toBeVisible();
+  expect(await layoutIssues(page), 'minimap open').toEqual([]);
 });
 
 test('panels open as sheets inside the screen', async ({ page }) => {

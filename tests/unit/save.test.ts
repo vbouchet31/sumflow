@@ -222,6 +222,21 @@ describe('settings and export', () => {
     });
   });
 
+  it('remembers the minimap: open or closed, and its size', () => {
+    const d = defaultSettings('fr', false);
+    expect(d).toMatchObject({ minimapOpen: null, minimapSize: 'large' });
+    const parse = (o: object): ReturnType<typeof parseSettings> =>
+      parseSettings(JSON.stringify(o), d);
+    expect(parse({ minimapOpen: false, minimapSize: 'small' })).toMatchObject({
+      minimapOpen: false,
+      minimapSize: 'small',
+    });
+    expect(parse({ minimapOpen: 'yes', minimapSize: 'huge' })).toMatchObject({
+      minimapOpen: null,
+      minimapSize: 'large',
+    });
+  });
+
   it('names export files sumflow-AAAAMMJJ-HHMM.json', () => {
     expect(exportFileName(new Date(2026, 10, 6, 9, 5))).toBe('sumflow-20261106-0905.json');
   });
