@@ -35,6 +35,7 @@ import { StatusBar } from './ui/statusBar';
 import { MarkerEditor } from './ui/markerEditor';
 import { ToolActions } from './ui/toolActions';
 import { describeTile, Tooltip } from './ui/tooltip';
+import { CursorLabel } from './ui/cursorLabel';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
 import { setAutoBuy } from './sim/progression';
@@ -189,6 +190,7 @@ async function bootstrap(): Promise<void> {
     menu: () => menu.toggle(),
   });
   const tooltip = new Tooltip(uiRoot);
+  const cursorLabel = new CursorLabel(uiRoot);
   const buildBar = new BuildBar(uiRoot, tools);
   const statusBar = new StatusBar(uiRoot);
   const toasts = new Toasts(uiRoot);
@@ -466,7 +468,15 @@ async function bootstrap(): Promise<void> {
     const simStart = performance.now();
     const ticks = loop.advance(dt, () => performance.now() - simStart > CATCH_UP.frameBudgetMs);
     const drawStart = performance.now();
-    renderer.draw(world, tools.ghost(), now);
+    const ghost = tools.ghost();
+    renderer.draw(world, ghost, now);
+    const finger = pointer.buildPoint;
+    cursorLabel.update(
+      ghost,
+      finger ?? (pointer.inside ? { x: pointer.x, y: pointer.y } : null),
+      finger !== null,
+      camera.viewW,
+    );
     const drawEnd = performance.now();
     catchUpBar.update(loop.catchUpProgress);
     if (perf.frame(now, drawStart - simStart, ticks, drawEnd - drawStart) && perfOverlay.visible) {
