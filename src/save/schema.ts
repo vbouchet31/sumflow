@@ -53,6 +53,7 @@ export interface SavedBuilding {
   cycle?: number;
   storeValue?: number | null;
   storeCount?: number;
+  sourceValue?: number;
 }
 
 export interface SavedRequirement {
@@ -88,6 +89,8 @@ export interface SaveData {
   markers: { x: number; y: number; text: string }[];
   clipboard: Clip[];
   helpSeen: string[];
+  /** Sandbox game (proposal 19). Optional: older saves are not. */
+  sandbox?: boolean;
   camera: { x: number; y: number; zoom: number };
 }
 
@@ -150,6 +153,7 @@ const ints = (v: unknown, path: string): number[] =>
   arr(v, path).map((x, i) => int32(x, `${path}[${i}]`));
 
 const PLACEABLE: readonly PlaceableType[] = [
+  'source',
   'extractor',
   'adder',
   'multiplier',
@@ -161,6 +165,7 @@ const PLACEABLE: readonly PlaceableType[] = [
 ];
 const FEATURES: readonly Feature[] = ['upgrades', 'priorities'];
 const BUILDING_TYPES: readonly BuildingType[] = [
+  'source',
   'hub',
   'extractor',
   'adder',
@@ -230,6 +235,8 @@ function building(v: unknown, path: string): SavedBuilding {
     b.storeValue = o['storeValue'] === null ? null : int32(o['storeValue'], `${path}.storeValue`);
   }
   if (o['storeCount'] !== undefined) b.storeCount = int(o['storeCount'], `${path}.storeCount`, 0);
+  if (o['sourceValue'] !== undefined)
+    b.sourceValue = int32(o['sourceValue'], `${path}.sourceValue`);
   return b;
 }
 
@@ -366,6 +373,7 @@ export function validateSave(raw: unknown): SaveData {
     }),
     clipboard: arr(o['clipboard'], '$.clipboard').map((x, i) => clip(x, `$.clipboard[${i}]`)),
     helpSeen: arr(o['helpSeen'], '$.helpSeen').map((x, i) => str(x, `$.helpSeen[${i}]`)),
+    ...(o['sandbox'] === undefined ? {} : { sandbox: bool(o['sandbox'], '$.sandbox') }),
     camera: {
       x: num(cam['x'], '$.camera.x'),
       y: num(cam['y'], '$.camera.y'),

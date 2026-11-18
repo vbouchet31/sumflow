@@ -61,7 +61,9 @@ export class Hud {
     const key = `${state.level}|${req?.value}|${req?.delivered}|${req?.required}|${rate.toFixed(2)}|${loc}`;
     if (key === this.last) return;
     this.last = key;
-    this.level.textContent = t('hud.level', { n: state.level });
+    this.level.textContent = state.sandbox
+      ? `${t('hud.level', { n: state.level })} · ${t('sandbox.badge')}`
+      : t('hud.level', { n: state.level });
     if (!req) {
       this.target.textContent = '';
       this.count.textContent = t('hud.finished');

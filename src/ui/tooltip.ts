@@ -54,6 +54,13 @@ function describeObject(world: World, x: number, y: number): string[] {
       t('tip.storeFill', { n: num(count), max: num(STORAGE_CAPACITY) }),
     ];
   }
+  if (b?.type === 'source') {
+    return [
+      t('tool.source'),
+      t('tip.extractValue', { value: num(b.sourceValue ?? 1) }),
+      t('tip.sourceHint'),
+    ];
+  }
   if (b && isOperator(b.type)) {
     const list = (buf: number[] | undefined): string =>
       buf && buf.length > 0 ? buf.map(num).join(', ') : t('tip.none');

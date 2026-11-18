@@ -8,10 +8,12 @@ import type { World } from './world';
 export function stepExtractors(world: World): void {
   const rate = currentExtractorRate(world.state);
   for (const b of world.state.buildings.values()) {
-    if (b.type !== 'extractor' || b.extractValue === undefined) continue;
+    // Sources (proposal 19) emit like an extractor, their own number.
+    const value = b.type === 'source' ? b.sourceValue : b.extractValue;
+    if ((b.type !== 'extractor' && b.type !== 'source') || value === undefined) continue;
     let acc = (b.extractAcc ?? 0) + rate * TICK_DT;
     while (acc >= 1 - EPS) {
-      if (!pushOut(world, b, 'out', b.extractValue)) {
+      if (!pushOut(world, b, 'out', value)) {
         acc = Math.min(acc, 1);
         break;
       }

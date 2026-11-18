@@ -6,6 +6,8 @@ import type { HelpTip } from './help';
 
 export interface MenuActions {
   newGame: (seed: number | null) => void;
+  /** New sandbox game (proposal 19). */
+  sandbox: () => void;
   save: () => void;
   exportGame: () => void;
   importGame: (file: File) => void;
@@ -199,7 +201,14 @@ export class GameMenu {
       const n = Number(text);
       this.actions.newGame(text !== '' && Number.isInteger(n) ? n : null);
     });
-    return [this.header('menu.newGame', true), form];
+    const sandbox = el(
+      'div',
+      'menu-sandbox',
+      el('h3', undefined, t('sandbox.title')),
+      el('p', 'menu-note', t('sandbox.body')),
+      this.button('sandbox.start', () => this.actions.sandbox(), 'secondary-btn'),
+    );
+    return [this.header('menu.newGame', true), form, sandbox];
   }
 
   private optionsView(): HTMLElement[] {

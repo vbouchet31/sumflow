@@ -11,7 +11,8 @@ export type PlaceableType =
   | 'divider'
   | 'exponent'
   | 'storage'
-  | 'bridge';
+  | 'bridge'
+  | 'source';
 
 export type Feature = 'upgrades' | 'priorities';
 

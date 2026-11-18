@@ -243,6 +243,7 @@ export class World {
       mirror: b.mirror === true,
       priority: b.priority,
       extractValue: b.extractValue ?? null,
+      ...(b.sourceValue !== undefined ? { sourceValue: b.sourceValue } : {}),
     };
   }
 
@@ -270,6 +271,7 @@ export class World {
       const cur = this.state.buildings.get(id);
       if (cur) {
         cur.priority = target.priority;
+        if (target.sourceValue !== undefined) cur.sourceValue = target.sourceValue;
         if (target.extractValue !== null) cur.extractValue = target.extractValue;
       } else {
         this.insertBuilding(this.makeBuilding(id, target), target.priority);
@@ -307,6 +309,13 @@ export class World {
   setBuildingPriority(b: Building, portKey: number | null): void {
     this.noteBuilding(b.id);
     b.priority = portKey;
+  }
+
+  /** Source (proposal 19): set the number it emits. Undoable. */
+  setSourceValue(b: Building, value: number): void {
+    if (b.type !== 'source') return;
+    this.noteBuilding(b.id);
+    b.sourceValue = value;
   }
 
   /** Create, edit (non-empty text) or delete (null or empty text) the marker of a tile. */
@@ -465,6 +474,7 @@ export class World {
       b.extractValue = s.extractValue;
       b.extractAcc = 0;
     }
+    if (s.type === 'source') b.sourceValue = s.sourceValue ?? 1;
     if (s.type === 'storage') {
       b.storeValue = null;
       b.storeCount = 0;
