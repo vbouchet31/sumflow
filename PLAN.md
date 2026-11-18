@@ -506,7 +506,7 @@ Le type de pointeur décide (`pointerType`), pas l'appareil : une souris garde l
 - **Haut droit** : boutons Annuler, Rétablir, Retour au Hub, Marqueur, Nombres livrés, Niveaux, Améliorations (badge), Menu.
 - **Bas centre** : barre de construction (icônes des bâtiments débloqués avec touche, outils d'édition). Bâtiments verrouillés masqués.
 - **Bas gauche** : info-bulle contextuelle de l'objet survolé (type, valeur, tampons A/B/sortie, cycle en cours, débit).
-- **Bas droit** : indicateur de pause, de sauvegarde (« Sauvegardé il y a 12 s »), coordonnées du curseur.
+- **Bas droit** : indicateur de pause. En mode debug (`?debug=1`) seulement : indicateur de sauvegarde (« Sauvegardé il y a 12 s ») et coordonnées du curseur.
 - **Au-dessus de la barre de construction** : barre d'actions de l'outil actif (8.3).
 - **Petits écrans** : barre de construction en icônes, défilable ; sur téléphone, HUD sur une ligne, panneaux en feuilles, boutons de 44 px au moins, zones sûres respectées (`PLAN-tactile.md` §5.5).
 - Toasts : niveau terminé, amélioration prête, sauvegarde, erreurs d'import.
