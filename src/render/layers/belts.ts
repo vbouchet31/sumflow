@@ -1,4 +1,4 @@
-import { BELT_COLORS } from '../../config/colors';
+import { BELT_COLORS, BELT_SHAPE } from '../../config/colors';
 import { DIRS, type Dir, DX, DY, opposite } from '../../core/grid';
 import { axisOf, type Belt, hasOutput } from '../../sim/entities';
 import type { Camera } from '../camera';
@@ -9,10 +9,6 @@ import { LOD } from '../lod';
  * the tile). Without it, a belt is drawn as if fed from straight behind (bridge lanes).
  */
 export type InputsOf = (b: Belt) => number;
-
-/** Half width of the belt band, and of its lighter running surface, in tiles. */
-const BAND = 0.38;
-const SURFACE = 0.31;
 
 /**
  * The input and output of a belt that turns: exactly one output, fed from exactly one side
@@ -29,41 +25,101 @@ export function curveOf(outputs: number, inputs: number): { from: Dir; to: Dir }
   return axisOf(to) === axisOf(from) ? null : { from, to };
 }
 
+/** Radius of a turn along the belt centre line (items and chevrons follow it), 0 to 0.5. */
+export function turnRadius(shape: { corner: number; band: number } = BELT_SHAPE): number {
+  return Math.max(0, Math.min(0.5, shape.corner - shape.band));
+}
+
 /**
  * Geometry of a quarter turn entering by side `from` and leaving by side `to`, for a tile
- * whose top-left corner is at `(0, 0)` and side is 1: the circle is centred on the tile
- * corner between the two sides, with radius 0.5 through both side midpoints.
+ * whose top-left corner is at `(0, 0)` and side is 1: a straight run of `straight` from the
+ * entry midpoint, an arc of radius `r` centred at `(cx, cy)`, then a straight run to the
+ * exit midpoint. With `r` = 0.5 the arc is centred on the tile corner and fills the turn.
  */
 export function curveGeometry(
   from: Dir,
   to: Dir,
-): { cx: number; cy: number; a0: number; sweep: number } {
-  const cx = 0.5 + (DX[from] + DX[to]) * 0.5;
-  const cy = 0.5 + (DY[from] + DY[to]) * 0.5;
-  // From the corner, the entry midpoint lies opposite the exit direction and vice versa.
+  r: number = turnRadius(),
+): { cx: number; cy: number; a0: number; sweep: number; r: number; straight: number } {
+  const cx = 0.5 + (DX[from] + DX[to]) * r;
+  const cy = 0.5 + (DY[from] + DY[to]) * r;
+  // From the arc centre, the arc starts opposite the exit direction and ends opposite the entry.
   const a0 = Math.atan2(-DY[to], -DX[to]);
   const a1 = Math.atan2(-DY[from], -DX[from]);
   let sweep = a1 - a0;
   if (sweep > Math.PI) sweep -= 2 * Math.PI;
   if (sweep < -Math.PI) sweep += 2 * Math.PI;
-  return { cx, cy, a0, sweep };
+  return { cx, cy, a0, sweep, r, straight: 0.5 - r };
 }
 
-/** Point and heading at `t` ∈ [0, 1] along a quarter turn, in tile units (see above). */
+/** Point and heading at `t` ∈ [0, 1] of the way along a quarter turn (see above). */
 export function curvePoint(
   from: Dir,
   to: Dir,
   t: number,
+  radius: number = turnRadius(),
 ): { x: number; y: number; fx: number; fy: number } {
-  const { cx, cy, a0, sweep } = curveGeometry(from, to);
-  const a = a0 + sweep * t;
+  const { cx, cy, a0, sweep, r, straight } = curveGeometry(from, to, radius);
+  const arc = (Math.PI / 2) * r;
+  const d = t * (2 * straight + arc);
+  if (d <= straight) {
+    // Entry run: from the entry midpoint toward the tile centre.
+    const k = 0.5 - d;
+    return { x: 0.5 + DX[from] * k, y: 0.5 + DY[from] * k, fx: -DX[from], fy: -DY[from] };
+  }
+  if (d >= straight + arc) {
+    // Exit run: from the end of the arc to the exit midpoint.
+    const k = r + (d - straight - arc);
+    return { x: 0.5 + DX[to] * k, y: 0.5 + DY[to] * k, fx: DX[to], fy: DY[to] };
+  }
+  const a = a0 + sweep * ((d - straight) / arc);
   const sign = Math.sign(sweep);
   return {
-    x: cx + 0.5 * Math.cos(a),
-    y: cy + 0.5 * Math.sin(a),
+    x: cx + r * Math.cos(a),
+    y: cy + r * Math.sin(a),
     fx: -Math.sin(a) * sign,
     fy: Math.cos(a) * sign,
   };
+}
+
+/**
+ * Add the outline of a quarter turn band, `half` tiles wide on each side of the centre line,
+ * to the current path (tile top-left at `(x, y)`, side `s`). The outer edge of the rails is
+ * rounded by BELT_SHAPE.corner; every other edge is offset from it, so the rail stays the
+ * same width all along the turn.
+ */
+function turnPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  s: number,
+  from: Dir,
+  to: Dir,
+  half: number,
+): void {
+  const g = curveGeometry(from, to, 0);
+  const ccw = g.sweep < 0;
+  // Outer radius of this edge (rails or running surface), then the inner one.
+  const ro = Math.max(0, Math.min(0.5 + half, BELT_SHAPE.corner - (BELT_SHAPE.band - half)));
+  const ri = Math.max(0, ro - 2 * half);
+  // Local frame: `a` toward the entry side, `b` toward the exit side, origin at the centre.
+  const ax = DX[from];
+  const ay = DY[from];
+  const bx = DX[to];
+  const by = DY[to];
+  const X = (pa: number, pb: number): number => x + (0.5 + ax * pa + bx * pb) * s;
+  const Y = (pa: number, pb: number): number => y + (0.5 + ay * pa + by * pb) * s;
+  // Outer edge: entry side, rounded corner, exit side.
+  ctx.moveTo(X(0.5, -half), Y(0.5, -half));
+  const co = ro - half;
+  ctx.arc(X(co, co), Y(co, co), ro * s, g.a0, g.a0 + g.sweep, ccw);
+  ctx.lineTo(X(-half, 0.5), Y(-half, 0.5));
+  // Inner edge, back to the entry side.
+  ctx.lineTo(X(half, 0.5), Y(half, 0.5));
+  const ci = half + ri;
+  ctx.arc(X(ci, ci), Y(ci, ci), ri * s, g.a0 + g.sweep, g.a0, !ccw);
+  ctx.lineTo(X(0.5, half), Y(0.5, half));
+  ctx.closePath();
 }
 
 /** Draw a chevron pointing along `(fx, fy)` (unit vector), centred at `(cx, cy)`. */
@@ -106,14 +162,7 @@ function bandPath(
 ): void {
   const curve = curveOf(b.outputs, inputs);
   if (curve) {
-    const g = curveGeometry(curve.from, curve.to);
-    const cx = x + g.cx * s;
-    const cy = y + g.cy * s;
-    const ccw = g.sweep < 0;
-    ctx.moveTo(cx + (0.5 + half) * s * Math.cos(g.a0), cy + (0.5 + half) * s * Math.sin(g.a0));
-    ctx.arc(cx, cy, (0.5 + half) * s, g.a0, g.a0 + g.sweep, ccw);
-    ctx.arc(cx, cy, (0.5 - half) * s, g.a0 + g.sweep, g.a0, !ccw);
-    ctx.closePath();
+    turnPath(ctx, x, y, s, curve.from, curve.to, half);
     return;
   }
   const mx = x + 0.5 * s;
@@ -132,9 +181,8 @@ function bandPath(
     ctx.rect(x0, y0, x1 - x0, y1 - y0);
   }
   if (count === 1) {
-    // A loose end (start of a line, or nothing joined yet): rounded.
-    ctx.moveTo(mx + h, my);
-    ctx.arc(mx, my, h, 0, Math.PI * 2);
+    // A loose end (start of a line, or nothing joined yet): rounded by BELT_SHAPE.cap.
+    ctx.roundRect(mx - h, my - h, 2 * h, 2 * h, BELT_SHAPE.cap * h);
   } else {
     ctx.rect(mx - h, my - h, 2 * h, 2 * h);
   }
@@ -169,11 +217,16 @@ export function drawBelts(
       const curve = curveOf(b.outputs, inputs);
       const p = cam.worldToScreen(b.x, b.y);
       if (curve) {
-        const g = curveGeometry(curve.from, curve.to);
-        const cx = p.x + g.cx * s;
-        const cy = p.y + g.cy * s;
-        ctx.moveTo(cx + 0.5 * s * Math.cos(g.a0), cy + 0.5 * s * Math.sin(g.a0));
-        ctx.arc(cx, cy, 0.5 * s, g.a0, g.a0 + g.sweep, g.sweep < 0);
+        const { from, to } = curve;
+        ctx.moveTo(p.x + (0.5 + DX[from] * 0.5) * s, p.y + (0.5 + DY[from] * 0.5) * s);
+        ctx.arcTo(
+          p.x + 0.5 * s,
+          p.y + 0.5 * s,
+          p.x + (0.5 + DX[to] * 0.5) * s,
+          p.y + (0.5 + DY[to] * 0.5) * s,
+          turnRadius() * s,
+        );
+        ctx.lineTo(p.x + (0.5 + DX[to] * 0.5) * s, p.y + (0.5 + DY[to] * 0.5) * s);
         continue;
       }
       const mask = joints(b, inputs);
@@ -190,8 +243,8 @@ export function drawBelts(
   if (part !== 'chevrons') {
     // Rails (darker edge), then the running surface: neighbouring tiles join seamlessly.
     for (const [color, half] of [
-      [BELT_COLORS.rail, BAND],
-      [BELT_COLORS.base, SURFACE],
+      [BELT_COLORS.rail, BELT_SHAPE.band],
+      [BELT_COLORS.base, BELT_SHAPE.surface],
     ] as const) {
       ctx.fillStyle = color;
       ctx.beginPath();

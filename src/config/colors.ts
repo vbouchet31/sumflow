@@ -40,6 +40,22 @@ export const BELT_COLORS = {
   line: '#3d4860',
 } as const;
 
+/**
+ * Shape of the belt band, in tiles (one tile = 1).
+ * - `band`: half width of the band, rails included; `surface`: half width of its lighter
+ *   running surface (the rails are the difference).
+ * - `corner`: radius of the outer edge of a quarter turn, from 0 (square corner) to
+ *   0.5 + band (a quarter circle centred on the tile corner, inner edge rounded too).
+ *   Items and chevrons follow a centre line of radius `corner - band` (0 to 0.5).
+ * - `cap`: rounding of a loose end, from 0 (square) to 1 (half disc).
+ */
+export const BELT_SHAPE = {
+  band: 0.38,
+  surface: 0.31,
+  corner: 0.45,
+  cap: 0.6,
+} as const;
+
 /** Ghost fills: new, replace, bridge, impossible (PLAN §6.5). */
 export const GHOST_COLORS = {
   new: 'rgba(72, 199, 116, 0.45)',
