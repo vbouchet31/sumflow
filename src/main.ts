@@ -22,6 +22,7 @@ import { PerfOverlay } from './ui/perfOverlay';
 import { DebugPanel } from './ui/debugPanel';
 import { EndScreen } from './ui/endScreen';
 import { Hud } from './ui/hud';
+import { Minimap } from './ui/minimap';
 import { rewardLabel } from './ui/labels';
 import { watchLayout } from './ui/layout';
 import { LevelsPanel } from './ui/panels/levels';
@@ -188,6 +189,7 @@ async function bootstrap(): Promise<void> {
     menu: () => menu.toggle(),
   });
   const tooltip = new Tooltip(uiRoot);
+  const minimap = new Minimap(uiRoot, world, camera);
   const buildBar = new BuildBar(uiRoot, tools);
   const statusBar = new StatusBar(uiRoot);
   const toasts = new Toasts(uiRoot);
@@ -331,6 +333,7 @@ async function bootstrap(): Promise<void> {
     {
       onHome: goHome,
       onLevels: () => levelsPanel.toggle(),
+      onMinimap: () => minimap.toggle(),
       onUpgrades: toggleUpgrades,
       onDelivered: () => deliveredPanel.toggle(),
       onTogglePerf: () => perfOverlay.toggle(),
@@ -435,6 +438,7 @@ async function bootstrap(): Promise<void> {
       });
     }
     hud.update(world);
+    minimap.update();
     for (const p of panels) p.update();
     topBar.setVisible('upgrades', upgradesAvailable());
     topBar.setBadge(

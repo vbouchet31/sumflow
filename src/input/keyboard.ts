@@ -32,6 +32,7 @@ export interface KeyboardHandlers {
   onQuickDemolish: () => void;
   onTogglePause: () => void;
   onLevels: () => void;
+  onMinimap: () => void;
   onUpgrades: () => void;
   onDelivered: () => void;
   onTogglePerf: () => void;
@@ -110,6 +111,9 @@ export class Keyboard {
         break;
       case ACTION_KEYS.levels:
         this.handlers.onLevels();
+        break;
+      case ACTION_KEYS.minimap:
+        this.handlers.onMinimap();
         break;
       case ACTION_KEYS.upgrades:
         this.handlers.onUpgrades();

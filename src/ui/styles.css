@@ -1312,3 +1312,23 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Minimap (proposal 18). */
+.minimap {
+  position: absolute;
+  right: var(--edge-r);
+  top: calc(var(--edge-t) + 56px);
+  padding: 4px;
+  border-radius: 10px;
+  background: rgb(10 14 26 / 88%);
+  border: 1px solid #26304a;
+  line-height: 0;
+}
+.minimap[hidden] {
+  display: none;
+}
+.minimap-canvas {
+  border-radius: 7px;
+  cursor: crosshair;
+  touch-action: none;
+}
