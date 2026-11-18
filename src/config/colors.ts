@@ -1,42 +1,42 @@
 /** Visual palette (PLAN §10.1). Rendering only, no gameplay values here. */
 export const COLORS = {
-  background: '#0f1422',
-  gridLine: '#1a2236',
-  deposit: '#1e2740',
-  hub: '#2b6cb0',
+  background: '#f3ede1',
+  gridLine: '#e6dccb',
+  deposit: '#2d3047',
+  hub: '#0078bf',
   text: '#ffffff',
-  depositLocked: '#6b7590',
+  depositLocked: '#b5ab98',
 } as const;
 
 /** Building colours (PLAN §6.3). Operators are also told apart by symbol and shape (§9.5). */
 export const BUILDING_COLORS = {
-  extractor: '#3f6e8c',
-  adder: '#3f9a5c',
-  multiplier: '#d27a32',
-  subtractor: '#c84a4a',
-  divider: '#8a5cc2',
-  exponent: '#c9a72c',
-  storage: '#6b7a8f',
-  bridge: '#4a6fa5',
+  extractor: '#00838a',
+  adder: '#00a95c',
+  multiplier: '#ff6c2f',
+  subtractor: '#ff48b0',
+  divider: '#765ba7',
+  exponent: '#e8a400',
+  storage: '#88898a',
+  bridge: '#3255a4',
 } as const;
 
 export const HUB_COLORS = {
-  fill: '#2b6cb0',
-  barTrack: '#1c4a7d',
-  barFill: '#ffffff',
-  textMuted: '#c8dcf2',
+  fill: '#0078bf',
+  barTrack: '#005a8f',
+  barFill: '#ffe800',
+  textMuted: '#d4ecfa',
 } as const;
 
-export const FONT_NUM = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
-export const FONT_UI = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+export const FONT_NUM = '"Space Mono", ui-monospace, monospace';
+export const FONT_UI = '"Space Grotesk", system-ui, sans-serif';
 
 export const BELT_COLORS = {
-  bridgeBase: '#1b2232',
-  bridgeDeck: '#34405a',
-  priority: '#48c774',
-  base: '#232b3d',
-  chevron: '#55627e',
-  line: '#3d4860',
+  bridgeBase: '#d7cdb9',
+  bridgeDeck: '#b8ad97',
+  priority: '#00a95c',
+  base: '#e3d8c4',
+  chevron: '#9c917e',
+  line: '#cfc4ae',
 } as const;
 
 /** Ghost fills: new, replace, bridge, impossible (PLAN §6.5). */
@@ -58,8 +58,8 @@ export const AREA_COLORS = {
 
 /** Text markers (PLAN §10.2 layer 8). */
 export const MARKER_COLORS = {
-  pin: '#ffd866',
-  pinEdge: '#0a0e1a',
-  labelBg: 'rgba(10, 14, 26, 0.85)',
-  labelText: '#ffe9a8',
+  pin: '#ff48b0',
+  pinEdge: '#1e1b18',
+  labelBg: 'rgba(255, 251, 242, 0.95)',
+  labelText: '#1e1b18',
 } as const;

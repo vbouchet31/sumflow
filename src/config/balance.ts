@@ -256,8 +256,8 @@ export const UPGRADE_TRACK_FACTOR: Record<Track, number> = {
 
 /** Fixed, well-separated hues for items 1..9 (PLAN §5). Index 0 is value 1. */
 export const ITEM_HUES = [210, 0, 120, 45, 280, 170, 25, 320, 85] as const;
-export const ITEM_SATURATION = 65;
-export const ITEM_LIGHTNESS = 55;
+export const ITEM_SATURATION = 80;
+export const ITEM_LIGHTNESS = 50;
 
 /** Editing tools (PLAN §8.2). */
 export const EDIT = {
