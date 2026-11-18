@@ -1,25 +1,32 @@
 import { BUILDING_COLORS, COLORS } from '../config/colors';
+import { CHUNK_SIZE } from '../core/grid';
 import { t } from '../i18n';
 import type { Camera } from '../render/camera';
+import { itemColor } from '../render/itemColor';
 import { buildingSize } from '../sim/entities';
 import type { World } from '../sim/world';
+import { isExtractable } from '../world/deposits';
 import { el } from './dom';
 
 /** Side of the minimap (CSS pixels), redraw period, and smallest area it shows (tiles). */
 const SIZE = 180;
 const REDRAW_MS = 250;
 const MIN_SPAN = 72;
+/** Deposits are 3×3 tiles around their centre; past this many chunks they are not drawn. */
+const DEPOSIT_HALF = 1;
+const MAX_DEPOSIT_CHUNKS = 1600;
 
 /**
  * Minimap (`M`): the whole factory at a glance, fitted to what is built plus the current
- * view, with the view as a frame. A press or a drag on it moves the camera there.
+ * view, with the view as a frame. Deposits show in the colour of their number (dim while
+ * locked), to spot the next useful one. A press or a drag on it moves the camera there.
  */
 export class Minimap {
   private readonly box = el('section', 'minimap');
   private readonly canvas = el('canvas', 'minimap-canvas');
   private readonly ctx: CanvasRenderingContext2D | null;
   private readonly toggleBtn = el('button', 'minimap-toggle', '▣');
-  private last = 0;
+  private last = -Infinity;
   /** World rectangle shown: top-left tile and tiles per pixel. */
   private view = { x: 0, y: 0, k: 1 };
   private dragging = false;
@@ -40,6 +47,9 @@ export class Minimap {
       this.toggle();
       if (e.detail > 0) this.toggleBtn.blur();
     });
+    // Sized at once: the browser's default 300×150 would cover the map until the first draw.
+    this.canvas.style.width = `${SIZE}px`;
+    this.canvas.style.height = `${SIZE}px`;
     this.ctx = this.canvas.getContext('2d');
     this.box.append(this.canvas, this.toggleBtn);
     root.append(this.box);
@@ -48,7 +58,7 @@ export class Minimap {
       const x = this.view.x + (e.clientX - r.left) * this.view.k;
       const y = this.view.y + (e.clientY - r.top) * this.view.k;
       this.camera.centerOn(x, y);
-      this.last = 0; // redraw the frame at once
+      this.last = -Infinity; // redraw the frame at once
     };
     this.canvas.addEventListener('pointerdown', (e) => {
       this.dragging = true;
@@ -69,7 +79,7 @@ export class Minimap {
 
   toggle(): void {
     this.open = !this.open;
-    this.last = 0;
+    this.last = -Infinity;
     this.sync();
   }
 
@@ -104,7 +114,11 @@ export class Minimap {
       if (x > x1) x1 = x;
       if (y > y1) y1 = y;
     };
-    for (const b of world.state.buildings.values()) grow(b.x, b.y);
+    for (const b of world.state.buildings.values()) {
+      const { w, h } = buildingSize(b.type, b.rot);
+      grow(b.x, b.y);
+      grow(b.x + w - 1, b.y + h - 1);
+    }
     for (const b of world.state.belts.values()) grow(b.x, b.y);
     const span = Math.max(MIN_SPAN, x1 - x0 + 8, y1 - y0 + 8);
     const cx = (x0 + x1) / 2;
@@ -117,6 +131,7 @@ export class Minimap {
     ctx.fillRect(0, 0, SIZE, SIZE);
     const sx = (x: number): number => (x - this.view.x) / k;
     const sy = (y: number): number => (y - this.view.y) / k;
+    this.drawDeposits(ctx, world, k);
     const dot = Math.max(1, 1 / k);
     ctx.fillStyle = '#5b6b8f';
     for (const b of world.state.belts.values()) ctx.fillRect(sx(b.x), sy(b.y), dot, dot);
@@ -136,6 +151,31 @@ export class Minimap {
     // The camera's view.
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(sx(v.x0), sy(v.y0), (v.x1 - v.x0 + 1) / k, (v.y1 - v.y0 + 1) / k);
+    ctx.strokeRect(sx(v.x0), sy(v.y0), (v.x1 - v.x0) / k, (v.y1 - v.y0) / k);
+  }
+
+  /** Deposits in the frame, as squares in the colour of their number. */
+  private drawDeposits(ctx: CanvasRenderingContext2D, world: World, k: number): void {
+    const { x, y } = this.view;
+    const span = SIZE * k;
+    const c0x = Math.floor((x - DEPOSIT_HALF) / CHUNK_SIZE);
+    const c0y = Math.floor((y - DEPOSIT_HALF) / CHUNK_SIZE);
+    const c1x = Math.floor((x + span + DEPOSIT_HALF) / CHUNK_SIZE);
+    const c1y = Math.floor((y + span + DEPOSIT_HALF) / CHUNK_SIZE);
+    if ((c1x - c0x + 1) * (c1y - c0y + 1) > MAX_DEPOSIT_CHUNKS) return;
+    const side = Math.max(2, (2 * DEPOSIT_HALF + 1) / k);
+    const max = world.state.maxExtraction;
+    for (let cy = c0y; cy <= c1y; cy++) {
+      for (let cx = c0x; cx <= c1x; cx++) {
+        for (const d of world.deposits.getChunk(cx, cy)) {
+          ctx.globalAlpha = isExtractable(d.value, max) ? 0.9 : 0.25;
+          ctx.fillStyle = itemColor(d.value);
+          const px = (d.x + 0.5 - x) / k;
+          const py = (d.y + 0.5 - y) / k;
+          ctx.fillRect(px - side / 2, py - side / 2, side, side);
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
   }
 }

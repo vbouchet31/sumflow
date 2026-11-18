@@ -1322,6 +1322,12 @@ textarea {
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
+  /* Only the map and the button take clicks: the rest of the box is the game's. */
+  pointer-events: none;
+}
+
+.minimap > * {
+  pointer-events: auto;
 }
 
 .minimap-canvas {
@@ -1350,4 +1356,9 @@ textarea {
 /* The status chips sit under the top bar on narrower screens: they go left of the map. */
 .ui-icons .status-bar {
   right: calc(var(--edge-r) + var(--top-h) + 8px);
+}
+
+/* Open, the map is wider than its button: the chips go left of the map. */
+.ui-icons:has(.minimap.is-open) .status-bar {
+  right: calc(var(--edge-r) + 180px + 10px);
 }
