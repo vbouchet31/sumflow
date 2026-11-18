@@ -67,6 +67,9 @@ function saveBuilding(b: Building): SavedBuilding {
   if (b.cycle !== undefined) s.cycle = b.cycle;
   if (b.storeValue !== undefined) s.storeValue = b.storeValue;
   if (b.storeCount !== undefined) s.storeCount = b.storeCount;
+  if (b.size !== undefined) s.size = b.size;
+  if (b.acc !== undefined) s.acc = b.acc;
+  if (b.accN !== undefined) s.accN = b.accN;
   return s;
 }
 
@@ -90,6 +93,9 @@ function loadBuilding(s: SavedBuilding): Building {
   if (s.cycle !== undefined) b.cycle = s.cycle;
   if (s.storeValue !== undefined) b.storeValue = s.storeValue;
   if (s.storeCount !== undefined) b.storeCount = s.storeCount;
+  if (s.size !== undefined) b.size = s.size;
+  if (s.acc !== undefined) b.acc = s.acc;
+  if (s.accN !== undefined) b.accN = s.accN;
   return b;
 }
 

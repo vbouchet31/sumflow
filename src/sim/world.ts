@@ -243,6 +243,7 @@ export class World {
       mirror: b.mirror === true,
       priority: b.priority,
       extractValue: b.extractValue ?? null,
+      ...(b.size !== undefined ? { size: b.size } : {}),
     };
   }
 
@@ -270,6 +271,7 @@ export class World {
       const cur = this.state.buildings.get(id);
       if (cur) {
         cur.priority = target.priority;
+        if (target.size !== undefined) cur.size = target.size;
         if (target.extractValue !== null) cur.extractValue = target.extractValue;
       } else {
         this.insertBuilding(this.makeBuilding(id, target), target.priority);
@@ -307,6 +309,14 @@ export class World {
   setBuildingPriority(b: Building, portKey: number | null): void {
     this.noteBuilding(b.id);
     b.priority = portKey;
+  }
+
+  /** Totalizer (proposal 16): next N, from 2 to 9 then back to 2. Undoable. */
+  cycleTotalizer(b: Building): void {
+    if (b.type !== 'totalizer') return;
+    this.noteBuilding(b.id);
+    b.size = ((b.size ?? 3) % 9) + 1;
+    if (b.size < 2) b.size = 2;
   }
 
   /** Create, edit (non-empty text) or delete (null or empty text) the marker of a tile. */
@@ -464,6 +474,11 @@ export class World {
     if (s.extractValue !== null) {
       b.extractValue = s.extractValue;
       b.extractAcc = 0;
+    }
+    if (s.type === 'totalizer') {
+      b.size = s.size ?? 3;
+      b.acc = 0;
+      b.accN = 0;
     }
     if (s.type === 'storage') {
       b.storeValue = null;

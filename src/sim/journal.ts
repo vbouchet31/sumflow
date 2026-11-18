@@ -17,6 +17,8 @@ export interface BuildingSnap {
   mirror: boolean;
   priority: number | null;
   extractValue: number | null;
+  /** Totalizer size (proposal 16). */
+  size?: number;
 }
 
 export interface SlotChange<T> {

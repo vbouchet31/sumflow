@@ -97,11 +97,17 @@ export interface Building {
   /** Storage: stored value (null when empty) and count (PLAN §6.3). */
   storeValue?: number | null;
   storeCount?: number;
+  /** Totalizer (proposal 16): numbers per total, running sum and how many it holds. */
+  size?: number;
+  acc?: number;
+  accN?: number;
 }
 
-export type OperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent';
+export type OperatorType =
+  'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent' | 'totalizer';
 
 export const OPERATOR_TYPES: readonly OperatorType[] = [
+  'totalizer',
   'adder',
   'multiplier',
   'subtractor',
