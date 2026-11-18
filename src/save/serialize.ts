@@ -67,6 +67,7 @@ function saveBuilding(b: Building): SavedBuilding {
   if (b.cycle !== undefined) s.cycle = b.cycle;
   if (b.storeValue !== undefined) s.storeValue = b.storeValue;
   if (b.storeCount !== undefined) s.storeCount = b.storeCount;
+  if (b.sourceValue !== undefined) s.sourceValue = b.sourceValue;
   return s;
 }
 
@@ -90,6 +91,7 @@ function loadBuilding(s: SavedBuilding): Building {
   if (s.cycle !== undefined) b.cycle = s.cycle;
   if (s.storeValue !== undefined) b.storeValue = s.storeValue;
   if (s.storeCount !== undefined) b.storeCount = s.storeCount;
+  if (s.sourceValue !== undefined) b.sourceValue = s.sourceValue;
   return b;
 }
 
@@ -137,6 +139,7 @@ export function serialize(world: World, camera: CameraState, savedAt = ''): Save
     markers: markers.map((m) => ({ x: m.x, y: m.y, text: m.text })),
     clipboard: structuredClone(s.clipboard),
     helpSeen: [...s.helpSeen],
+    sandbox: s.sandbox,
     camera: { x: camera.x, y: camera.y, zoom: camera.zoom },
   };
 }
@@ -162,6 +165,7 @@ export function deserialize(data: SaveData): { state: GameState; camera: CameraS
   state.totalDelivered = data.totalDelivered;
   state.nextBuildingId = data.nextBuildingId;
   state.helpSeen = [...data.helpSeen];
+  state.sandbox = data.sandbox ?? false;
   state.clipboard = structuredClone(data.clipboard);
 
   const occupied = new Set<number>();

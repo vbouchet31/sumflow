@@ -97,6 +97,8 @@ export interface Building {
   /** Storage: stored value (null when empty) and count (PLAN §6.3). */
   storeValue?: number | null;
   storeCount?: number;
+  /** Source (proposal 19): number emitted, and production accumulator. */
+  sourceValue?: number;
 }
 
 export type OperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent';
@@ -114,10 +116,10 @@ export function isOperator(type: string): type is OperatorType {
 }
 
 /** Buildings placed freely with the generic tool (centred ghost, rows by dragging). */
-export type FreeBuildingType = OperatorType | 'storage';
+export type FreeBuildingType = OperatorType | 'storage' | 'source';
 
 export function isFreeBuilding(type: string): type is FreeBuildingType {
-  return type === 'storage' || isOperator(type);
+  return type === 'storage' || type === 'source' || isOperator(type);
 }
 
 export type PortKind = 'A' | 'B' | 'O' | 'Q' | 'R' | 'in' | 'out' | 'dynamic';

@@ -56,6 +56,8 @@ export interface GameState {
   helpSeen: string[];
   /** Clipboard history, most recent first, at most `EDIT.clipboardSize` entries (PLAN §8.2). */
   clipboard: Clip[];
+  /** Sandbox game (proposal 19): everything unlocked, sources allowed. */
+  sandbox: boolean;
 }
 
 export const HUB_ID = 0;
@@ -101,9 +103,28 @@ export function createInitialState(seed: number): GameState {
     markers: new Map(),
     helpSeen: [],
     clipboard: [],
+    sandbox: false,
   };
   state.levelRequirement = requirementFor(state, 1);
   return state;
+}
+
+/** Turn a fresh game into a sandbox: every building, feature and extraction up to 80. */
+export function makeSandbox(state: GameState): void {
+  state.sandbox = true;
+  state.unlockedBuildings = [
+    'extractor',
+    'adder',
+    'multiplier',
+    'subtractor',
+    'divider',
+    'exponent',
+    'storage',
+    'bridge',
+    'source',
+  ];
+  state.unlockedFeatures = ['upgrades', 'priorities'];
+  state.maxExtraction = 80;
 }
 
 export function isBuildingUnlocked(state: GameState, type: PlaceableType): boolean {

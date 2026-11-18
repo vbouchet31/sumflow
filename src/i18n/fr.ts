@@ -49,6 +49,7 @@ export const fr = {
   'reward.subtractor': 'Soustracteur',
   'reward.divider': 'Diviseur',
   'reward.exponent': 'Exposant',
+  'reward.source': 'Source',
   'reward.storage': 'Stockage',
   'reward.bridge': 'Pont',
   'reward.extractor': 'Extracteur',
@@ -80,6 +81,7 @@ export const fr = {
   'tool.subtractor': 'Soustracteur',
   'tool.divider': 'Diviseur',
   'tool.exponent': 'Exposant',
+  'tool.source': 'Source',
   'tip.bufA': 'A : {items}',
   'tip.bufB': 'B : {items}',
   'tip.bufOut': 'Sortie : {items}',
@@ -273,6 +275,8 @@ export const fr = {
   'help.subtractor': 'Soustracteur : l’ordre A − B compte.',
   'help.divider': 'Diviseur : le reste sort à part, jamais 0.',
   'help.exponent': 'Exposant : A à la puissance B. Les résultats grandissent vite.',
+  'help.source':
+    'Bac à sable : tout est débloqué. La Source émet le nombre de ton choix (clic sans outil pour le changer) : idéal pour tester un montage avant de le construire pour de vrai.',
   'help.storage':
     'Stockage : il garde jusqu’à 10 000 exemplaires d’une seule valeur et les ressort à pleine vitesse.',
   'about.body':
@@ -290,4 +294,13 @@ export const fr = {
   'toast.importError': 'Import impossible : fichier invalide. Rien n’a été modifié.',
   'toast.loadError': 'Sauvegarde illisible : nouvelle partie. L’ancienne est gardée à part.',
   'toast.exported': 'Partie exportée : {file}',
+  'tip.sourceHint': 'Clic sans outil : choisir le nombre',
+  'sandbox.badge': 'Bac à sable',
+  'sandbox.title': 'Bac à sable',
+  'sandbox.body':
+    'Tout est débloqué, extraction jusqu’à 80, et des Sources qui émettent le nombre de ton choix. Pour expérimenter sans pression.',
+  'sandbox.start': 'Nouvelle partie en bac à sable',
+  'source.title': 'Nombre émis par la Source',
+  'source.ok': 'Valider',
+  'source.cancel': 'Annuler',
 } as const;

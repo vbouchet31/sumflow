@@ -1,6 +1,6 @@
 import { type Dir, key, normalizeRot, type Rot, rotateDir } from '../core/grid';
 import type { Clip } from '../sim/clip';
-import { type FreeBuildingType, isFreeBuilding } from '../sim/entities';
+import { type Building, type FreeBuildingType, isFreeBuilding } from '../sim/entities';
 import { togglePriorityAt } from '../sim/priority';
 import { isBuildingUnlocked, isFeatureUnlocked } from '../sim/state';
 import { singleOutput, type World } from '../sim/world';
@@ -70,6 +70,8 @@ export interface ToolEvents {
   onClear?: (items: number) => void;
   /** A marker tile was clicked: open the editor (existing text or null). */
   onMarker?: (x: number, y: number, text: string | null) => void;
+  /** A source was clicked with no tool: ask for its number (proposal 19). */
+  onSource?: (building: Building) => void;
 }
 
 function isAreaTool(tool: ToolId): tool is AreaTool {
@@ -183,7 +185,10 @@ export class ToolController {
   get canRotate(): boolean {
     const t = this.tool;
     return (
-      t === 'belt' || t === 'bridge' || t === 'paste' || (isFreeBuilding(t) && t !== 'storage')
+      t === 'belt' ||
+      t === 'bridge' ||
+      t === 'paste' ||
+      (isFreeBuilding(t) && t !== 'storage' && t !== 'source')
     );
   }
 
@@ -336,6 +341,13 @@ export class ToolController {
       return;
     }
     const run = <T>(fn: () => T): T => this.history.run(fn);
+    if (tool === 'none') {
+      const b = this.world.buildingAt(x, y);
+      if (b?.type === 'source' && !this.world.state.markers.has(key(x, y))) {
+        this.events.onSource?.(b);
+        return;
+      }
+    }
     if (tool === 'none' || tool === 'marker') {
       const marker = this.world.state.markers.get(key(x, y));
       if (marker || tool === 'marker') this.events.onMarker?.(x, y, marker?.text ?? null);

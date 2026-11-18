@@ -13,7 +13,7 @@ import { PointerInput } from './input/pointer';
 import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
 import { SimLoop } from './sim/loop';
-import { createInitialState } from './sim/state';
+import { createInitialState, makeSandbox } from './sim/state';
 import { buildingSize } from './sim/entities';
 import { World } from './sim/world';
 import { BuildBar } from './ui/buildBar';
@@ -33,6 +33,7 @@ import { TRACKS } from './config/balance';
 import { isTrackUnlocked, isUpgradeReady } from './sim/upgrades';
 import { StatusBar } from './ui/statusBar';
 import { MarkerEditor } from './ui/markerEditor';
+import { NumberEditor } from './ui/numberEditor';
 import { ToolActions } from './ui/toolActions';
 import { describeTile, Tooltip } from './ui/tooltip';
 import { t } from './i18n';
@@ -127,11 +128,19 @@ async function bootstrap(): Promise<void> {
   const sfx = new Sfx();
   const saves = new SaveManager(world, camera);
   let markerEditor: MarkerEditor | null = null;
+  let numberEditor: NumberEditor | null = null;
   const tools = new ToolController(world, {
     onBuild: () => sfx.place(),
     onDemolish: () => sfx.demolish(),
     onError: () => sfx.error(),
     onClear: (n) => (n > 0 ? sfx.demolish() : sfx.error()),
+    onSource: (b) => {
+      numberEditor?.open(b.sourceValue ?? 1, (n) => {
+        if (n === null) return;
+        tools.history.run(() => world.setSourceValue(b, n));
+        sfx.place();
+      });
+    },
     onMarker: (x, y, text) => {
       markerEditor?.open(text, (value) => {
         if (value === null) return;
@@ -205,6 +214,7 @@ async function bootstrap(): Promise<void> {
     }
   });
   markerEditor = new MarkerEditor(uiRoot);
+  numberEditor = new NumberEditor(uiRoot);
   const help = new HelpBubble(topLeft, state);
   const catchUpBar = new CatchUpBar(uiRoot);
   const perfOverlay = new PerfOverlay(uiRoot);
@@ -222,6 +232,14 @@ async function bootstrap(): Promise<void> {
         createInitialState(seed ?? toSeed(Math.random() * 2 ** 32)),
         new DepositMap(0),
       );
+      reloadWith(encodeSaveSync(serialize(fresh, { x: 0, y: 0, zoom: 1 })));
+    },
+    sandbox: () => {
+      const fresh = new World(
+        createInitialState(toSeed(Math.random() * 2 ** 32)),
+        new DepositMap(0),
+      );
+      makeSandbox(fresh.state);
       reloadWith(encodeSaveSync(serialize(fresh, { x: 0, y: 0, zoom: 1 })));
     },
     save: () => void saves.save(true),
@@ -353,7 +371,11 @@ async function bootstrap(): Promise<void> {
       onQuickDemolish: () => tools.deletePressed(),
       onTogglePause: togglePause,
     },
-    () => menu.isOpen || endScreen.isOpen || (markerEditor?.isOpen ?? false),
+    () =>
+      menu.isOpen ||
+      endScreen.isOpen ||
+      (markerEditor?.isOpen ?? false) ||
+      (numberEditor?.isOpen ?? false),
   );
   const pointer = new PointerInput(canvas, camera, {
     onDown: (x, y, mods) => tools.pointerDown(x, y, mods),

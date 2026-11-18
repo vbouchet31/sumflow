@@ -17,6 +17,8 @@ export interface BuildingSnap {
   mirror: boolean;
   priority: number | null;
   extractValue: number | null;
+  /** Source number (proposal 19). */
+  sourceValue?: number;
 }
 
 export interface SlotChange<T> {

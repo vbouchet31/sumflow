@@ -44,6 +44,25 @@ function drawExtractor(ctx: CanvasRenderingContext2D, cam: Camera, b: Building, 
   ctx.globalAlpha = 1;
 }
 
+/** Source (proposal 19): a magenta tile with the number it emits. */
+function drawSource(ctx: CanvasRenderingContext2D, cam: Camera, b: Building): void {
+  const s = cam.scale;
+  const p = cam.worldToScreen(b.x, b.y);
+  ctx.fillStyle = BUILDING_COLORS.source;
+  roundRect(ctx, p.x + 0.06 * s, p.y + 0.06 * s, 0.88 * s, 0.88 * s, 0.45 * s);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+  ctx.lineWidth = Math.max(1, 0.06 * s);
+  ctx.stroke();
+  if (cam.zoom < LOD.buildingText) return;
+  const text = String(b.sourceValue ?? 1);
+  ctx.fillStyle = COLORS.text;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `800 ${(text.length >= 3 ? 0.3 : 0.44) * s}px ${FONT_NUM}`;
+  ctx.fillText(text, p.x + s / 2, p.y + 0.53 * s);
+}
+
 /** Buildings layer (PLAN §10.2 layer 4). */
 export function drawBuildings(
   ctx: CanvasRenderingContext2D,
@@ -65,6 +84,7 @@ export function drawBuildings(
     if (b.type === 'hub') drawHub(ctx, cam, state);
     else if (b.type === 'extractor') drawExtractor(ctx, cam, b);
     else if (b.type === 'storage') drawStorage(ctx, cam, b);
+    else if (b.type === 'source') drawSource(ctx, cam, b);
     else if (isOperator(b.type)) {
       const age = b.flashTick === undefined ? Infinity : state.tick - b.flashTick;
       const flash = !reducedMotion && age < FLASH_TICKS ? 1 - age / FLASH_TICKS : 0;
