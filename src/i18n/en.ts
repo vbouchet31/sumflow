@@ -60,6 +60,8 @@ export const en: Record<MessageKey, string> = {
   'reward.none': 'End of game',
   'btn.home': 'Back to hub (H)',
   'btn.levels': 'Levels (L)',
+  'minimap.label': 'Minimap of the factory',
+  'minimap.toggle': 'Show or hide the minimap',
   'btn.close': 'Close',
   'levels.title': 'Upcoming levels',
   'levels.colLevel': 'Lvl',

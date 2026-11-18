@@ -1312,3 +1312,42 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Minimap (M): under the top bar, on the right. */
+.minimap {
+  position: absolute;
+  right: var(--edge-r);
+  top: calc(var(--edge-t) + var(--top-h) + 10px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.minimap-canvas {
+  border-radius: 10px;
+  border: 1px solid #2c3754;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 40%);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.minimap-toggle {
+  width: var(--top-h);
+  height: var(--top-h);
+  border: 1px solid #26304a;
+  border-radius: 8px;
+  background: rgb(10 14 26 / 88%);
+  color: var(--fg);
+  font: 16px var(--font-ui);
+  cursor: pointer;
+}
+
+.minimap-toggle[aria-pressed='true'] {
+  border-color: #6f8fd0;
+}
+
+/* The status chips sit under the top bar on narrower screens: they go left of the map. */
+.ui-icons .status-bar {
+  right: calc(var(--edge-r) + var(--top-h) + 8px);
+}

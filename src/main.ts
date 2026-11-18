@@ -35,6 +35,7 @@ import { StatusBar } from './ui/statusBar';
 import { MarkerEditor } from './ui/markerEditor';
 import { ToolActions } from './ui/toolActions';
 import { describeTile, Tooltip } from './ui/tooltip';
+import { Minimap } from './ui/minimap';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
 import { setAutoBuy } from './sim/progression';
@@ -188,6 +189,8 @@ async function bootstrap(): Promise<void> {
     menu: () => menu.toggle(),
   });
   const tooltip = new Tooltip(uiRoot);
+  // Open from the start on large screens; a button opens it on phones and tablets.
+  const minimap = new Minimap(uiRoot, camera, window.matchMedia('(min-width: 1201px)').matches);
   const buildBar = new BuildBar(uiRoot, tools);
   const statusBar = new StatusBar(uiRoot);
   const toasts = new Toasts(uiRoot);
@@ -334,6 +337,7 @@ async function bootstrap(): Promise<void> {
       onUpgrades: toggleUpgrades,
       onDelivered: () => deliveredPanel.toggle(),
       onTogglePerf: () => perfOverlay.toggle(),
+      onMinimap: () => minimap.toggle(),
       onTool: (tool) => {
         if (tool === 'paste' && !tools.isAvailable('paste')) sfx.error();
         else tools.setTool(tool);
@@ -435,6 +439,7 @@ async function bootstrap(): Promise<void> {
       });
     }
     hud.update(world);
+    minimap.update(world, now);
     for (const p of panels) p.update();
     topBar.setVisible('upgrades', upgradesAvailable());
     topBar.setBadge(

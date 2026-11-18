@@ -21,6 +21,7 @@ export const ACTION_KEYS = {
   marker: 'b',
   pick: 'e',
   mirror: 'f',
+  minimap: 'm',
 } as const;
 
 /** Letters combined with Ctrl (or Cmd), by event.key (PLAN §8.2). */

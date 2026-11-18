@@ -58,6 +58,8 @@ export const fr = {
   'reward.none': 'Fin de partie',
   'btn.home': 'Retour au Hub (H)',
   'btn.levels': 'Niveaux (L)',
+  'minimap.label': "Mini-carte de l'usine",
+  'minimap.toggle': 'Afficher ou masquer la mini-carte',
   'btn.close': 'Fermer',
   'levels.title': 'Prochains niveaux',
   'levels.colLevel': 'Niv.',
