@@ -236,7 +236,7 @@ export const en: Record<MessageKey, string> = {
   'ctl.build': 'Buildings',
   'ctlKey.build': '1 to 9',
   'ctl.rotate': 'Rotate',
-  'ctlKey.rotate': 'R / Shift+R',
+  'ctlKey.rotate': 'R / Shift+R, or right click',
   'ctl.priority': 'Priority',
   'ctlKey.priority': 'P or Alt+click in belt mode',
   'ctl.demolish': 'Demolish (area)',

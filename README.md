@@ -27,7 +27,7 @@ Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGR
 | Déplacer à la souris                             | clic droit ou molette maintenus + glisser                                                                          |
 | Zoom                                             | molette, centré sur le curseur                                                                                     |
 | Retour au Hub                                    | `H`                                                                                                                |
-| Bâtiments                                        | `1` à `9` (tapis, extracteur, opérateurs, stockage, pont), `P` priorité, `R` / `Shift+R` pivoter                   |
+| Bâtiments                                        | `1` à `9` (tapis, extracteur, opérateurs, stockage, pont), `P` priorité, `R` / `Shift+R` ou clic droit pivoter     |
 | Démolir / vider                                  | `X` / `C` puis glisser une zone (clic = un objet) ; `Suppr` = démolir l'objet survolé                              |
 | Copier / couper / coller                         | `Ctrl+C` / `Ctrl+X` puis glisser ; `Ctrl+V` : clic ou glisser, `R` pivoter, `F` miroir, `Shift+molette` historique |
 | Marqueur, pipette                                | `B` puis clic ; `E` sur un objet                                                                                   |

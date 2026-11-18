@@ -10,6 +10,9 @@ export interface PointerMods {
   touch?: boolean;
 }
 
+/** A right press moving less than this (CSS pixels) is a click, not a pan. */
+const RIGHT_CLICK_SLOP = 4;
+
 const TOUCH_MODS: PointerMods = { ctrl: false, shift: false, alt: false, touch: true };
 
 export interface PointerHandlers {
@@ -27,6 +30,8 @@ export interface PointerHandlers {
   onLongPress?: (tx: number, ty: number) => boolean;
   /** Touch: true when a one-finger drag builds (a tool is active) instead of panning. */
   buildsOnDrag?: () => boolean;
+  /** Mouse: a right click that did not drag (a drag pans). */
+  onRightClick?: () => void;
   /** Wheel; return true to consume it (no zoom). `delta` > 0 = scroll down. */
   onWheel?: (delta: number, mods: PointerMods) => boolean;
 }
@@ -39,6 +44,8 @@ export interface PointerHandlers {
  */
 export class PointerInput {
   private panPointer: number | null = null;
+  /** Where the right button went down, to tell a click from a pan. */
+  private rightFrom: { x: number; y: number } | null = null;
   private buildPointer: number | null = null;
   private lastX = 0;
   private lastY = 0;
@@ -186,6 +193,7 @@ export class PointerInput {
     this.inside = true;
     this.hovering = true;
     if (e.button === 1 || e.button === 2) {
+      this.rightFrom = e.button === 2 ? { x: p.x, y: p.y } : null;
       this.panPointer = e.pointerId;
       this.lastX = p.x;
       this.lastY = p.y;
@@ -229,7 +237,16 @@ export class PointerInput {
       this.gestures.pointerUp(e.pointerId, p.x, p.y);
       return;
     }
-    if (this.panPointer === e.pointerId) this.panPointer = null;
+    if (this.panPointer === e.pointerId) {
+      this.panPointer = null;
+      const from = this.rightFrom;
+      this.rightFrom = null;
+      if (e.button === 2 && from) {
+        const p = this.local(e);
+        if (Math.hypot(p.x - from.x, p.y - from.y) < RIGHT_CLICK_SLOP)
+          this.handlers.onRightClick?.();
+      }
+    }
     if (this.buildPointer === e.pointerId && e.button === 0) {
       this.buildPointer = null;
       const p = this.local(e);
