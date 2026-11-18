@@ -11,7 +11,7 @@ async function ready(page: Page): Promise<void> {
 test('the minimap moves the camera and leaves the map clickable', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   await ready(page);
   const canvas = page.locator('.minimap-canvas');
   // Open from the start on a large screen.
@@ -38,7 +38,7 @@ test('the minimap moves the camera and leaves the map clickable', async ({ page 
 });
 
 test('the minimap shrinks, closes, reopens, and remembers it', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   await ready(page);
   const canvas = page.locator('.minimap-canvas');
   const size = page.locator('.minimap-size');
@@ -68,7 +68,7 @@ test('the minimap shrinks, closes, reopens, and remembers it', async ({ page }) 
 });
 
 test('a panel opening at its spot hides the minimap until it closes', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   await ready(page);
   const canvas = page.locator('.minimap-canvas');
   await expect(canvas).toBeVisible();

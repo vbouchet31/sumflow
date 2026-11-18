@@ -837,35 +837,177 @@ textarea {
   font-family: var(--font-num);
 }
 
-.help-bubble {
+/* ---- Tutorial cards (PLAN §7.5) ------------------------------------------------------- */
+
+.tut-overlay {
+  z-index: 35;
+  padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px))
+    max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+}
+
+.tut-card {
   display: grid;
-  pointer-events: auto;
-  grid-template-columns: auto 1fr;
-  gap: 8px 10px;
-  align-items: start;
-  width: min(300px, 100%);
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: #16233d;
-  border: 1px solid #3b6aa8;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  grid-template-rows: auto auto;
+  width: min(560px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: 16px;
+  background: #121a2c;
+  border: 1px solid #2c3754;
+  box-shadow: 0 12px 36px rgb(0 0 0 / 45%);
+  outline: none;
+}
+
+.tut-demo {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 0;
+  background: var(--bg);
+  border-bottom: 1px solid #2c3754;
+}
+
+.tut-stage {
+  position: relative;
+  height: clamp(150px, 34vh, 260px);
+  height: clamp(150px, 34dvh, 260px);
+  overflow: hidden;
+}
+
+.tut-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.tut-tool {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid #7fb2ff;
+  border-radius: 8px;
+  background: #22345a;
   color: var(--fg);
-  font: 13px/1.5 var(--font-ui);
+  font: 600 13px var(--font-ui);
+  pointer-events: none;
 }
 
-.help-bubble p {
+.tut-tool .build-icon {
+  font-size: 15px;
+}
+
+.tut-caption {
+  min-height: 2.6em;
   margin: 0;
+  padding: 8px 14px;
+  background: #0b101c;
+  color: #cfe0ff;
+  font: 600 14px/1.35 var(--font-ui);
+  text-align: center;
 }
 
-.help-bubble button {
-  grid-column: 2;
-  justify-self: end;
-  padding: 6px 12px;
-  font-size: 13px;
+.tut-demo-icon {
+  display: grid;
+  place-items: center;
+  height: clamp(120px, 26vh, 200px);
+  height: clamp(120px, 26dvh, 200px);
+}
+
+.tut-big-icon {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: #22345a;
+  border: 2px solid #7fb2ff;
+  color: #fff;
+  font: 700 40px var(--font-num);
+}
+
+.tut-body {
+  display: grid;
+  gap: 10px;
+  padding: 16px 20px 18px;
+}
+
+.tut-heading h2 {
+  margin: 0;
+  font: 700 22px/1.2 var(--font-ui);
+}
+
+.tut-kicker {
+  margin: 0 0 2px;
+  color: #7fb2ff;
+  font: 700 12px var(--font-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tut-text {
+  margin: 0;
+  color: var(--fg);
+  font: 15px/1.5 var(--font-ui);
+}
+
+.tut-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.tut-count {
+  margin-right: auto;
+  color: var(--muted);
+  font: 13px var(--font-num);
+}
+
+.tut-ok {
+  min-width: 120px;
+}
+
+/* A phone on its side: the demo on the left, the text on the right. */
+@media (orientation: landscape) {
+  .ui-compact .tut-card {
+    grid-template-rows: none;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    width: min(800px, 100%);
+  }
+
+  .ui-compact .tut-demo {
+    border-bottom: none;
+    border-right: 1px solid #2c3754;
+  }
+
+  .ui-compact .tut-stage,
+  .ui-compact .tut-demo-icon {
+    height: auto;
+    min-height: 150px;
+  }
+
+  .ui-compact .tut-body {
+    align-content: center;
+    padding: 14px 16px;
+  }
+
+  .ui-compact .tut-heading h2 {
+    font-size: 19px;
+  }
+
+  .ui-compact .tut-text {
+    font-size: 14px;
+  }
 }
 
 .help-icon {
   display: grid;
+  flex: none;
   place-items: center;
   width: 22px;
   height: 22px;
@@ -998,11 +1140,17 @@ textarea {
 }
 
 .help-list {
-  display: grid;
-  gap: 8px;
   margin: 12px 0 16px;
-  padding-left: 20px;
-  font: 14px/1.5 var(--font-ui);
+}
+
+.help-tip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.help-reshow {
+  width: 100%;
 }
 
 .about-links {
@@ -1264,7 +1412,6 @@ textarea {
   .secondary-btn,
   .menu-btn,
   .unit-btn,
-  .help-bubble button,
   .menu-header .secondary-btn {
     min-height: 44px;
     min-width: 44px;
@@ -1398,19 +1545,11 @@ textarea {
 }
 
 /*
- * Phone held upright: no room beside the HUD for the chips, nor for the full help bubble.
- * The chips go under the map; the bubble narrows to the space left of it.
+ * Phone held upright: no room beside the HUD for the chips: they go under the map.
  */
 .ui-narrow:has(.minimap.is-open) .status-bar {
   right: var(--edge-r);
   top: calc(var(--edge-t) + var(--top-h) + 10px + 112px + 8px);
   flex-direction: column;
   align-items: flex-end;
-}
-
-.ui-narrow:has(.minimap.is-open) .help-bubble {
-  width: min(
-    280px,
-    calc(100vw - var(--edge-l) - var(--edge-r) - 112px - var(--top-h) - 6px - 10px)
-  );
 }

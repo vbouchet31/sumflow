@@ -28,6 +28,13 @@ Cible : tablette et téléphone en paysage d'abord. Branche `dev-mobile`.
 | T4 Confort                       | ✅ terminé |
 | T5 Installation                  | ✅ terminé |
 
+## Fiches tutoriel
+
+- [x] Fiche modale animée à la première partie et à chaque déblocage (démo jouée par le vrai moteur).
+- [x] Souris, doigt et clavier ; mise en page téléphone (paysage : démo à gauche, texte à droite).
+- [x] Menu Aide : liste des fiches rencontrées, chacune rejouable.
+- [x] Tests : chaque scène livre son résultat (unitaires), ouverture, série, sauvegarde, tactile et mise en page (e2e).
+
 ### T5 : détail
 
 - [x] **Manifeste** (`public/manifest.webmanifest`) : plein écran, toute orientation, chemins relatifs (le jeu s'installe depuis `/sumflow/` sur GitHub Pages). Balises d'écran d'accueil pour iOS.
@@ -125,7 +132,7 @@ L'émulation Chromium ne reproduit ni Safari ni un vrai écran. Liste du `PLAN-t
 - [x] Options (`sumflow.settings`) : langue, volume, grille, valeurs sur les items, intervalle de sauvegarde, achat auto, réduire les animations, liste des commandes.
 - [x] Bulles d'aide (§7.5), une à la fois, masquables, réaffichables depuis l'Aide.
 - [x] Sons WebAudio : pose, démolition, clic UI, amélioration prête, niveau terminé, erreur ; volume réglable.
-- [x] Barre d'état : pause, « Sauvegardé il y a 12 s », coordonnées du curseur.
+- [x] Barre d'état : pause ; « Sauvegardé il y a 12 s » et coordonnées du curseur en mode debug uniquement.
 - [x] Tests : aller-retour sauvegarde → chargement au même hash d'état (compressé ou non) ; partie rechargée qui continue comme l'originale ; imports invalides sans effet ; migrations ; clés i18n identiques FR/EN ; aucune chaîne en dur dans `src/ui` (test par motifs) ; e2e sauvegarde + rechargement, import invalide, changement de langue, nouvelle partie, bulle d'aide.
 
 ## M9 : détail

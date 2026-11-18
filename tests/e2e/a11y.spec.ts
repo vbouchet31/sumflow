@@ -4,7 +4,7 @@ import { contrastIssues } from './helpers';
 test('DOM text keeps a contrast of at least 4.5:1 in every screen (PLAN §9.5)', async ({
   page,
 }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   await page.evaluate(() => {
     const api = window.__sumflow;
     if (!api) throw new Error('debug API missing');

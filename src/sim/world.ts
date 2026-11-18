@@ -9,6 +9,7 @@ import {
   type Building,
   dirMask,
   laneNode,
+  buildingSize,
   footprintTiles,
   isOperator,
   type PortFace,
@@ -26,6 +27,11 @@ export type SimEvents = ProgressionEvents & {
   networkChanged: Record<string, never>;
   /** A belt was added, changed or removed on this tile (for render caches). */
   beltChanged: { x: number; y: number };
+  /**
+   * A building or bridge appeared or went away over these tiles (inclusive): belts next to
+   * them may now be drawn joined to them, or not.
+   */
+  tilesChanged: { x0: number; y0: number; x1: number; y1: number };
 };
 
 export interface PortRef {
@@ -377,6 +383,7 @@ export class World {
     };
     br.h = apply(br.h, h);
     br.v = apply(br.v, v);
+    this.events.emit('tilesChanged', { x0: x, y0: y, x1: x, y1: y });
     this.invalidate();
     return br;
   }
@@ -390,6 +397,7 @@ export class World {
     this.state.bridges.delete(k);
     const { cx, cy } = chunkOf(x, y);
     this.bridgeChunks.get(chunkId(cx, cy))?.delete(k);
+    this.events.emit('tilesChanged', { x0: x, y0: y, x1: x, y1: y });
     this.invalidate();
     return br;
   }
@@ -493,6 +501,7 @@ export class World {
     this.state.buildings.set(b.id, b);
     this.state.nextBuildingId = Math.max(this.state.nextBuildingId, b.id + 1);
     this.indexBuilding(b);
+    this.emitFootprint(b);
     this.invalidate();
     return b;
   }
@@ -509,8 +518,14 @@ export class World {
     this.buildingPorts.delete(id);
     const { cx, cy } = chunkOf(b.x, b.y);
     this.buildingChunks.get(chunkId(cx, cy))?.delete(id);
+    this.emitFootprint(b);
     this.invalidate();
     return b;
+  }
+
+  private emitFootprint(b: Building): void {
+    const { w, h } = buildingSize(b.type, b.rot);
+    this.events.emit('tilesChanged', { x0: b.x, y0: b.y, x1: b.x + w - 1, y1: b.y + h - 1 });
   }
 
   private indexBuilding(b: Building): void {

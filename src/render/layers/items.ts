@@ -6,6 +6,7 @@ import { SpriteCache } from '../cache';
 import type { Camera } from '../camera';
 import { itemColor } from '../itemColor';
 import { LOD } from '../lod';
+import { curvePoint } from './belts';
 
 /** Output the item is heading to, for drawing: round-robin's next output. */
 function exitDir(b: Belt): Dir | null {
@@ -26,6 +27,11 @@ function itemPosition(
 ): { x: number; y: number } {
   const out = exitDir(b);
   const entry = from ?? (out === null ? null : opposite(out));
+  if (entry !== null && out !== null && (entry & 1) !== (out & 1)) {
+    // Entering and leaving at a right angle: follow the rounded turn of the belt.
+    const c = curvePoint(entry, out, Math.min(1, Math.max(0, progress)));
+    return cam.worldToScreen(b.x + c.x, b.y + c.y);
+  }
   let ox = 0;
   let oy = 0;
   if (progress < 0.5) {

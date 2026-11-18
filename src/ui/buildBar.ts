@@ -31,6 +31,12 @@ const BUTTONS: readonly ToolButton[] = [
   { tool: 'marker', label: 'tool.marker', key: 'B', icon: '⚑', edit: true },
 ];
 
+/** Icon and name of a tool, as on its build bar button. */
+export function toolFace(tool: ToolId): { icon: string; label: MessageKey } | null {
+  const def = BUTTONS.find((b) => b.tool === tool);
+  return def ? { icon: def.icon, label: def.label } : null;
+}
+
 /** Bottom-centre build bar (PLAN §9.1). Locked buildings are hidden (later milestones). */
 export class BuildBar {
   private readonly buttons = new Map<ToolId, HTMLButtonElement>();

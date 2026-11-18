@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('a game survives a save and a reload', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const before = await page.evaluate(async () => {
     const api = window.__sumflow;
     if (!api) throw new Error('debug API missing');
@@ -36,7 +36,7 @@ test('a game survives a save and a reload', async ({ page }) => {
 });
 
 test('the menu opens with Escape; an invalid import changes nothing', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   await page.evaluate(() => window.__sumflow?.place('belt', 10, 10, 0));
   const hash = await page.evaluate(() => window.__sumflow?.layout());
 
@@ -54,7 +54,7 @@ test('the menu opens with Escape; an invalid import changes nothing', async ({ p
 });
 
 test('options: switching to English reloads in English and keeps the game', async ({ page }) => {
-  await page.goto('./?debug=1&seed=7');
+  await page.goto('./?debug=1&seed=7&tutorial=0');
   await page.evaluate(() => window.__sumflow?.place('belt', 12, 12, 0));
   await page.locator('.top-btn[data-action="menu"]').click();
   await page.locator('.menu-card .menu-btn').nth(5).click(); // Options
@@ -73,18 +73,72 @@ test('options: switching to English reloads in English and keeps the game', asyn
   expect(JSON.parse(stored ?? '{}')).toMatchObject({ locale: 'en', showGrid: false });
 });
 
-test('the first help bubble shows on a new game and can be dismissed', async ({ page }) => {
+test('a tutorial card opens on a new game, then one per unlock, and is not shown twice', async ({
+  page,
+}) => {
   await page.goto('./?debug=1&seed=42');
-  const bubble = page.locator('.help-bubble');
-  await expect(bubble).toBeVisible();
-  await bubble.locator('button').click();
-  await expect(bubble).toBeHidden();
+  const card = page.locator('.tut-card');
+  await expect(card).toBeVisible();
+  await expect(card).toHaveAttribute('data-tip', 'start');
+  await expect(card.locator('.tut-canvas')).toBeVisible();
+  await expect(card.locator('.tut-ok')).toBeFocused();
+  // The demo moves on through its steps.
+  await expect(card.locator('.tut-caption')).toHaveText('Draw a belt to the hub', {
+    timeout: 8000,
+  });
+  // Shortcuts wait while it is open.
+  await page.keyboard.press('Digit1');
+  expect((await page.evaluate(() => window.__sumflow?.getState()))?.tool).toBe('none');
+  await page.keyboard.press('Enter');
+  await expect(card).toBeHidden();
+
+  // Seen cards are saved with the game.
+  await page.evaluate(() => window.__sumflow?.save());
+  await page.reload();
+  await page.evaluate(() => window.__sumflow?.getState());
+  await page.waitForTimeout(300);
+  await expect(card).toBeHidden();
+
+  // Each unlock brings its card; Escape closes one and the next follows.
   await page.evaluate(() => window.__sumflow?.unlockAll());
-  await expect(bubble).toBeVisible(); // next tip: the adder
+  await expect(card).toHaveAttribute('data-tip', 'adder');
+  await expect(card.locator('.tut-count')).toHaveText('1 / 9');
+  await expect(card.locator('.tut-ok')).toHaveText('Next');
+  await page.keyboard.press('Escape');
+  await expect(card).toHaveAttribute('data-tip', 'upgrades');
+  await expect(card.locator('.tut-count')).toHaveText('2 / 9');
+  await expect(card.locator('.tut-canvas')).toHaveCount(0);
+  await card.locator('.tut-ok').click();
+  await expect(card).toHaveAttribute('data-tip', 'bridge');
+  // A click on the backdrop closes it as well.
+  await page.mouse.click(5, 5);
+  await expect(card).toHaveAttribute('data-tip', 'multiplier');
+});
+
+test('the Help menu replays any card already met', async ({ page }) => {
+  await page.goto('./?debug=1&seed=42&tutorial=0');
+  await page.evaluate(() => window.__sumflow?.unlockAll());
+  await page.keyboard.press('Escape');
+  await page.locator('.menu-card .menu-btn').nth(6).click(); // Help
+  const tips = page.locator('.menu-card .help-tip');
+  await expect(tips).toHaveCount(10);
+  await tips.filter({ hasText: 'Divider' }).click();
+  const card = page.locator('.tut-card');
+  await expect(card).toHaveAttribute('data-tip', 'divider');
+  await expect(page.locator('.menu-card')).toBeHidden();
+  await expect(card.locator('.tut-ok')).toHaveText('Got it');
+  await expect(card.locator('.tut-caption')).toHaveText('7 ÷ 2 = 3, remainder 1', {
+    timeout: 15000,
+  });
+  await page.keyboard.press('Escape');
+  await expect(card).toBeHidden();
+  // Back to the game: shortcuts work again.
+  await page.keyboard.press('Digit1');
+  expect((await page.evaluate(() => window.__sumflow?.getState()))?.tool).toBe('belt');
 });
 
 test('New game from the menu starts a fresh game with the chosen seed', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   await page.evaluate(() => window.__sumflow?.place('belt', 10, 10, 0));
   await page.keyboard.press('Escape');
   await page.locator('.menu-card .menu-btn').nth(1).click(); // New game

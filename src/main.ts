@@ -54,7 +54,8 @@ import {
 } from './save/persist';
 import { type CameraState, deserialize, serialize } from './save/serialize';
 import { defaultSettings, loadSettings, storeSettings } from './save/settings';
-import { HelpBubble, knownTips } from './ui/help';
+import { knownTips, markSeen, pendingTips } from './ui/help';
+import { TutorialCard } from './ui/tutorial';
 import { GameMenu } from './ui/menu';
 
 /** Longest frame delta honoured, in seconds (avoids a jump after a hitch). */
@@ -203,7 +204,7 @@ async function bootstrap(): Promise<void> {
     },
   );
   const buildBar = new BuildBar(uiRoot, tools);
-  const statusBar = new StatusBar(uiRoot);
+  const statusBar = new StatusBar(uiRoot, isDebugEnabled(location.search));
   const toasts = new Toasts(uiRoot);
   const endScreen = new EndScreen(uiRoot);
   const toolActions = new ToolActions(uiRoot, tools);
@@ -219,7 +220,47 @@ async function bootstrap(): Promise<void> {
     }
   });
   markerEditor = new MarkerEditor(uiRoot);
-  const help = new HelpBubble(topLeft, state);
+  const tutorial = new TutorialCard(uiRoot);
+  // Demos show a finger or a mouse arrow, after the pointer the player last used.
+  let lastPointer: string | null = null;
+  window.addEventListener('pointerdown', (e) => (lastPointer = e.pointerType), {
+    capture: true,
+    passive: true,
+  });
+  const usesTouch = (): boolean =>
+    lastPointer === null ? window.matchMedia('(pointer: coarse)').matches : lastPointer !== 'mouse';
+  const openTutorial: TutorialCard['show'] = (tip, options) => {
+    tutorial.touch = usesTouch();
+    tutorial.still = settings.reduceMotion;
+    tutorial.show(tip, options);
+  };
+  // `?tutorial=0` keeps the cards from opening by themselves (end-to-end tests).
+  const autoTutorials = new URLSearchParams(location.search).get('tutorial') !== '0';
+  /** Cards shown one after the other: position in the series and its length. */
+  const series = { index: 0, total: 0 };
+  /** Open the next pending card when nothing else is on screen. Cheap: call every frame. */
+  const showPendingTip = (): void => {
+    if (!autoTutorials || tutorial.isOpen || menu.isOpen || endScreen.isOpen) return;
+    if (markerEditor?.isOpen) return;
+    const pending = pendingTips(state);
+    const tip = pending[0];
+    if (!tip) {
+      series.index = 0;
+      series.total = 0;
+      return;
+    }
+    series.index += 1;
+    series.total = Math.max(series.total, series.index - 1 + pending.length);
+    openTutorial(tip, {
+      index: series.index,
+      total: series.total,
+      onClose: () => {
+        markSeen(state, tip.id);
+        // The series ends with its last card, so the next unlock starts a new one.
+        if (pendingTips(state).length === 0) series.index = series.total = 0;
+      },
+    });
+  };
   const catchUpBar = new CatchUpBar(uiRoot);
   const perfOverlay = new PerfOverlay(uiRoot);
   const perf = new PerfMeter();
@@ -276,6 +317,7 @@ async function bootstrap(): Promise<void> {
     autoBuy: () => state.autoBuyUpgrades,
     setAutoBuy: (on) => setAutoBuy(state, on, world.emit),
     knownTips: () => knownTips(state),
+    replayTip: (tip) => openTutorial(tip),
     reshowHelp: () => {
       state.helpSeen.length = 0;
     },
@@ -360,7 +402,8 @@ async function bootstrap(): Promise<void> {
       onRedo: redo,
       onCancel: () => {
         const open = panels.find((p) => p.isOpen);
-        if (endScreen.isOpen) endScreen.hide();
+        if (tutorial.isOpen) tutorial.close();
+        else if (endScreen.isOpen) endScreen.hide();
         else if (open) open.close();
         else if (tools.tool !== 'none') tools.cancel();
         else menu.open();
@@ -368,7 +411,7 @@ async function bootstrap(): Promise<void> {
       onQuickDemolish: () => tools.deletePressed(),
       onTogglePause: togglePause,
     },
-    () => menu.isOpen || endScreen.isOpen || (markerEditor?.isOpen ?? false),
+    () => menu.isOpen || endScreen.isOpen || tutorial.isOpen || (markerEditor?.isOpen ?? false),
   );
   const pointer = new PointerInput(canvas, camera, {
     onDown: (x, y, mods) => tools.pointerDown(x, y, mods),
@@ -467,7 +510,7 @@ async function bootstrap(): Promise<void> {
     topBar.setPressed('marker', tools.tool === 'marker');
     topBar.setPaused(loop.paused);
     toolActions.update();
-    help.update();
+    showPendingTip();
     saves.update();
     statusBar.update(
       saves.lastSavedAt === null ? null : now - saves.lastSavedAt,

@@ -424,13 +424,13 @@ Voir 6.5.
 ### 7.4 Ordre des déblocages (récapitulatif)
 Départ : Tapis, Extracteur, outils d'édition (copier, coller, démolir, marqueurs). Puis : Additionneur (fin niv. 1), Améliorations (2), Pont (4), Multiplicateur (7), Priorités (10), Soustracteur (13), Diviseur (16), Exposant (19), Stockage (22). Extraction : voir table.
 
-### 7.5 Aide contextuelle (tutoriel léger)
-Bulles non bloquantes, une à la fois, masquables, réaffichables dans le menu Aide :
-1. Partie neuve : « Pose un extracteur sur un gisement de 1, puis relie-le au Hub avec des tapis. »
-2. Additionneur débloqué : « Amène deux flux dans les entrées A et B. La somme sort en bas. »
-3. Améliorations débloquées : « Livre les nombres indiqués pour accélérer ton usine. »
-4. Pont : « Croise un tapis perpendiculaire pour poser un pont automatiquement. »
-5. Priorités, Soustracteur (« l'ordre A − B compte »), Diviseur (« le reste sort à part, jamais 0 »), Exposant, Stockage : une bulle chacun.
+### 7.5 Aide contextuelle (fiches tutoriel)
+Une fiche modale, une à la fois, à la première ouverture d'une partie neuve puis à chaque déblocage. Chaque fiche montre une **démo animée** (le jeu lui-même, rendu dans un petit canvas : un pointeur virtuel choisit l'outil, pose, trace les tapis, puis l'usine tourne), un titre et une ou deux phrases. Doigt ou flèche de souris selon le dernier pointeur utilisé. Fermeture par le bouton, `Échap`, `Entrée` ou une touche à côté de la fiche. Les fiches vues sont sauvegardées (`helpSeen`) ; le menu Aide liste celles déjà rencontrées et les rejoue.
+1. Partie neuve : « Le Hub demande des nombres. Pose un extracteur sur un gisement de 1, puis relie-le au Hub avec des tapis. » (démo)
+2. Additionneur débloqué : « Amène deux flux dans les entrées A et B. La somme sort en bas. » (démo 1 + 2 = 3)
+3. Améliorations débloquées : « Livre les nombres indiqués pour accélérer ton usine. » (icône)
+4. Pont : « Croise un tapis perpendiculaire pour poser un pont automatiquement. » (démo)
+5. Multiplicateur, Priorités (icône), Soustracteur (« l'ordre A − B compte »), Diviseur (« le reste sort à part, jamais 0 »), Exposant, Stockage : une fiche chacun.
 
 ---
 
@@ -506,7 +506,7 @@ Le type de pointeur décide (`pointerType`), pas l'appareil : une souris garde l
 - **Haut droit** : boutons Annuler, Rétablir, Retour au Hub, Marqueur, Nombres livrés, Niveaux, Améliorations (badge), Menu.
 - **Bas centre** : barre de construction (icônes des bâtiments débloqués avec touche, outils d'édition). Bâtiments verrouillés masqués.
 - **Bas gauche** : info-bulle contextuelle de l'objet survolé (type, valeur, tampons A/B/sortie, cycle en cours, débit).
-- **Bas droit** : indicateur de pause, de sauvegarde (« Sauvegardé il y a 12 s »), coordonnées du curseur.
+- **Bas droit** : indicateur de pause. En mode debug (`?debug=1`) seulement : indicateur de sauvegarde (« Sauvegardé il y a 12 s ») et coordonnées du curseur.
 - **Au-dessus de la barre de construction** : barre d'actions de l'outil actif (8.3).
 - **Petits écrans** : barre de construction en icônes, défilable ; sur téléphone, HUD sur une ligne, panneaux en feuilles, boutons de 44 px au moins, zones sûres respectées (`PLAN-tactile.md` §5.5).
 - Toasts : niveau terminé, amélioration prête, sauvegarde, erreurs d'import.
