@@ -7,7 +7,8 @@ import type { Belt } from '../sim/entities';
 import { RegionCache } from './cache';
 import type { Camera } from './camera';
 import { LOD } from './lod';
-import { drawBelts } from './layers/belts';
+import { drawBelts, type InputsOf, straightInputs } from './layers/belts';
+import { beltInputs } from './beltLinks';
 import { drawBridges, drawPriorities } from './layers/bridges';
 import { priorityTiles } from '../sim/priority';
 import { drawBuildings } from './layers/buildings';
@@ -41,6 +42,7 @@ export class Renderer {
   private readonly beltCache = new RegionCache();
   private world: World | null = null;
   private unwatch: (() => void) | null = null;
+  private inputsOf: InputsOf = straightInputs;
   private lastZoom = 0;
   /** Frames since the zoom last changed. */
   private stableFrames = 0;
@@ -104,11 +106,12 @@ export class Renderer {
           [...world.beltsInRect(r.x0, r.y0, r.x1, r.y1)],
           0,
           liveChevrons ? 'base' : 'all',
+          this.inputsOf,
         ),
       );
-      if (liveChevrons) drawBelts(ctx, camera, belts, phase, 'chevrons');
+      if (liveChevrons) drawBelts(ctx, camera, belts, phase, 'chevrons', this.inputsOf);
     } else {
-      drawBelts(ctx, camera, belts, phase);
+      drawBelts(ctx, camera, belts, phase, 'all', this.inputsOf);
     }
     const bridges = [...world.bridgesInRect(v.x0, v.y0, v.x1, v.y1)];
     drawBridges(ctx, camera, bridges, phase, this.itemValuesAlways);
@@ -143,8 +146,17 @@ export class Renderer {
     this.world = world;
     this.beltCache.clear();
     this.depositCache.clear();
-    this.unwatch = world.events.on('beltChanged', ({ x, y }) =>
-      this.beltCache.invalidateTile(x, y),
+    this.inputsOf = beltInputs(world);
+    // A belt is drawn joined to its neighbours: a change also redraws the tiles around it.
+    const offBelt = world.events.on('beltChanged', ({ x, y }) =>
+      this.beltCache.invalidateRect(x - 1, y - 1, x + 1, y + 1),
     );
+    const offTiles = world.events.on('tilesChanged', ({ x0, y0, x1, y1 }) =>
+      this.beltCache.invalidateRect(x0 - 1, y0 - 1, x1 + 1, y1 + 1),
+    );
+    this.unwatch = () => {
+      offBelt();
+      offTiles();
+    };
   }
 }
