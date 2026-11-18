@@ -138,6 +138,11 @@ export class PointerInput {
     if (step) this.camera.panScreen(step.dx, step.dy);
   }
 
+  /** Touch: where the finger aiming with a tool is (CSS pixels on the map), or null. */
+  get aimPoint(): { x: number; y: number } | null {
+    return this.gestures.aimPoint;
+  }
+
   /** Finger contact, or a pen touching the screen. */
   private isTouch(e: PointerEvent): boolean {
     return e.pointerType === 'touch' || this.touches.has(e.pointerId);

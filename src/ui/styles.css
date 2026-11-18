@@ -1459,3 +1459,15 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Touch loupe: a magnified disc of the map above the aiming finger. */
+.loupe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 30;
+  border-radius: 50%;
+  border: 3px solid #e8edf7;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 55%);
+  pointer-events: none;
+}

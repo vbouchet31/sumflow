@@ -191,6 +191,7 @@ export const fr = {
   'opt.fullscreen.off': 'Quitter',
   'opt.volume': 'Volume des effets',
   'opt.grid': 'Grille visible',
+  'opt.loupe': 'Loupe au-dessus du doigt en construction',
   'opt.itemValues': 'Valeurs sur les items',
   'opt.itemValues.always': 'Toujours',
   'opt.itemValues.zoom': 'Selon le zoom',

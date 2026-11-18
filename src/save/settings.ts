@@ -15,6 +15,8 @@ export interface Settings {
   itemValues: 'always' | 'zoom';
   autosave: AutosaveSeconds;
   reduceMotion: boolean;
+  /** Touch: a magnified view above the finger while it aims with a tool. */
+  touchLoupe: boolean;
 }
 
 export function defaultSettings(locale: Locale, reduceMotion: boolean): Settings {
@@ -25,6 +27,7 @@ export function defaultSettings(locale: Locale, reduceMotion: boolean): Settings
     itemValues: 'zoom',
     autosave: 60,
     reduceMotion,
+    touchLoupe: true,
   };
 }
 
@@ -50,6 +53,7 @@ export function parseSettings(text: string | null, defaults: Settings): Settings
     out.autosave = o['autosave'] as AutosaveSeconds;
   }
   if (typeof o['reduceMotion'] === 'boolean') out.reduceMotion = o['reduceMotion'];
+  if (typeof o['touchLoupe'] === 'boolean') out.touchLoupe = o['touchLoupe'];
   return out;
 }
 

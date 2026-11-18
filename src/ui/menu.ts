@@ -255,6 +255,8 @@ export class GameMenu {
       void change.then(syncFullscreen, syncFullscreen);
     });
     syncFullscreen();
+    /** The loupe only helps fingers: its option shows where a touch screen is present. */
+    const hasTouch = window.matchMedia('(any-pointer: coarse)').matches;
     const canFullscreen =
       document.fullscreenEnabled &&
       !window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
@@ -308,6 +310,15 @@ export class GameMenu {
           check(s.showGrid, (showGrid) => change({ showGrid })),
           'opt-grid',
         ),
+        ...(hasTouch
+          ? [
+              row(
+                'opt.loupe',
+                check(s.touchLoupe, (touchLoupe) => change({ touchLoupe })),
+                'opt-loupe',
+              ),
+            ]
+          : []),
         row(
           'opt.itemValues',
           select(

@@ -193,6 +193,7 @@ export const en: Record<MessageKey, string> = {
   'opt.fullscreen.off': 'Leave',
   'opt.volume': 'Effects volume',
   'opt.grid': 'Show grid',
+  'opt.loupe': 'Loupe above the finger when building',
   'opt.itemValues': 'Numbers on items',
   'opt.itemValues.always': 'Always',
   'opt.itemValues.zoom': 'Depending on zoom',
