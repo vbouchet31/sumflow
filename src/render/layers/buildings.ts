@@ -68,7 +68,11 @@ export function drawBuildings(
     else if (isOperator(b.type)) {
       const age = b.flashTick === undefined ? Infinity : state.tick - b.flashTick;
       const flash = !reducedMotion && age < FLASH_TICKS ? 1 - age / FLASH_TICKS : 0;
-      drawOperator(ctx, cam, b.type, b.x, b.y, b.rot, { flash, mirror: b.mirror === true });
+      drawOperator(ctx, cam, b.type, b.x, b.y, b.rot, {
+        flash,
+        mirror: b.mirror === true,
+        ...(b.type === 'totalizer' ? { badge: `${b.accN ?? 0}/${b.size ?? 3}` } : {}),
+      });
     }
   }
 }

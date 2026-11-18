@@ -336,6 +336,14 @@ export class ToolController {
       return;
     }
     const run = <T>(fn: () => T): T => this.history.run(fn);
+    if (tool === 'none') {
+      const b = this.world.buildingAt(x, y);
+      if (b?.type === 'totalizer' && !this.world.state.markers.has(key(x, y))) {
+        this.history.run(() => this.world.cycleTotalizer(b));
+        this.events.onBuild?.();
+        return;
+      }
+    }
     if (tool === 'none' || tool === 'marker') {
       const marker = this.world.state.markers.get(key(x, y));
       if (marker || tool === 'marker') this.events.onMarker?.(x, y, marker?.text ?? null);

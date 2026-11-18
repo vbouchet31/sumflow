@@ -11,6 +11,7 @@ export const OPERATOR_SYMBOL: Record<OperatorType, string> = {
   subtractor: '−',
   divider: '÷',
   exponent: '^',
+  totalizer: '∑',
 };
 
 /** Mix a #rrggbb colour toward black (f < 0) or white (f > 0). */
@@ -42,6 +43,8 @@ export interface OperatorDrawOptions {
   tint?: string;
   /** Mirrored building (mirror applied before the rotation). */
   mirror?: boolean;
+  /** Small text under the symbol (totalizer: "2/3"). */
+  badge?: string;
 }
 
 /**
@@ -126,6 +129,16 @@ export function drawOperator(
     ctx.fillStyle = COLORS.text;
     ctx.font = `700 ${0.62 * s}px ${FONT_NUM}`;
     ctx.fillText(OPERATOR_SYMBOL[type], center.x, center.y + 0.04 * s);
+    if (opts.badge) {
+      ctx.font = `700 ${0.3 * s}px ${FONT_NUM}`;
+      const w = ctx.measureText(opts.badge).width + 0.2 * s;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.beginPath();
+      ctx.roundRect(center.x - w / 2, center.y + 0.42 * s, w, 0.36 * s, 0.12 * s);
+      ctx.fill();
+      ctx.fillStyle = COLORS.text;
+      ctx.fillText(opts.badge, center.x, center.y + 0.61 * s);
+    }
   }
 
   if (opts.flash && opts.flash > 0) {

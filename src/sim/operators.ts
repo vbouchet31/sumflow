@@ -1,6 +1,10 @@
 import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT, type Track } from '../config/balance';
 import { add, divmod, mul, pow, sub } from '../core/intmath';
 import { EPS } from './belts';
+import { currentBeltSpeed } from './upgrades';
+
+/** Numbers per total of a new totalizer (proposal 16). */
+export const TOTALIZER_DEFAULT = 3;
 import { type Building, isOperator, type OperatorType } from './entities';
 import { outputGroup, pushOut } from './outputs';
 import type { World } from './world';
@@ -12,6 +16,7 @@ export const OPERATOR_TRACK: Record<OperatorType, Track> = {
   subtractor: 'subdiv',
   divider: 'subdiv',
   exponent: 'exponent',
+  totalizer: 'adder',
 };
 
 /** Result(s) of one operation. The divider emits R only when non-zero (PLAN §6.3). */
@@ -29,6 +34,9 @@ export function compute(
       return { o: sub(a, b) };
     case 'exponent':
       return { o: pow(a, b) };
+    case 'totalizer':
+      // Handled in `finishCycle` (it needs several inputs); here: one step of the sum.
+      return { o: add(a, b) };
     case 'divider': {
       const { q, r } = divmod(a, b);
       return r === 0 ? { q } : { q, r };
@@ -38,6 +46,8 @@ export function compute(
 
 /** Seconds per operation for a building, from its track's upgrade level. */
 export function cycleDuration(world: World, type: OperatorType): number {
+  // The totalizer only adds: it keeps pace with the belts.
+  if (type === 'totalizer') return 1 / currentBeltSpeed(world.state);
   const track = OPERATOR_TRACK[type];
   return 1 / operatorSpeed(track, world.state.upgrades[track]);
 }
@@ -47,12 +57,26 @@ function hasRoom(buf: number[] | undefined): boolean {
 }
 
 function canStart(b: Building): boolean {
+  if (b.type === 'totalizer') return (b.inA?.length ?? 0) > 0 && hasRoom(b.out);
   if (!b.inA?.length || !b.inB?.length) return false;
   if (b.type === 'divider') return hasRoom(b.outQ) && hasRoom(b.outR);
   return hasRoom(b.out);
 }
 
 function finishCycle(world: World, b: Building, type: OperatorType): void {
+  if (type === 'totalizer') {
+    const v = b.inA?.shift();
+    if (v === undefined) return;
+    b.acc = add(b.acc ?? 0, v);
+    b.accN = (b.accN ?? 0) + 1;
+    if (b.accN >= (b.size ?? TOTALIZER_DEFAULT)) {
+      b.out?.push(b.acc);
+      b.acc = 0;
+      b.accN = 0;
+      b.flashTick = world.state.tick;
+    }
+    return;
+  }
   const a = b.inA?.shift();
   const c = b.inB?.shift();
   if (a === undefined || c === undefined) return;
