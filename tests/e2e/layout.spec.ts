@@ -10,6 +10,7 @@ const BLOCKS = [
   '.tool-hint',
   '.tooltip',
   '.status-bar',
+  '.minimap',
 ];
 
 /**
@@ -178,6 +179,11 @@ test('everything unlocked: tools, action bar, tooltip and pause chip all fit', a
   await expect(page.locator('.tooltip')).toBeVisible();
   await expect(page.locator('.status-paused')).toBeVisible();
   expect(await layoutIssues(page), 'tooltip and pause').toEqual([]);
+
+  // Everything at once, with the minimap opened by its button.
+  await page.locator('.minimap-open').tap();
+  await expect(page.locator('.minimap-canvas')).toBeVisible();
+  expect(await layoutIssues(page), 'minimap open').toEqual([]);
 });
 
 test('panels open as sheets inside the screen', async ({ page }) => {

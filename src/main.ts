@@ -189,8 +189,19 @@ async function bootstrap(): Promise<void> {
     menu: () => menu.toggle(),
   });
   const tooltip = new Tooltip(uiRoot);
-  // Open from the start on large screens; a button opens it on phones and tablets.
-  const minimap = new Minimap(uiRoot, camera, window.matchMedia('(min-width: 1201px)').matches);
+  // Until the player chooses, open on large screens only; a button opens it elsewhere.
+  const minimap = new Minimap(
+    uiRoot,
+    camera,
+    {
+      open: settings.minimapOpen ?? window.matchMedia('(min-width: 1201px)').matches,
+      size: settings.minimapSize,
+    },
+    ({ open, size }) => {
+      settings = { ...settings, minimapOpen: open, minimapSize: size };
+      storeSettings(settings);
+    },
+  );
   const buildBar = new BuildBar(uiRoot, tools);
   const statusBar = new StatusBar(uiRoot);
   const toasts = new Toasts(uiRoot);
