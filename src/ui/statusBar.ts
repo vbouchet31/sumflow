@@ -25,9 +25,7 @@ export class StatusBar {
     private readonly debug: boolean,
   ) {
     this.pause.hidden = true;
-    root.append(
-      el('div', 'status-bar', this.pause, ...(debug ? [this.saved, this.cursor] : [])),
-    );
+    root.append(el('div', 'status-bar', this.pause, ...(debug ? [this.saved, this.cursor] : [])));
   }
 
   setPaused(paused: boolean): void {
