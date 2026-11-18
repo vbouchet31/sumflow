@@ -1,6 +1,6 @@
 import { EDIT } from '../config/balance';
 import { key } from '../core/grid';
-import { type Building, footprintTiles } from '../sim/entities';
+import { type Building, buildingSize, footprintTiles } from '../sim/entities';
 import type { World } from '../sim/world';
 
 /** Tile rectangle, inclusive on both ends. */
@@ -112,4 +112,28 @@ export function clearArea(world: World, r: Rect): number {
     }
   }
   return n;
+}
+
+/**
+ * What a zone tool would touch, for the preview: tile rectangles of the buildings and belt
+ * or bridge tiles in the zone. The clear tool only counts belts that hold a number.
+ */
+export function areaTargets(
+  world: World,
+  r: Rect,
+  kind: 'demolish' | 'clear' | 'copy' | 'cut',
+): { x: number; y: number; w: number; h: number }[] {
+  const out: { x: number; y: number; w: number; h: number }[] = [];
+  for (const b of buildingsInArea(world, r)) {
+    out.push({ x: b.x, y: b.y, ...buildingSize(b.type, b.rot) });
+  }
+  for (const b of world.beltsInRect(r.x0, r.y0, r.x1, r.y1)) {
+    if (!inRect(r, b.x, b.y) || (kind === 'clear' && !b.item)) continue;
+    out.push({ x: b.x, y: b.y, w: 1, h: 1 });
+  }
+  for (const br of world.bridgesInRect(r.x0, r.y0, r.x1, r.y1)) {
+    if (!inRect(r, br.x, br.y) || (kind === 'clear' && !br.h?.item && !br.v?.item)) continue;
+    out.push({ x: br.x, y: br.y, w: 1, h: 1 });
+  }
+  return out;
 }

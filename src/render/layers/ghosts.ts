@@ -73,6 +73,39 @@ export function drawGhosts(ctx: CanvasRenderingContext2D, cam: Camera, ghost: Gh
     const color = AREA_COLORS[kind];
     ctx.fillStyle = color.fill;
     ctx.fillRect(p.x, p.y, w, h);
+    // Each object the release will act on, tinted, so nothing is demolished by surprise.
+    if (ghost.area.targets) {
+      ctx.fillStyle = color.target;
+      ctx.strokeStyle = color.stroke;
+      ctx.lineWidth = Math.max(1, 0.05 * s);
+      for (const t of ghost.area.targets) {
+        const q = cam.worldToScreen(t.x, t.y);
+        ctx.beginPath();
+        ctx.roundRect(
+          q.x + 0.08 * s,
+          q.y + 0.08 * s,
+          t.w * s - 0.16 * s,
+          t.h * s - 0.16 * s,
+          0.2 * s,
+        );
+        ctx.fill();
+        ctx.stroke();
+        if (kind === 'demolish' && t.w * t.h > 1) {
+          // A cross on buildings: the costliest things to lose.
+          const c = 0.22 * Math.min(t.w, t.h) * s;
+          const mx = q.x + (t.w * s) / 2;
+          const my = q.y + (t.h * s) / 2;
+          ctx.lineWidth = Math.max(2, 0.1 * s);
+          ctx.beginPath();
+          ctx.moveTo(mx - c, my - c);
+          ctx.lineTo(mx + c, my + c);
+          ctx.moveTo(mx + c, my - c);
+          ctx.lineTo(mx - c, my + c);
+          ctx.stroke();
+          ctx.lineWidth = Math.max(1, 0.05 * s);
+        }
+      }
+    }
     ctx.strokeStyle = color.stroke;
     ctx.lineWidth = 2;
     ctx.setLineDash([6, 4]);
