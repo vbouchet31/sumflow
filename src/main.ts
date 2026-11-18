@@ -1,4 +1,5 @@
 import './ui/styles.css';
+import { formatFull } from './core/format';
 import { Sfx } from './audio/sfx';
 import { ToolController } from './build/tools';
 import { CATCH_UP } from './config/balance';
@@ -25,6 +26,8 @@ import { Hud } from './ui/hud';
 import { rewardLabel } from './ui/labels';
 import { watchLayout } from './ui/layout';
 import { LevelsPanel } from './ui/panels/levels';
+import { CodexPanel } from './ui/panels/codex';
+import type { MessageKey } from './i18n';
 import { Toasts } from './ui/toasts';
 import { TopBar } from './ui/topBar';
 import { UpgradesPanel } from './ui/panels/upgrades';
@@ -161,7 +164,8 @@ async function bootstrap(): Promise<void> {
   const levelsPanel = new LevelsPanel(uiRoot, world);
   const upgradesPanel = new UpgradesPanel(uiRoot, world);
   const deliveredPanel = new DeliveredPanel(uiRoot, world);
-  const panels = [levelsPanel, upgradesPanel, deliveredPanel];
+  const codexPanel = new CodexPanel(uiRoot, world);
+  const panels = [levelsPanel, upgradesPanel, deliveredPanel, codexPanel];
   for (const p of panels) p.onOpen = () => panels.forEach((o) => o !== p && o.close());
   const upgradesAvailable = (): boolean => TRACKS.some((tr) => isTrackUnlocked(state, tr));
   const toggleUpgrades = (): void => {
@@ -185,6 +189,7 @@ async function bootstrap(): Promise<void> {
     home: goHome,
     delivered: () => deliveredPanel.toggle(),
     levels: () => levelsPanel.toggle(),
+    codex: () => codexPanel.toggle(),
     upgrades: toggleUpgrades,
     menu: () => menu.toggle(),
   });
@@ -352,6 +357,16 @@ async function bootstrap(): Promise<void> {
     );
     if (final) endScreen.show(world.state);
   });
+  world.events.on('curiosity', ({ id, value }) => {
+    sfx.upgradeReady();
+    toasts.show(
+      t('toast.curiosity', {
+        name: t(`codex.${id}` as MessageKey),
+        value: formatFull(value, getLocale()),
+      }),
+      t('toast.curiosityBonus'),
+    );
+  });
   world.events.on('upgradeReady', ({ track }) => {
     if (state.autoBuyUpgrades) return;
     sfx.upgradeReady();
@@ -373,6 +388,7 @@ async function bootstrap(): Promise<void> {
     {
       onHome: goHome,
       onLevels: () => levelsPanel.toggle(),
+      onCodex: () => codexPanel.toggle(),
       onUpgrades: toggleUpgrades,
       onDelivered: () => deliveredPanel.toggle(),
       onTogglePerf: () => perfOverlay.toggle(),

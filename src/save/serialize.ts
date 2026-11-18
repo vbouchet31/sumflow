@@ -2,6 +2,7 @@ import { TICK_RATE } from '../config/balance';
 import { type Dir, key } from '../core/grid';
 import { type Belt, type Building, footprintTiles, type Item } from '../sim/entities';
 import { createInitialState, type GameState } from '../sim/state';
+import { CURIOSITIES } from '../sim/codex';
 import { singleOutput, type World } from '../sim/world';
 import {
   SAVE_VERSION,
@@ -137,6 +138,7 @@ export function serialize(world: World, camera: CameraState, savedAt = ''): Save
     markers: markers.map((m) => ({ x: m.x, y: m.y, text: m.text })),
     clipboard: structuredClone(s.clipboard),
     helpSeen: [...s.helpSeen],
+    codex: s.codex.map((e) => ({ ...e })),
     camera: { x: camera.x, y: camera.y, zoom: camera.zoom },
   };
 }
@@ -162,6 +164,7 @@ export function deserialize(data: SaveData): { state: GameState; camera: CameraS
   state.totalDelivered = data.totalDelivered;
   state.nextBuildingId = data.nextBuildingId;
   state.helpSeen = [...data.helpSeen];
+  state.codex = (data.codex ?? []).filter((e) => CURIOSITIES.some((c) => c.id === e.id));
   state.clipboard = structuredClone(data.clipboard);
 
   const occupied = new Set<number>();
