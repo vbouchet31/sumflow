@@ -2,7 +2,16 @@ import { type MessageKey, t } from '../i18n';
 import { el } from './dom';
 
 export type TopAction =
-  'pause' | 'undo' | 'redo' | 'home' | 'marker' | 'delivered' | 'levels' | 'upgrades' | 'menu';
+  | 'pause'
+  | 'speed'
+  | 'undo'
+  | 'redo'
+  | 'home'
+  | 'marker'
+  | 'delivered'
+  | 'levels'
+  | 'upgrades'
+  | 'menu';
 
 /** Buttons folded behind the "more" button on a narrow screen. */
 const FOLDED: readonly TopAction[] = ['marker', 'delivered', 'levels'];
@@ -53,6 +62,7 @@ export class TopBar {
       this.buttons.set(id, btn);
     };
     add('pause', 'btn.pause', PAUSE_ICON);
+    add('speed', 'btn.speed', '×1');
     add('undo', 'btn.undo', '↶');
     add('redo', 'btn.redo', '↷');
     add('home', 'btn.home', '⌂');
@@ -83,6 +93,18 @@ export class TopBar {
     btn.title = label;
     btn.setAttribute('aria-label', label);
     btn.setAttribute('aria-pressed', String(paused));
+  }
+
+  /** Speed button: shows the current speed, pressed when faster than normal. */
+  setSpeed(scale: number): void {
+    const btn = this.buttons.get('speed');
+    const text = `×${scale}`;
+    if (!btn || btn.textContent === text) return;
+    btn.textContent = text;
+    btn.setAttribute('aria-pressed', String(scale > 1));
+    const label = t('btn.speedNow', { n: scale });
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
   }
 
   /** Pressed state (toggle buttons such as the marker tool). */

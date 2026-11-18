@@ -172,12 +172,22 @@ async function bootstrap(): Promise<void> {
   const redo = (): void => {
     if (!tools.redo()) sfx.error();
   };
+  /** Game speeds offered to the player (the debug API can go further). */
+  const SPEEDS = [1, 2, 4] as const;
+  const cycleSpeed = (delta: 1 | -1): void => {
+    const i = SPEEDS.indexOf(loop.timeScale as 1 | 2 | 4);
+    const next = SPEEDS[(Math.max(0, i) + delta + SPEEDS.length) % SPEEDS.length] ?? 1;
+    loop.timeScale = next;
+    if (loop.paused) togglePause();
+    statusBar.setSpeed(next);
+  };
   const togglePause = (): void => {
     loop.paused = !loop.paused;
     statusBar.setPaused(loop.paused);
   };
   const topBar = new TopBar(uiRoot, {
     pause: togglePause,
+    speed: () => cycleSpeed(1),
     undo,
     redo,
     marker: () => tools.setTool('marker'),
@@ -334,6 +344,7 @@ async function bootstrap(): Promise<void> {
       onUpgrades: toggleUpgrades,
       onDelivered: () => deliveredPanel.toggle(),
       onTogglePerf: () => perfOverlay.toggle(),
+      onSpeed: cycleSpeed,
       onTool: (tool) => {
         if (tool === 'paste' && !tools.isAvailable('paste')) sfx.error();
         else tools.setTool(tool);
@@ -450,6 +461,7 @@ async function bootstrap(): Promise<void> {
     topBar.setEnabled('redo', tools.history.canRedo);
     topBar.setPressed('marker', tools.tool === 'marker');
     topBar.setPaused(loop.paused);
+    topBar.setSpeed(loop.timeScale);
     toolActions.update();
     help.update();
     saves.update();
