@@ -48,6 +48,16 @@ export const GHOST_COLORS = {
   demolish: 'rgba(230, 70, 70, 0.35)',
 } as const;
 
+/** Line traced under the pointer: dimmed surroundings, upstream, downstream, ends. */
+export const FLOW_COLORS = {
+  dim: 'rgba(5, 8, 16, 0.55)',
+  here: 'rgba(255, 255, 255, 0.22)',
+  up: 'rgba(90, 160, 255, 0.22)',
+  down: 'rgba(80, 210, 150, 0.22)',
+  sourceEdge: 'rgba(110, 175, 255, 0.95)',
+  sinkEdge: 'rgba(90, 220, 160, 0.95)',
+} as const;
+
 /** Zone selection rectangles (PLAN §8.2). */
 export const AREA_COLORS = {
   demolish: { fill: 'rgba(230, 70, 70, 0.18)', stroke: 'rgba(240, 100, 100, 0.9)' },
