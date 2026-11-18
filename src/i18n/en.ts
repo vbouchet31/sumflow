@@ -309,4 +309,14 @@ export const en: Record<MessageKey, string> = {
   'toast.importError': 'Import failed: invalid file. Nothing was changed.',
   'toast.loadError': 'Unreadable save: new game started. The old one is kept aside.',
   'toast.exported': 'Game exported: {file}',
+  'daily.title': 'Daily challenge',
+  'daily.body':
+    'The same map for everyone today. Reach level {n} as fast as you can: your best time is kept.',
+  'daily.start': 'Start today’s challenge',
+  'daily.card': 'Challenge of {date}',
+  'daily.goal': 'Goal: level {n}',
+  'daily.done': 'Done in {time}',
+  'daily.best': 'Today’s best: {time}',
+  'toast.dailyDone': 'Challenge done in {time}!',
+  'toast.dailyRecord': 'New best for today',
 };

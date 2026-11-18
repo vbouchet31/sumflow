@@ -1459,3 +1459,43 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Daily challenge (proposal 15). */
+.daily-card {
+  min-width: 200px;
+  max-width: 280px;
+  padding: 8px 14px 10px;
+  border-radius: 10px;
+  background: rgb(10 14 26 / 88%);
+  border: 1px solid #6a5acd;
+  pointer-events: none;
+}
+.daily-card.is-done {
+  border-color: #48c774;
+}
+.daily-title {
+  color: #b9adff;
+  font: 700 13px var(--font-ui);
+}
+.daily-card.is-done .daily-title {
+  color: #7fe0a2;
+}
+.daily-chrono {
+  font: 800 26px/1.3 var(--font-num);
+}
+.daily-info {
+  color: var(--muted);
+  font: 13px/1.4 var(--font-ui);
+}
+.menu-daily {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #26304a;
+}
+.menu-daily h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+.daily-card.is-done .daily-chrono {
+  font: 700 20px/1.4 var(--font-ui);
+}
