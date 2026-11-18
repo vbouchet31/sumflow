@@ -35,6 +35,7 @@ import { StatusBar } from './ui/statusBar';
 import { MarkerEditor } from './ui/markerEditor';
 import { ToolActions } from './ui/toolActions';
 import { describeTile, Tooltip } from './ui/tooltip';
+import { FlowLegend } from './ui/flowLegend';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
 import { setAutoBuy } from './sim/progression';
@@ -182,6 +183,7 @@ async function bootstrap(): Promise<void> {
     undo,
     redo,
     marker: () => tools.setTool('marker'),
+    flow: () => toggleFlow(),
     home: goHome,
     delivered: () => deliveredPanel.toggle(),
     levels: () => levelsPanel.toggle(),
@@ -189,6 +191,10 @@ async function bootstrap(): Promise<void> {
     menu: () => menu.toggle(),
   });
   const tooltip = new Tooltip(uiRoot);
+  const toggleFlow = (): void => {
+    renderer.showFlow = !renderer.showFlow;
+  };
+  const flowLegend = new FlowLegend(uiRoot, toggleFlow);
   const buildBar = new BuildBar(uiRoot, tools);
   const statusBar = new StatusBar(uiRoot);
   const toasts = new Toasts(uiRoot);
@@ -376,6 +382,7 @@ async function bootstrap(): Promise<void> {
       onUpgrades: toggleUpgrades,
       onDelivered: () => deliveredPanel.toggle(),
       onTogglePerf: () => perfOverlay.toggle(),
+      onFlowView: () => toggleFlow(),
       onTool: (tool) => {
         if (tool === 'paste' && !tools.isAvailable('paste')) sfx.error();
         else tools.setTool(tool);
@@ -478,6 +485,8 @@ async function bootstrap(): Promise<void> {
       });
     }
     hud.update(world);
+    flowLegend.update(renderer.showFlow, renderer.flowView.counts);
+    topBar.setPressed('flow', renderer.showFlow);
     for (const p of panels) p.update();
     topBar.setVisible('upgrades', upgradesAvailable());
     topBar.setBadge(

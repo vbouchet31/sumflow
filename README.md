@@ -33,6 +33,7 @@ Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGR
 | Marqueur, pipette                                | `B` puis clic ; `E` sur un objet                                                                                   |
 | Annuler / rétablir                               | `Ctrl+Z` / `Ctrl+Y` (ou `Ctrl+Shift+Z`)                                                                            |
 | Panneaux                                         | `U` améliorations, `L` niveaux, `N` nombres livrés                                                                 |
+| Vue des flux (bouchons, impasses)                | `V`                                                                                                                |
 | Menu (sauvegarde, export, import, options, aide) | `Échap` (sans outil actif)                                                                                         |
 | Pause                                            | `Espace`                                                                                                           |
 | Performances (FPS, temps de simulation, objets)  | `F3`                                                                                                               |
