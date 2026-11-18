@@ -190,7 +190,7 @@ async function bootstrap(): Promise<void> {
   });
   const tooltip = new Tooltip(uiRoot);
   const buildBar = new BuildBar(uiRoot, tools);
-  const statusBar = new StatusBar(uiRoot);
+  const statusBar = new StatusBar(uiRoot, isDebugEnabled(location.search));
   const toasts = new Toasts(uiRoot);
   const endScreen = new EndScreen(uiRoot);
   const toolActions = new ToolActions(uiRoot, tools);

@@ -10,16 +10,24 @@ export function formatAgo(ms: number): string {
   return t('time.hm', { h: Math.floor(m / 60), m: String(m % 60).padStart(2, '0') });
 }
 
-/** Bottom-right status (PLAN §9.1): pause, save state, cursor coordinates. */
+/**
+ * Bottom-right status: pause indicator, and (debug mode only) save state and
+ * cursor coordinates.
+ */
 export class StatusBar {
   private readonly pause = el('span', 'status-paused', t('status.paused'));
   private readonly saved = el('span', 'status-chip status-saved');
   private readonly cursor = el('span', 'status-chip status-cursor');
   private last = '';
 
-  constructor(root: HTMLElement) {
+  constructor(
+    root: HTMLElement,
+    private readonly debug: boolean,
+  ) {
     this.pause.hidden = true;
-    root.append(el('div', 'status-bar', this.pause, this.saved, this.cursor));
+    root.append(
+      el('div', 'status-bar', this.pause, ...(debug ? [this.saved, this.cursor] : [])),
+    );
   }
 
   setPaused(paused: boolean): void {
@@ -28,6 +36,7 @@ export class StatusBar {
 
   /** `sinceSaveMs` = time since the last save, or null if never saved in this session. */
   update(sinceSaveMs: number | null, cursor: { x: number; y: number } | null): void {
+    if (!this.debug) return;
     const saved =
       sinceSaveMs === null
         ? t('status.notSaved')
