@@ -2,15 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { tileCentre, touchDriver } from './helpers';
 
 /** Blocks that must never cover one another on the main screen. */
-const BLOCKS = [
-  '.hud',
-  '.help-bubble',
-  '.top-bar',
-  '.build-bar',
-  '.tool-hint',
-  '.tooltip',
-  '.status-bar',
-];
+const BLOCKS = ['.hud', '.top-bar', '.build-bar', '.tool-hint', '.tooltip', '.status-bar'];
 
 /**
  * Layout problems of the screen as it is now (PLAN-tactile §7.2), as readable strings:
@@ -117,7 +109,7 @@ async function layoutIssues(page: Page, blocks = true): Promise<string[]> {
 }
 
 async function prepare(page: Page): Promise<void> {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   await page.evaluate(() => {
     const api = window.__sumflow;
     if (!api) throw new Error('debug API missing');
@@ -132,11 +124,27 @@ async function prepare(page: Page): Promise<void> {
   await expect(page.locator('.build-btn[data-tool="bridge"]')).toBeVisible();
 }
 
-test('new game: nothing overlaps, every control is reachable and finger sized', async ({
+/** Layout problems of a modal dialog: what is behind it is covered on purpose. */
+async function dialogIssues(page: Page): Promise<string[]> {
+  return (await layoutIssues(page, false)).filter((issue) => !issue.startsWith('covered'));
+}
+
+test('new game: the tutorial card fits, then nothing overlaps and every control is reachable', async ({
   page,
 }) => {
   await page.goto('./?debug=1&seed=42');
-  await expect(page.locator('.help-bubble')).toBeVisible();
+  const card = page.locator('.tut-card');
+  await expect(card).toBeVisible();
+  expect(await dialogIssues(page), 'tutorial card').toEqual([]);
+  // The whole card is on screen, its button included.
+  const box = await card.boundingBox();
+  const viewport = page.viewportSize();
+  if (!box || !viewport) throw new Error('no card');
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+  await card.locator('.tut-ok').tap();
+  await expect(card).toBeHidden();
+
   expect(await layoutIssues(page)).toEqual([]);
   // The compact HUD unfolds and folds back.
   const toggle = page.locator('.hud-toggle');
@@ -152,7 +160,6 @@ test('new game: nothing overlaps, every control is reachable and finger sized', 
 test('everything unlocked: tools, action bar, tooltip and pause chip all fit', async ({ page }) => {
   await prepare(page);
   const touch = await touchDriver(page);
-  await page.locator('.help-bubble button').tap();
   expect(await layoutIssues(page), 'no tool').toEqual([]);
 
   // Every tool of the bar can be brought into view and chosen, down to the last one.
@@ -235,8 +242,26 @@ test('menu, options and the marker editor fit and are finger sized', async ({ pa
   await menu.locator('.menu-btn').first().tap();
   await expect(menu).toBeHidden();
 
+  // Every tutorial card can be replayed from the Help view, and fits.
+  await page.locator('.top-btn[data-action="menu"]').tap();
+  await menu.locator('.menu-btn').nth(6).tap();
+  const tips = menu.locator('.help-tip');
+  expect(await tips.count()).toBeGreaterThan(5);
+  for (const tip of ['start', 'divider', 'upgrades']) {
+    await menu.locator(`.help-tip[data-tip="${tip}"]`).tap();
+    const card = page.locator(`.tut-card[data-tip="${tip}"]`);
+    await expect(card).toBeVisible();
+    await controls(`tutorial ${tip}`);
+    await card.locator('.tut-ok').tap();
+    await expect(card).toBeHidden();
+    await page.locator('.top-btn[data-action="menu"]').tap();
+    await menu.locator('.menu-btn').nth(6).tap();
+  }
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+
   // Editing the marker: the dialog sits where an on-screen keyboard would not hide it.
-  await page.locator('.help-bubble button').tap();
   await touch.tap(tileCentre(page, 4, -3));
   const input = page.locator('.marker-input');
   await expect(input).toBeFocused();

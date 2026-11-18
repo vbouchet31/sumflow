@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('drawing across a straight belt creates a bridge (once unlocked)', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   await page.evaluate(() => {
     window.__sumflow?.unlockAll();
     window.__sumflow?.beltPath(12, -4, 12, 4); // vertical line, straight through (12, 0)

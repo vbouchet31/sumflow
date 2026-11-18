@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('upgrades panel: badge, purchase and effect; delivered panel with units', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
 
   const upgradesBtn = page.locator('.top-btn[data-action="upgrades"]');
   await expect(upgradesBtn).toBeHidden();

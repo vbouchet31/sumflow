@@ -129,7 +129,7 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Options dans `sumflow.settings`**, à part de la partie. Valeurs invalides ignorées. « Réduire les animations » prend la préférence du système par défaut. « Achat automatique » reste une donnée de la partie (comme en M7) et apparaît aussi dans Options.
 - **« Valeurs sur les items : toujours »** affiche le nombre sur chaque disque dès le zoom 0,3 (au lieu de 0,6). En dessous, les items sont des points, sans texte.
 - **Échap** : ferme l'écran de fin, un panneau, puis quitte l'outil, puis ouvre le menu. Dans le menu, Échap revient à la vue principale, puis ferme. Les raccourcis sont ignorés tant qu'une fenêtre modale est ouverte.
-- **Bulles d'aide** : `state.helpSeen` (sauvegardé). La première bulle encore non vue et déjà pertinente s'affiche sous le HUD. « Réafficher les bulles » vide la liste.
+- **Bulles d'aide** : `state.helpSeen` (sauvegardé). La première bulle encore non vue et déjà pertinente s'affiche sous le HUD. « Réafficher les bulles » vide la liste. Remplacées depuis par les fiches tutoriel (voir plus bas).
 - **Commandes** : texte des touches traduit aussi (« flèches », « molette »…), dans un tableau en lecture seule.
 - **Aucune chaîne en dur** : test par motifs sur `src/ui` (`textContent`, `title`, `aria-label`, `placeholder`, troisième argument de `el()`, `append('…')`, `innerHTML`). Les interpolations `${…}` et les symboles (icônes) sont permis.
 - **À propos** : lien Steam vérifié (`store.steampowered.com/app/2674590/Beltmatic/`) et lien vers le dépôt, dans `src/config/links.ts`.
@@ -169,7 +169,7 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Points de rupture en un seul endroit** : `src/ui/layout.ts` pose des classes sur `<html>`, la feuille de style s'écrit contre ces classes. Les requêtes média ne servent plus qu'au type de pointeur (`pointer: coarse`, `hover`).
 - **Barre de construction en bas, même sur téléphone couché** : la largeur y est abondante (15 boutons visibles sur 16), une barre verticale n'en montrerait que 6.
 - **Panneaux sur téléphone couché** : feuille pleine hauteur à droite plutôt qu'en bas, car c'est la hauteur qui manque.
-- **Chip « Sauvegardé il y a… » masquée sur téléphone** : la place manque. Les échecs de sauvegarde restent signalés par un toast.
+- **Chips « Sauvegardé il y a… » et « Curseur : x, y » réservées au mode debug** (`?debug=1` ou dev) : elles encombraient l'interface. Les échecs de sauvegarde restent signalés par un toast.
 - **Téléphone debout** : mêmes contrôles de mise en page que les autres gabarits (ils passent), mais pas de test de gestes dédié.
 - **Icônes** : toujours des symboles Unicode. Le ciseau et le triangle de reprise portent le sélecteur U+FE0E pour ne pas devenir des emojis. À vérifier sur appareil : présence des glyphes `⧉`, `⎘`, `⌫`, `↻` dans les polices d'Android.
 - **Collage au doigt** : pose en deux temps, seulement pour le collage (objet large, il remplace des tapis). Les autres outils posent au relâchement, Annuler rattrape une erreur. Pas de rangée de copies au doigt. Si rien ne peut être posé, l'aperçu reste pour être déplacé. Un geste annulé (pincement) remet l'aperçu où il était.
@@ -187,3 +187,17 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Règles dérivées**, vérifiées sur 2 000 graines : niveaux 1 à 5 fixes, cibles strictement croissantes, dernier niveau ≤ 2 000 000 000 (entre le niveau 618 et 669 selon la graine), suites `t_k` strictement croissantes, sans 10, valeurs de base < 30 conservées. L'écart des niveaux 6 à 30 peut atteindre 10,5 % (au lieu de 8 %) : c'est l'arrondi d'une petite cible (niveau 6, base 19 → 17 ou 21), conforme à la formule.
 - **Plafonds doux jamais atteints** : comme pour le Tapis (M7), les suites `t_k` dépassent 2 000 000 000 avant les plafonds de vitesse. Fin de piste observée (graine 42) : Additionneur L = 68 (3,2 op/s, plafond 4), Multiplicateur L = 60 (≈ 2 op/s, plafond 3), Soustracteur/Diviseur L = 57, Exposant L = 51 (≈ 1,9 op/s). Les deux règles du plan restent appliquées ; seule la seconde joue en pratique.
 - **Valeur interdite** : la suite des améliorations utilise désormais `MAPGEN.forbiddenValue` au lieu d'un `10` en dur. La limite de 32 copies par collage en rangée est passée dans `EDIT.maxPasteRow`.
+
+## Fiches tutoriel (§7.5)
+
+- **Une modale plutôt qu'une bulle** : les joueurs ne savaient pas par où commencer, la bulle passait inaperçue. La fiche s'ouvre seule (partie neuve, puis chaque déblocage) et bloque le jeu derrière elle le temps de la lire. La simulation continue.
+- **La démo est le vrai jeu** : un petit `World` avec ses propres gisements, dessiné par le `Renderer` du jeu, et un pointeur virtuel qui passe par un vrai `ToolController`. Fantômes, placement, tapis en L et ponts sont donc exactement ceux du jeu, et restent justes si leurs règles changent. Pas d'image ni de GIF dans le bundle.
+- **Script pur** (`src/tutorial/script.ts`, sans DOM) : un test unitaire joue chaque scène jusqu'au bout, à la souris et au doigt, et vérifie que le Hub reçoit le bon résultat. Une scène cassée par un changement de règle fait échouer les tests.
+- **Usine de démo accélérée** : opérateurs au niveau d'amélioration 8, tapis au niveau 3, pour voir un résultat en quelques secondes sans que les items filent trop vite.
+- **Doigt ou souris** : d'après le dernier `pointerType` reçu, sinon `(pointer: coarse)`. Au doigt, le fantôme n'apparaît que doigt posé, comme dans le jeu. À la souris, il apparaît une fois le pointeur arrivé (en chemin, il clignoterait en rouge sur chaque case traversée).
+- **Tracés jusqu'à la case avant le bâtiment** : le dernier tapis pointe déjà dedans, et la démo ne montre jamais la case rouge d'un tracé posé sur le bâtiment.
+- **Animations réduites** : image fixe de l'usine terminée, en marche depuis quelques secondes.
+- **Série** : plusieurs déblocages d'un coup (ancienne sauvegarde, `unlockAll`) donnent une série « 1 / N » avec un bouton « Suivant ».
+- **Fiches sans démo** : Améliorations et Priorités (pas de bâtiment à poser) montrent leur icône.
+- **Nouvelle fiche Multiplicateur** : elle manquait à la liste. Une partie qui l'a déjà débloqué la verra une fois.
+- **`?tutorial=0`** : les fiches ne s'ouvrent plus seules. Utilisé par les tests e2e qui ne portent pas sur elles.

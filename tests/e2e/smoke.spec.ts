@@ -30,7 +30,7 @@ test('loads the page without console errors and draws the hub', async ({ page })
   });
   page.on('pageerror', (err) => errors.push(err.message));
 
-  await page.goto('./?debug=1');
+  await page.goto('./?debug=1&tutorial=0');
   await expect(page).toHaveTitle('Sumflow');
 
   const canvas = page.locator('canvas#world');
@@ -65,7 +65,7 @@ test('loads the page without console errors and draws the hub', async ({ page })
 test('camera zooms around the cursor, pans with the mouse and keys, and H recentres', async ({
   page,
 }) => {
-  await page.goto('./?debug=1');
+  await page.goto('./?debug=1&tutorial=0');
   const viewport = page.viewportSize();
   if (!viewport) throw new Error('no viewport');
   const cx = viewport.width / 2;

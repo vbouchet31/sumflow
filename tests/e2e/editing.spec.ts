@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('copy, paste and undo with the mouse and keyboard', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const viewport = page.viewportSize();
   if (!viewport) throw new Error('no viewport');
   // Tile (tx, ty) centre on screen at zoom 1, camera on the hub.
@@ -51,7 +51,7 @@ test('copy, paste and undo with the mouse and keyboard', async ({ page }) => {
 });
 
 test('placing, editing and deleting a marker', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const viewport = page.viewportSize();
   if (!viewport) throw new Error('no viewport');
   const x = viewport.width / 2 + 8 * 32 + 16;
