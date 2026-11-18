@@ -67,11 +67,11 @@ function paintItem(ctx: CanvasRenderingContext2D, value: number, s: number, size
   const r = 0.36 * s;
   ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
   ctx.beginPath();
-  ctx.arc(c + 0.04 * s, c + 0.06 * s, r, 0, Math.PI * 2);
+  ctx.rect(c + 0.04 * s - r, c + 0.06 * s - r, 2 * r, 2 * r);
   ctx.fill();
   ctx.fillStyle = itemColor(value);
   ctx.beginPath();
-  ctx.arc(c, c, r, 0, Math.PI * 2);
+  ctx.rect(c - r, c - r, 2 * r, 2 * r);
   ctx.fill();
   const text = formatCompact(value);
   ctx.textAlign = 'center';
@@ -138,8 +138,7 @@ export function drawItems(
       const y = list[i + 1] as number;
       if (dot) ctx.rect(x - r, y - r, 2 * r, 2 * r);
       else {
-        ctx.moveTo(x + r, y);
-        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.rect(x - r, y - r, 2 * r, 2 * r);
       }
     }
     ctx.fill();

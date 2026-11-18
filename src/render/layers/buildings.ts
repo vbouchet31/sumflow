@@ -18,7 +18,7 @@ function drawExtractor(ctx: CanvasRenderingContext2D, cam: Camera, b: Building, 
   const inset = 0.1 * s;
   ctx.globalAlpha = alpha;
   ctx.fillStyle = BUILDING_COLORS.extractor;
-  roundRect(ctx, p.x + inset, p.y + inset, 3 * s - 2 * inset, 3 * s - 2 * inset, 0.4 * s);
+  roundRect(ctx, p.x + inset, p.y + inset, 3 * s - 2 * inset, 3 * s - 2 * inset, 0 * s);
   ctx.fill();
   if (cam.zoom >= LOD.buildingText) {
     // Output notches: small light bars on each outer face.
