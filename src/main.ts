@@ -189,6 +189,9 @@ async function bootstrap(): Promise<void> {
     menu: () => menu.toggle(),
   });
   const tooltip = new Tooltip(uiRoot);
+  tools.history.onApplied((change, side) => {
+    if (!settings.reduceMotion) renderer.effects.add(change, side, performance.now());
+  });
   const buildBar = new BuildBar(uiRoot, tools);
   const statusBar = new StatusBar(uiRoot);
   const toasts = new Toasts(uiRoot);

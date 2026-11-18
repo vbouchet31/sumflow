@@ -563,3 +563,16 @@ describe('pasting with a finger: put down, then confirm', () => {
     expect(tools.pastePending).toBe(true);
   });
 });
+
+describe('history feedback', () => {
+  it('reports each applied change with its direction', () => {
+    const world = makeWorld();
+    const tools = new ToolController(world);
+    const seen: string[] = [];
+    tools.history.onApplied((change, side) => seen.push(`${side}:${change.tiles.size}`));
+    tools.history.run(() => world.setBelt(40, 40, 2));
+    tools.undo();
+    tools.redo();
+    expect(seen).toEqual(['after:1', 'before:1', 'after:1']);
+  });
+});

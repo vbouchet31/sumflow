@@ -11,6 +11,20 @@ export class History {
   private readonly undoStack: Change[] = [];
   private readonly redoStack: Change[] = [];
   private listeners = new Set<() => void>();
+  private appliedListeners = new Set<(change: Change, side: 'before' | 'after') => void>();
+
+  /**
+   * Subscribe to every change applied to the world: a new action or a redo (`after`), an
+   * undo (`before`). For visual feedback.
+   */
+  onApplied(fn: (change: Change, side: 'before' | 'after') => void): () => void {
+    this.appliedListeners.add(fn);
+    return () => this.appliedListeners.delete(fn);
+  }
+
+  private applied(change: Change, side: 'before' | 'after'): void {
+    for (const fn of this.appliedListeners) fn(change, side);
+  }
 
   constructor(private readonly world: World) {}
 
@@ -21,7 +35,10 @@ export class History {
       return fn();
     } finally {
       const change = this.world.endChange();
-      if (change) this.push(change);
+      if (change) {
+        this.push(change);
+        this.applied(change, 'after');
+      }
     }
   }
 
@@ -49,6 +66,7 @@ export class History {
     if (!change) return false;
     this.world.applyChange(change, 'before');
     this.redoStack.push(change);
+    this.applied(change, 'before');
     this.notify();
     return true;
   }
@@ -58,6 +76,7 @@ export class History {
     if (!change) return false;
     this.world.applyChange(change, 'after');
     this.undoStack.push(change);
+    this.applied(change, 'after');
     this.notify();
     return true;
   }
