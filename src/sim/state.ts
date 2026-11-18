@@ -56,6 +56,8 @@ export interface GameState {
   helpSeen: string[];
   /** Clipboard history, most recent first, at most `EDIT.clipboardSize` entries (PLAN §8.2). */
   clipboard: Clip[];
+  /** Renaissances done before this game (proposal 17). */
+  renaissance: number;
 }
 
 export const HUB_ID = 0;
@@ -101,6 +103,7 @@ export function createInitialState(seed: number): GameState {
     markers: new Map(),
     helpSeen: [],
     clipboard: [],
+    renaissance: 0,
   };
   state.levelRequirement = requirementFor(state, 1);
   return state;

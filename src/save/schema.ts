@@ -88,6 +88,8 @@ export interface SaveData {
   markers: { x: number; y: number; text: string }[];
   clipboard: Clip[];
   helpSeen: string[];
+  /** Renaissances (proposal 17). Optional: older saves have none. */
+  renaissance?: number;
   camera: { x: number; y: number; zoom: number };
 }
 
@@ -366,6 +368,9 @@ export function validateSave(raw: unknown): SaveData {
     }),
     clipboard: arr(o['clipboard'], '$.clipboard').map((x, i) => clip(x, `$.clipboard[${i}]`)),
     helpSeen: arr(o['helpSeen'], '$.helpSeen').map((x, i) => str(x, `$.helpSeen[${i}]`)),
+    ...(o['renaissance'] === undefined
+      ? {}
+      : { renaissance: int(o['renaissance'], '$.renaissance', 0, 1_000) }),
     camera: {
       x: num(cam['x'], '$.camera.x'),
       y: num(cam['y'], '$.camera.y'),

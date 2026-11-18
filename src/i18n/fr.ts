@@ -290,4 +290,12 @@ export const fr = {
   'toast.importError': 'Import impossible : fichier invalide. Rien n’a été modifié.',
   'toast.loadError': 'Sauvegarde illisible : nouvelle partie. L’ancienne est gardée à part.',
   'toast.exported': 'Partie exportée : {file}',
+  'rebirth.menu': 'Renaissance ✦',
+  'rebirth.locked': 'Atteins le niveau 31 pour renaître',
+  'rebirth.title': 'Renaissance',
+  'rebirth.body': 'Ton usine a fait le tour de la carte. Recommence ailleurs, plus fort.',
+  'rebirth.lose': 'Nouvelle carte, retour au niveau 1, bâtiments et améliorations à redébloquer.',
+  'rebirth.keep': 'Bonus permanent de vitesse (tapis, extracteurs, opérateurs) : {now} → {next}.',
+  'rebirth.go': 'Renaître',
+  'rebirth.badge': 'Renaissance {n}',
 } as const;
