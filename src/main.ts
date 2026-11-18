@@ -151,11 +151,15 @@ async function bootstrap(): Promise<void> {
   applySettings();
 
   // HUD and help bubble stack in one column, whatever the height of the HUD.
+  let buildBarRef: BuildBar | null = null;
   const topLeft = document.createElement('div');
   topLeft.className = 'top-left';
   uiRoot.append(topLeft);
   const hud = new Hud(topLeft);
-  watchLayout(document.documentElement, (layout) => hud.setCompact(layout.compact));
+  watchLayout(document.documentElement, (layout) => {
+    hud.setCompact(layout.compact);
+    buildBarRef?.setCompact(layout.compact);
+  });
   const goHome = (): void => camera.centerOn(0, 0);
   const levelsPanel = new LevelsPanel(uiRoot, world);
   const upgradesPanel = new UpgradesPanel(uiRoot, world);
@@ -189,6 +193,8 @@ async function bootstrap(): Promise<void> {
   });
   const tooltip = new Tooltip(uiRoot);
   const buildBar = new BuildBar(uiRoot, tools);
+  buildBarRef = buildBar;
+  buildBar.setCompact(document.documentElement.classList.contains('ui-compact'));
   const statusBar = new StatusBar(uiRoot);
   const toasts = new Toasts(uiRoot);
   const endScreen = new EndScreen(uiRoot);

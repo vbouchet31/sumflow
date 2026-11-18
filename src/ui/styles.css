@@ -1312,3 +1312,37 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Phones: operators folded behind one button, opened in a tray above the bar. */
+.build-ops {
+  position: relative;
+}
+
+.build-more {
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.build-tray {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 12px;
+  background: rgb(10 14 26 / 96%);
+  border: 1px solid #3a4a6e;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 50%);
+}
+
+.build-tray[hidden] {
+  display: none;
+}
+
+.build-tray .build-label,
+.build-tray kbd {
+  display: none;
+}

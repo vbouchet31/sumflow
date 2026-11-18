@@ -31,10 +31,21 @@ const BUTTONS: readonly ToolButton[] = [
   { tool: 'marker', label: 'tool.marker', key: 'B', icon: '⚑', edit: true },
 ];
 
+const OPERATORS: readonly ToolId[] = ['adder', 'multiplier', 'subtractor', 'divider', 'exponent'];
+
 /** Bottom-centre build bar (PLAN §9.1). Locked buildings are hidden (later milestones). */
 export class BuildBar {
   private readonly buttons = new Map<ToolId, HTMLButtonElement>();
   private readonly bar = document.createElement('div');
+  /**
+   * Phones: the five operators fold behind one button that opens a tray above the bar, so
+   * the bar fits without scrolling. The button shows the last operator chosen.
+   */
+  private readonly opsBtn = document.createElement('button');
+  private readonly tray = document.createElement('div');
+  private readonly opsAnchor = document.createComment('operators');
+  private lastOp: ToolId = 'adder';
+  private compact = false;
 
   constructor(
     root: HTMLElement,
@@ -82,14 +93,49 @@ export class BuildBar {
       group.append(btn);
       this.buttons.set(def.tool, btn);
     }
-    root.append(bar);
+    // Operator group (phones).
+    const ops = OPERATORS.map((id) => this.buttons.get(id)).filter(
+      (b): b is HTMLButtonElement => b !== undefined,
+    );
+    ops[0]?.before(this.opsAnchor);
+    this.opsBtn.type = 'button';
+    this.opsBtn.className = 'build-btn build-ops';
+    this.opsBtn.setAttribute('aria-haspopup', 'true');
+    this.opsBtn.setAttribute('aria-expanded', 'false');
+    this.opsBtn.setAttribute('aria-label', t('toolbar.operators'));
+    this.opsBtn.title = t('toolbar.operators');
+    this.opsBtn.hidden = true;
+    this.opsBtn.addEventListener('click', (e) => {
+      this.setTray(this.tray.hidden !== false);
+      if (e.detail > 0) this.opsBtn.blur();
+    });
+    this.opsAnchor.after(this.opsBtn);
+    this.tray.className = 'build-tray';
+    this.tray.setAttribute('role', 'group');
+    this.tray.setAttribute('aria-label', t('toolbar.operators'));
+    this.tray.hidden = true;
+    root.append(bar, this.tray);
+    document.addEventListener('pointerdown', (e) => {
+      if (
+        e.target instanceof Node &&
+        !this.tray.contains(e.target) &&
+        !this.opsBtn.contains(e.target)
+      )
+        this.setTray(false);
+    });
     const sync = (): void => {
       for (const [tool, btn] of this.buttons) {
         const pressed = tools.tool === tool;
         btn.setAttribute('aria-pressed', String(pressed));
         // A tool chosen by a key or the pipette may be scrolled out of the bar.
-        if (pressed) btn.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+        if (pressed && !(this.compact && OPERATORS.includes(tool)))
+          btn.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
       }
+      if (OPERATORS.includes(tools.tool)) {
+        this.lastOp = tools.tool;
+        this.setTray(false);
+      }
+      this.syncOps();
     };
     tools.onChange(sync);
     sync();
@@ -98,6 +144,50 @@ export class BuildBar {
       new ResizeObserver(() => this.updateOverflow()).observe(bar);
     }
     this.refresh();
+  }
+
+  /** Phones: fold the operators behind one button (or unfold them back into the bar). */
+  setCompact(compact: boolean): void {
+    if (compact === this.compact) return;
+    this.compact = compact;
+    const ops = OPERATORS.map((id) => this.buttons.get(id)).filter(
+      (b): b is HTMLButtonElement => b !== undefined,
+    );
+    if (compact) this.tray.append(...ops);
+    else this.opsAnchor.after(...ops);
+    if (!compact) this.setTray(false);
+    this.syncOps();
+    this.updateOverflow();
+  }
+
+  private setTray(open: boolean): void {
+    if (!this.compact) open = false;
+    this.tray.hidden = !open;
+    this.opsBtn.setAttribute('aria-expanded', String(open));
+    if (!open) return;
+    // Above the group button, kept on screen.
+    const r = this.opsBtn.getBoundingClientRect();
+    const w = this.tray.offsetWidth;
+    const left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+    this.tray.style.left = `${left}px`;
+    this.tray.style.bottom = `${window.innerHeight - r.top + 8}px`;
+  }
+
+  private syncOps(): void {
+    const unlocked = OPERATORS.some((id) => this.tools.isAvailable(id));
+    this.opsBtn.hidden = !this.compact || !unlocked;
+    const shown = this.tools.isAvailable(this.lastOp)
+      ? this.lastOp
+      : (OPERATORS.find((id) => this.tools.isAvailable(id)) ?? 'adder');
+    const def = BUTTONS.find((b) => b.tool === shown);
+    this.opsBtn.replaceChildren(
+      Object.assign(document.createElement('span'), {
+        className: 'build-icon',
+        textContent: def?.icon ?? '+',
+      }),
+      Object.assign(document.createElement('span'), { className: 'build-more', textContent: '▴' }),
+    );
+    this.opsBtn.setAttribute('aria-pressed', String(OPERATORS.includes(this.tools.tool)));
   }
 
   /** Tell the style sheet on which sides more buttons can be scrolled into view. */
@@ -117,6 +207,7 @@ export class BuildBar {
       if (tool === 'paste') btn.disabled = !this.tools.isAvailable(tool);
       else btn.hidden = !this.tools.isAvailable(tool);
     }
+    this.syncOps();
     this.updateOverflow();
   }
 }

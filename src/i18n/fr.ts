@@ -58,6 +58,7 @@ export const fr = {
   'reward.none': 'Fin de partie',
   'btn.home': 'Retour au Hub (H)',
   'btn.levels': 'Niveaux (L)',
+  'toolbar.operators': 'Opérateurs',
   'btn.close': 'Fermer',
   'levels.title': 'Prochains niveaux',
   'levels.colLevel': 'Niv.',
