@@ -290,4 +290,18 @@ export const fr = {
   'toast.importError': 'Import impossible : fichier invalide. Rien n’a été modifié.',
   'toast.loadError': 'Sauvegarde illisible : nouvelle partie. L’ancienne est gardée à part.',
   'toast.exported': 'Partie exportée : {file}',
+  'plans.menu': 'Plans partagés',
+  'plans.title': 'Plans partagés',
+  'plans.intro':
+    'Chaque copie (Ctrl+C) devient un plan. Envoie son code à quelqu’un, ou colle le code d’un autre joueur pour l’ajouter à ton presse-papiers.',
+  'plans.size': '{w} × {h} cases · {n} objets',
+  'plans.code': 'Code du plan',
+  'plans.copy': 'Copier le code',
+  'plans.copied': 'Copié !',
+  'plans.use': 'Coller sur la carte',
+  'plans.empty': 'Aucun plan : copie une partie de ton usine avec Ctrl+C.',
+  'plans.paste': 'Coller un code',
+  'plans.import': 'Importer le plan',
+  'plans.invalid': 'Ce code n’est pas un plan valide.',
+  'toast.planImported': 'Plan importé : prêt à coller',
 } as const;

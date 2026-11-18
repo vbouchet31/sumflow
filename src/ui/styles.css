@@ -1312,3 +1312,48 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Shared plans (proposal 20). */
+.plans-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  margin: 8px 0 14px;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.plan-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: #141b2c;
+  border: 1px solid #26304a;
+}
+.plan-preview {
+  flex: none;
+  border-radius: 6px;
+}
+.plan-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+.plan-code {
+  font: 12px var(--font-num);
+}
+.plan-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.plan-input {
+  width: 100%;
+  font: 12px var(--font-num);
+  resize: vertical;
+}

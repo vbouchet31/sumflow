@@ -1,6 +1,8 @@
 import './ui/styles.css';
 import { Sfx } from './audio/sfx';
 import { ToolController } from './build/tools';
+import { decodePlan } from './build/plans';
+import { pushClip } from './build/clipboard';
 import { CATCH_UP } from './config/balance';
 import { CAMERA } from './config/keymap';
 import { toSeed } from './core/rng';
@@ -223,6 +225,25 @@ async function bootstrap(): Promise<void> {
         new DepositMap(0),
       );
       reloadWith(encodeSaveSync(serialize(fresh, { x: 0, y: 0, zoom: 1 })));
+    },
+    clips: () => state.clipboard,
+    importPlan: (code) => {
+      try {
+        pushClip(state.clipboard, decodePlan(code));
+      } catch {
+        sfx.error();
+        return false;
+      }
+      tools.clipIndex = 0;
+      toasts.show(t('toast.planImported'));
+      return true;
+    },
+    usePlan: (index) => {
+      tools.setTool('none');
+      tools.clipIndex = index;
+      tools.pasteRot = 0;
+      tools.pasteMirror = false;
+      tools.setTool('paste');
     },
     save: () => void saves.save(true),
     exportGame: () => {

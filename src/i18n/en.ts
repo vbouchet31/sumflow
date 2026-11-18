@@ -290,4 +290,18 @@ export const en: Record<MessageKey, string> = {
   'toast.importError': 'Import failed: invalid file. Nothing was changed.',
   'toast.loadError': 'Unreadable save: new game started. The old one is kept aside.',
   'toast.exported': 'Game exported: {file}',
+  'plans.menu': 'Shared plans',
+  'plans.title': 'Shared plans',
+  'plans.intro':
+    'Every copy (Ctrl+C) is a plan. Send its code to someone, or paste another player’s code to add it to your clipboard.',
+  'plans.size': '{w} × {h} tiles · {n} objects',
+  'plans.code': 'Plan code',
+  'plans.copy': 'Copy code',
+  'plans.copied': 'Copied!',
+  'plans.use': 'Paste on the map',
+  'plans.empty': 'No plan yet: copy part of your factory with Ctrl+C.',
+  'plans.paste': 'Paste a code',
+  'plans.import': 'Import plan',
+  'plans.invalid': 'This code is not a valid plan.',
+  'toast.planImported': 'Plan imported: ready to paste',
 };

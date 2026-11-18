@@ -2,10 +2,18 @@ import { LINKS } from '../config/links';
 import { LOCALES, type Locale, type MessageKey, t } from '../i18n';
 import { AUTOSAVE_CHOICES, type AutosaveSeconds, type Settings } from '../save/settings';
 import { el, releaseFocus, trapTab } from './dom';
+import { encodePlan } from '../build/plans';
+import type { Clip } from '../sim/clip';
+import { planPreview } from './plansView';
 import type { HelpTip } from './help';
 
 export interface MenuActions {
   newGame: (seed: number | null) => void;
+  /** Shared plans (proposal 20): the clipboard history, and importing a code into it. */
+  clips: () => Clip[];
+  importPlan: (code: string) => boolean;
+  /** Close the menu and paste clipboard entry `index`. */
+  usePlan: (index: number) => void;
   save: () => void;
   exportGame: () => void;
   importGame: (file: File) => void;
@@ -18,7 +26,7 @@ export interface MenuActions {
   reshowHelp: () => void;
 }
 
-type View = 'main' | 'newGame' | 'options' | 'help' | 'about';
+type View = 'main' | 'newGame' | 'plans' | 'options' | 'help' | 'about';
 
 /** Rows of the read-only controls list (PLAN §9.4). */
 const CONTROLS = [
@@ -139,11 +147,13 @@ export class GameMenu {
         ? this.mainView()
         : view === 'newGame'
           ? this.newGameView()
-          : view === 'options'
-            ? this.optionsView()
-            : view === 'help'
-              ? this.helpView()
-              : this.aboutView();
+          : view === 'plans'
+            ? this.plansView()
+            : view === 'options'
+              ? this.optionsView()
+              : view === 'help'
+                ? this.helpView()
+                : this.aboutView();
     this.card.dataset['view'] = view;
     this.card.replaceChildren(...content);
     const focus = this.card.querySelector<HTMLElement>('input, select, button.menu-btn, button');
@@ -168,10 +178,81 @@ export class GameMenu {
           a.exportGame();
         }),
         this.button('menu.import', () => this.fileInput.click()),
+        this.button('plans.menu', () => this.show('plans')),
         this.button('menu.options', () => this.show('options')),
         this.button('menu.help', () => this.show('help')),
         this.button('menu.about', () => this.show('about')),
       ),
+    ];
+  }
+
+  private plansView(): HTMLElement[] {
+    const a = this.actions;
+    const list = el('ul', 'plans-list');
+    a.clips().forEach((c, i) => {
+      const code = encodePlan(c);
+      const out = el('input', 'marker-input plan-code');
+      out.readOnly = true;
+      out.value = code;
+      out.setAttribute('aria-label', t('plans.code'));
+      const copy = this.button(
+        'plans.copy',
+        () => {
+          out.select();
+          void navigator.clipboard?.writeText(code).catch(() => undefined);
+          copy.textContent = t('plans.copied');
+        },
+        'secondary-btn',
+      );
+      const use = this.button(
+        'plans.use',
+        () => {
+          this.close();
+          a.usePlan(i);
+        },
+        'secondary-btn',
+      );
+      const count = c.belts.length + c.bridges.length + c.buildings.length;
+      list.append(
+        el(
+          'li',
+          'plan-item',
+          planPreview(c),
+          el(
+            'div',
+            'plan-body',
+            el('strong', undefined, t('plans.size', { w: c.w, h: c.h, n: count })),
+            out,
+            el('div', 'plan-actions', copy, use),
+          ),
+        ),
+      );
+    });
+    if (list.childElementCount === 0) list.append(el('li', 'menu-note', t('plans.empty')));
+    const input = el('textarea', 'marker-input plan-input');
+    input.rows = 3;
+    input.placeholder = 'SUMFLOW-PLAN:1:…';
+    input.setAttribute('aria-label', t('plans.paste'));
+    const status = el('p', 'menu-note');
+    const importBtn = this.button(
+      'plans.import',
+      () => {
+        if (a.importPlan(input.value)) {
+          this.show('plans');
+        } else {
+          status.textContent = t('plans.invalid');
+        }
+      },
+      'primary-btn',
+    );
+    return [
+      this.header('plans.title', true),
+      el('p', 'menu-note', t('plans.intro')),
+      list,
+      el('label', 'menu-label', t('plans.paste')),
+      input,
+      status,
+      importBtn,
     ];
   }
 
