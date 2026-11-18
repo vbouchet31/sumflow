@@ -65,9 +65,9 @@ function textFit(text: string): number {
 function paintItem(ctx: CanvasRenderingContext2D, value: number, s: number, sizePx: number): void {
   const c = sizePx / 2;
   const r = 0.36 * s;
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+  ctx.fillStyle = 'rgba(10, 6, 3, 0.45)';
   ctx.beginPath();
-  ctx.arc(c + 0.04 * s, c + 0.06 * s, r, 0, Math.PI * 2);
+  ctx.arc(c + 0 * s, c + 0.08 * s, r * 1, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = itemColor(value);
   ctx.beginPath();

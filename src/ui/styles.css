@@ -1,9 +1,9 @@
 :root {
-  --bg: #0f1422;
-  --fg: #e8edf7;
-  --muted: #a3b0c8;
-  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-num: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --bg: #1c1714;
+  --fg: #f4e9dc;
+  --muted: #cdb9a4;
+  --font-ui: 'Nunito', ui-rounded, system-ui, sans-serif;
+  --font-num: 'Fredoka', ui-rounded, system-ui, sans-serif;
   color-scheme: dark;
   /* Distance kept from the screen edges, plus the safe areas (notch, home indicator). */
   --gap: 12px;
@@ -81,7 +81,7 @@ textarea {
   bottom: calc(var(--above-bar) + 36px);
   padding: 6px 10px;
   border-radius: 6px;
-  background: rgb(10 14 26 / 85%);
+  background: rgb(42 34 29 / 85%);
   color: var(--fg);
   font: 12px/1.5 var(--font-num);
   white-space: pre;
@@ -94,7 +94,7 @@ textarea {
   bottom: calc(var(--above-bar) + 150px);
   padding: 6px 10px;
   border-radius: 6px;
-  background: rgb(10 14 26 / 85%);
+  background: rgb(42 34 29 / 85%);
   color: var(--fg);
   font: 12px/1.5 var(--font-num);
   white-space: pre;
@@ -109,8 +109,8 @@ textarea {
   width: 220px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgb(10 14 26 / 88%);
-  border: 1px solid #26304a;
+  background: rgb(42 34 29 / 88%);
+  border: 1px solid #4a3d33;
   color: var(--fg);
   font: 13px/1.4 var(--font-ui);
   text-align: center;
@@ -121,14 +121,14 @@ textarea {
   height: 6px;
   margin-top: 6px;
   border-radius: 3px;
-  background: #1c4a7d;
+  background: #5a2e1c;
   overflow: hidden;
 }
 
 .catch-up-fill {
   height: 100%;
   width: 0;
-  background: #ffffff;
+  background: #fff8ef;
 }
 
 .tooltip {
@@ -139,8 +139,8 @@ textarea {
   max-width: 320px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgb(10 14 26 / 88%);
-  border: 1px solid #26304a;
+  background: rgb(42 34 29 / 88%);
+  border: 1px solid #4a3d33;
   color: var(--fg);
   font: 13px/1.5 var(--font-ui);
   pointer-events: none;
@@ -159,8 +159,8 @@ textarea {
   gap: 6px;
   padding: 6px;
   border-radius: 12px;
-  background: rgb(10 14 26 / 88%);
-  border: 1px solid #26304a;
+  background: rgb(42 34 29 / 88%);
+  border: 1px solid #4a3d33;
   /* Never wider than the screen: the buttons that do not fit are scrolled into view. */
   max-width: calc(100vw - var(--edge-l) - var(--edge-r));
   overflow-x: auto;
@@ -202,7 +202,7 @@ textarea {
   padding: 6px 10px 4px;
   border: 1px solid transparent;
   border-radius: 8px;
-  background: #1a2236;
+  background: #362c25;
   color: var(--fg);
   font: 12px var(--font-ui);
   cursor: pointer;
@@ -210,13 +210,13 @@ textarea {
 }
 
 .build-btn:focus-visible {
-  outline: 2px solid #7fb2ff;
+  outline: 2px solid #f0a868;
   outline-offset: 1px;
 }
 
 .build-btn[aria-pressed='true'] {
-  border-color: #7fb2ff;
-  background: #22345a;
+  border-color: #f0a868;
+  background: #5a3a26;
 }
 
 .build-icon {
@@ -243,8 +243,8 @@ textarea {
 .status-paused {
   padding: 4px 10px;
   border-radius: 6px;
-  background: #b7791f;
-  color: #111;
+  background: #e0a33a;
+  color: #1c1714;
   font: 700 13px var(--font-ui);
 }
 
@@ -266,8 +266,8 @@ textarea {
   min-width: 200px;
   padding: 10px 14px 12px;
   border-radius: 10px;
-  background: rgb(10 14 26 / 88%);
-  border: 1px solid #26304a;
+  background: rgb(42 34 29 / 88%);
+  border: 1px solid #4a3d33;
   pointer-events: none;
 }
 
@@ -295,14 +295,14 @@ textarea {
   height: 6px;
   margin: 6px 0;
   border-radius: 3px;
-  background: #1c4a7d;
+  background: #5a2e1c;
   overflow: hidden;
 }
 
 .hud-bar-fill {
   height: 100%;
   width: 0;
-  background: #ffffff;
+  background: #fff8ef;
   transition: width 0.2s;
 }
 
@@ -327,9 +327,9 @@ textarea {
   width: var(--top-h);
   height: var(--top-h);
   padding: 0;
-  border: 1px solid #26304a;
+  border: 1px solid #4a3d33;
   border-radius: 8px;
-  background: rgb(10 14 26 / 88%);
+  background: rgb(42 34 29 / 88%);
   color: var(--fg);
   font: 18px var(--font-ui);
   cursor: pointer;
@@ -338,7 +338,7 @@ textarea {
 .top-btn:focus-visible,
 .panel-close:focus-visible,
 .primary-btn:focus-visible {
-  outline: 2px solid #7fb2ff;
+  outline: 2px solid #f0a868;
   outline-offset: 1px;
 }
 
@@ -354,8 +354,8 @@ textarea {
   overscroll-behavior: contain;
   padding: 12px 16px 16px;
   border-radius: 12px;
-  background: rgb(12 17 30 / 96%);
-  border: 1px solid #2c3754;
+  background: rgb(42 34 29 / 96%);
+  border: 1px solid #54453a;
   box-shadow: 0 10px 30px rgb(0 0 0 / 40%);
 }
 
@@ -376,7 +376,7 @@ textarea {
   height: 30px;
   border: none;
   border-radius: 6px;
-  background: #1a2236;
+  background: #362c25;
   color: var(--fg);
   cursor: pointer;
 }
@@ -392,12 +392,12 @@ textarea {
   font-weight: 600;
   text-align: left;
   padding: 4px 6px;
-  border-bottom: 1px solid #26304a;
+  border-bottom: 1px solid #4a3d33;
 }
 
 .levels-table td {
   padding: 5px 6px;
-  border-bottom: 1px solid #1a2236;
+  border-bottom: 1px solid #362c25;
 }
 
 .levels-table td.num {
@@ -406,7 +406,7 @@ textarea {
 }
 
 .levels-table tr.current td {
-  color: #ffd866;
+  color: #f2c46d;
   font-weight: 700;
 }
 
@@ -426,9 +426,9 @@ textarea {
 .toast {
   padding: 8px 16px;
   border-radius: 8px;
-  background: #1f3b63;
-  border: 1px solid #3b6aa8;
-  color: #fff;
+  background: #5a3a26;
+  border: 1px solid #d9774b;
+  color: #fff8ef;
   font: 13px/1.4 var(--font-ui);
   text-align: center;
   animation: toast-in 0.2s ease-out;
@@ -463,15 +463,15 @@ textarea {
   place-items: center;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
     env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-  background: rgb(5 8 15 / 70%);
+  background: rgb(20 14 10 / 70%);
 }
 
 .end-card {
   width: min(420px, calc(100vw - 32px));
   padding: 24px;
   border-radius: 14px;
-  background: #121a2c;
-  border: 1px solid #2c3754;
+  background: #2a221d;
+  border: 1px solid #54453a;
   text-align: center;
 }
 
@@ -490,8 +490,8 @@ textarea {
   padding: 10px 18px;
   border: none;
   border-radius: 8px;
-  background: #2b6cb0;
-  color: #fff;
+  background: #c8643b;
+  color: #fff8ef;
   font: 600 14px var(--font-ui);
   cursor: pointer;
 }
@@ -508,8 +508,8 @@ textarea {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #48c774;
-  box-shadow: 0 0 0 2px #0a0e1a;
+  background: #9cc874;
+  box-shadow: 0 0 0 2px #1c1714;
 }
 
 .panel h3 {
@@ -534,8 +534,8 @@ textarea {
 .upg-row {
   padding: 10px 12px;
   border-radius: 10px;
-  background: #161e31;
-  border: 1px solid #222c45;
+  background: #2f2620;
+  border: 1px solid #43372e;
 }
 
 .upg-head {
@@ -582,17 +582,17 @@ textarea {
   grid-column: 1 / -1;
   height: 4px;
   border-radius: 2px;
-  background: #26304a;
+  background: #4a3d33;
   overflow: hidden;
 }
 
 .upg-bar-fill {
   height: 100%;
-  background: #7fb2ff;
+  background: #f0a868;
 }
 
 .upg-req.done .upg-bar-fill {
-  background: #48c774;
+  background: #9cc874;
 }
 
 .upg-buy {
@@ -601,7 +601,7 @@ textarea {
 }
 
 .primary-btn:disabled {
-  background: #26304a;
+  background: #4a3d33;
   color: var(--muted);
   cursor: default;
 }
@@ -614,9 +614,9 @@ textarea {
 
 .unit-btn {
   padding: 4px 10px;
-  border: 1px solid #2c3754;
+  border: 1px solid #54453a;
   border-radius: 6px;
-  background: #1a2236;
+  background: #362c25;
   color: var(--fg);
   font: 600 12px var(--font-num);
   cursor: pointer;
@@ -633,12 +633,12 @@ textarea {
   font-weight: 600;
   text-align: left;
   padding: 4px 6px;
-  border-bottom: 1px solid #26304a;
+  border-bottom: 1px solid #4a3d33;
 }
 
 .deliv-table td {
   padding: 4px 6px;
-  border-bottom: 1px solid #1a2236;
+  border-bottom: 1px solid #362c25;
 }
 
 .deliv-table .num {
@@ -647,12 +647,12 @@ textarea {
 }
 
 .deliv-table tr.is-target td {
-  color: #ffd866;
+  color: #f2c46d;
   font-weight: 700;
 }
 
 .deliv-table tr.is-other td {
-  color: #8592ab;
+  color: #b29d88;
 }
 
 .next-targets {
@@ -664,13 +664,13 @@ textarea {
 .chip {
   padding: 2px 8px;
   border-radius: 999px;
-  background: #1a2236;
+  background: #362c25;
   font: 12px var(--font-num);
 }
 
 .chip.current {
-  background: #4a3d12;
-  color: #ffd866;
+  background: #4a3a1a;
+  color: #f2c46d;
 }
 
 .build-group {
@@ -680,7 +680,7 @@ textarea {
 
 .build-group-edit {
   padding-left: 8px;
-  border-left: 1px solid #2c3754;
+  border-left: 1px solid #54453a;
 }
 
 .build-btn:disabled {
@@ -694,8 +694,8 @@ textarea {
 }
 
 .top-btn[aria-pressed='true'] {
-  border-color: #7fb2ff;
-  background: #22345a;
+  border-color: #f0a868;
+  background: #5a3a26;
 }
 
 .tool-hint {
@@ -706,8 +706,8 @@ textarea {
   max-width: calc(100vw - var(--edge-l) - var(--edge-r));
   padding: 5px 12px;
   border-radius: 8px;
-  background: rgb(10 14 26 / 88%);
-  border: 1px solid #26304a;
+  background: rgb(42 34 29 / 88%);
+  border: 1px solid #4a3d33;
   color: var(--fg);
   font: 12px/1.4 var(--font-ui);
   white-space: nowrap;
@@ -726,7 +726,7 @@ textarea {
   padding: 0 8px;
   border: 1px solid transparent;
   border-radius: 8px;
-  background: #1a2236;
+  background: #362c25;
   color: var(--fg);
   font: 700 18px var(--font-num);
   cursor: pointer;
@@ -737,18 +737,18 @@ textarea {
 }
 
 .hint-btn:focus-visible {
-  outline: 2px solid #7fb2ff;
+  outline: 2px solid #f0a868;
   outline-offset: 1px;
 }
 
 .hint-btn-primary {
-  background: #2b6cb0;
-  color: #fff;
+  background: #c8643b;
+  color: #fff8ef;
 }
 
 .hint-btn[aria-pressed='true'] {
-  border-color: #7fb2ff;
-  background: #22345a;
+  border-color: #f0a868;
+  background: #5a3a26;
 }
 
 /* Key labels mean nothing without a keyboard. */
@@ -759,7 +759,7 @@ textarea {
 }
 
 .marker-overlay {
-  background: rgb(5 8 15 / 45%);
+  background: rgb(20 14 10 / 45%);
 }
 
 .marker-card {
@@ -768,8 +768,8 @@ textarea {
   width: min(360px, calc(100vw - 32px));
   padding: 18px;
   border-radius: 12px;
-  background: #121a2c;
-  border: 1px solid #2c3754;
+  background: #2a221d;
+  border: 1px solid #54453a;
 }
 
 .marker-card h2 {
@@ -780,16 +780,16 @@ textarea {
 .marker-input {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #2c3754;
+  border: 1px solid #54453a;
   border-radius: 8px;
-  background: #0c111e;
+  background: #191411;
   color: var(--fg);
   font: 14px var(--font-ui);
 }
 
 .marker-input:focus-visible,
 .secondary-btn:focus-visible {
-  outline: 2px solid #7fb2ff;
+  outline: 2px solid #f0a868;
   outline-offset: 1px;
 }
 
@@ -801,9 +801,9 @@ textarea {
 
 .secondary-btn {
   padding: 10px 14px;
-  border: 1px solid #2c3754;
+  border: 1px solid #54453a;
   border-radius: 8px;
-  background: #1a2236;
+  background: #362c25;
   color: var(--fg);
   font: 600 14px var(--font-ui);
   cursor: pointer;
@@ -811,7 +811,7 @@ textarea {
 
 .secondary-btn.danger {
   margin-right: auto;
-  color: #ff9c9c;
+  color: #ff9a85;
 }
 
 /* Editing tools: icon only (name in the tooltip) to keep the bar narrow. */
@@ -827,8 +827,8 @@ textarea {
 .status-chip {
   padding: 4px 10px;
   border-radius: 6px;
-  background: rgb(10 14 26 / 85%);
-  border: 1px solid #26304a;
+  background: rgb(42 34 29 / 85%);
+  border: 1px solid #4a3d33;
   color: var(--muted);
   font: 12px var(--font-ui);
 }
@@ -853,8 +853,8 @@ textarea {
   overflow: auto;
   overscroll-behavior: contain;
   border-radius: 16px;
-  background: #121a2c;
-  border: 1px solid #2c3754;
+  background: #2a221d;
+  border: 1px solid #54453a;
   box-shadow: 0 12px 36px rgb(0 0 0 / 45%);
   outline: none;
 }
@@ -864,7 +864,7 @@ textarea {
   grid-template-rows: 1fr auto;
   min-height: 0;
   background: var(--bg);
-  border-bottom: 1px solid #2c3754;
+  border-bottom: 1px solid #54453a;
 }
 
 .tut-stage {
@@ -888,9 +888,9 @@ textarea {
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border: 1px solid #7fb2ff;
+  border: 1px solid #f0a868;
   border-radius: 8px;
-  background: #22345a;
+  background: #5a3a26;
   color: var(--fg);
   font: 600 13px var(--font-ui);
   pointer-events: none;
@@ -904,8 +904,8 @@ textarea {
   min-height: 2.6em;
   margin: 0;
   padding: 8px 14px;
-  background: #0b101c;
-  color: #cfe0ff;
+  background: #191411;
+  color: #f4e9dc;
   font: 600 14px/1.35 var(--font-ui);
   text-align: center;
 }
@@ -923,9 +923,9 @@ textarea {
   width: 84px;
   height: 84px;
   border-radius: 50%;
-  background: #22345a;
-  border: 2px solid #7fb2ff;
-  color: #fff;
+  background: #5a3a26;
+  border: 2px solid #f0a868;
+  color: #fff8ef;
   font: 700 40px var(--font-num);
 }
 
@@ -942,7 +942,7 @@ textarea {
 
 .tut-kicker {
   margin: 0 0 2px;
-  color: #7fb2ff;
+  color: #f0a868;
   font: 700 12px var(--font-ui);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -982,7 +982,7 @@ textarea {
 
   .ui-compact .tut-demo {
     border-bottom: none;
-    border-right: 1px solid #2c3754;
+    border-right: 1px solid #54453a;
   }
 
   .ui-compact .tut-stage,
@@ -1012,13 +1012,13 @@ textarea {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #3b6aa8;
-  color: #fff;
+  background: #d9774b;
+  color: #fff8ef;
   font: 700 13px var(--font-ui);
 }
 
 .menu-overlay {
-  background: rgb(5 8 15 / 70%);
+  background: rgb(20 14 10 / 70%);
 }
 
 .menu-card {
@@ -1029,8 +1029,8 @@ textarea {
   overflow: auto;
   padding: 20px;
   border-radius: 14px;
-  background: #121a2c;
-  border: 1px solid #2c3754;
+  background: #2a221d;
+  border: 1px solid #54453a;
   box-shadow: 0 10px 30px rgb(0 0 0 / 40%);
 }
 
@@ -1058,9 +1058,9 @@ textarea {
 
 .menu-btn {
   padding: 11px 14px;
-  border: 1px solid #2c3754;
+  border: 1px solid #54453a;
   border-radius: 10px;
-  background: #1a2236;
+  background: #362c25;
   color: var(--fg);
   font: 600 15px var(--font-ui);
   text-align: left;
@@ -1072,7 +1072,7 @@ textarea {
 .opt-range:focus-visible,
 .menu-card a:focus-visible,
 .menu-card input[type='checkbox']:focus-visible {
-  outline: 2px solid #7fb2ff;
+  outline: 2px solid #f0a868;
   outline-offset: 2px;
 }
 
@@ -1106,9 +1106,9 @@ textarea {
 
 .opt-select {
   padding: 6px 8px;
-  border: 1px solid #2c3754;
+  border: 1px solid #54453a;
   border-radius: 8px;
-  background: #0c111e;
+  background: #191411;
   color: var(--fg);
   font: 13px var(--font-ui);
 }
@@ -1160,7 +1160,7 @@ textarea {
 }
 
 .menu-card a {
-  color: #7fb2ff;
+  color: #f0a868;
 }
 
 .menu-card p {
@@ -1175,7 +1175,7 @@ textarea {
   .hint-btn:not(.hint-btn-primary):hover,
   .menu-btn:hover,
   .secondary-btn:hover {
-    background: #232d46;
+    background: #3f342c;
   }
 }
 
@@ -1192,7 +1192,7 @@ textarea {
 }
 
 .hud-toggle:focus-visible {
-  outline: 2px solid #7fb2ff;
+  outline: 2px solid #f0a868;
   outline-offset: 1px;
 }
 
@@ -1362,8 +1362,8 @@ textarea {
   gap: 6px;
   padding: 6px;
   border-radius: 10px;
-  background: rgb(10 14 26 / 96%);
-  border: 1px solid #26304a;
+  background: rgb(42 34 29 / 96%);
+  border: 1px solid #4a3d33;
 }
 
 .ui-narrow .top-bar.more-open .top-more {
@@ -1459,3 +1459,15 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* ===== Theme: Terre cuite (draft) ===== */
+
+:is(.hud, .panel, .tut-card, .menu-card, .end-card, .marker-card) { border-radius: 24px !important; box-shadow: 0 14px 40px rgb(10 6 3 / 0.5) !important; }
+:is(.top-btn, .top-more-btn, .status-chip, .toast, .tooltip) { border-radius: 999px !important; }
+.build-bar { border-radius: 28px !important; padding-inline: 10px; }
+.build-btn { border-radius: 18px !important; }
+.upg-row { border-radius: 18px !important; }
+:is(.primary-btn, .hint-btn-primary, .tut-ok, .upg-buy, .secondary-btn) { border-radius: 999px !important; font-weight: 800; }
+.build-btn[aria-pressed='true'], .top-btn[aria-pressed='true'] { background: #c8643b !important; border-color: #f0a868 !important; color: #fff8ef !important; }
+.hud-target { font-family: var(--font-num); color: #f0a868; }
+.hud-bar, .hud-bar-fill, .upg-bar, .upg-bar-fill { border-radius: 999px !important; }

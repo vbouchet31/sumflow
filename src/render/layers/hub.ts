@@ -41,7 +41,7 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
   const w = size - 2 * inset;
 
   ctx.fillStyle = HUB_COLORS.fill;
-  roundRect(ctx, x, y, w, w, Math.max(2, 0.4 * s));
+  roundRect(ctx, x, y, w, w, Math.max(2, 1 * s));
   ctx.fill();
 
   if (cam.zoom < LOD.buildingText) return;

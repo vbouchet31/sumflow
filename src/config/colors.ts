@@ -1,42 +1,42 @@
 /** Visual palette (PLAN §10.1). Rendering only, no gameplay values here. */
 export const COLORS = {
-  background: '#0f1422',
-  gridLine: '#1a2236',
-  deposit: '#1e2740',
-  hub: '#2b6cb0',
-  text: '#ffffff',
-  depositLocked: '#6b7590',
+  background: '#1c1714',
+  gridLine: '#241e1a',
+  deposit: '#2f2721',
+  hub: '#c8643b',
+  text: '#fff8ef',
+  depositLocked: '#6b5a4a',
 } as const;
 
 /** Building colours (PLAN §6.3). Operators are also told apart by symbol and shape (§9.5). */
 export const BUILDING_COLORS = {
-  extractor: '#3f6e8c',
-  adder: '#3f9a5c',
-  multiplier: '#d27a32',
-  subtractor: '#c84a4a',
-  divider: '#8a5cc2',
-  exponent: '#c9a72c',
-  storage: '#6b7a8f',
-  bridge: '#4a6fa5',
+  extractor: '#5f7f8c',
+  adder: '#7d9a5a',
+  multiplier: '#d98a3d',
+  subtractor: '#c4553f',
+  divider: '#8e6aa8',
+  exponent: '#c99a2e',
+  storage: '#7a6a5c',
+  bridge: '#5f7f8c',
 } as const;
 
 export const HUB_COLORS = {
-  fill: '#2b6cb0',
-  barTrack: '#1c4a7d',
-  barFill: '#ffffff',
-  textMuted: '#c8dcf2',
+  fill: '#c8643b',
+  barTrack: '#8a3f22',
+  barFill: '#fff3e3',
+  textMuted: '#ffe0cc',
 } as const;
 
-export const FONT_NUM = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
-export const FONT_UI = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+export const FONT_NUM = '"Fredoka", ui-rounded, system-ui, sans-serif';
+export const FONT_UI = '"Nunito", ui-rounded, system-ui, sans-serif';
 
 export const BELT_COLORS = {
-  bridgeBase: '#1b2232',
-  bridgeDeck: '#34405a',
-  priority: '#48c774',
-  base: '#232b3d',
-  chevron: '#55627e',
-  line: '#3d4860',
+  bridgeBase: '#241d18',
+  bridgeDeck: '#4a3d33',
+  priority: '#9cc874',
+  base: '#2c241f',
+  chevron: '#6b5a4a',
+  line: '#3f342c',
 } as const;
 
 /** Ghost fills: new, replace, bridge, impossible (PLAN §6.5). */
@@ -58,8 +58,8 @@ export const AREA_COLORS = {
 
 /** Text markers (PLAN §10.2 layer 8). */
 export const MARKER_COLORS = {
-  pin: '#ffd866',
-  pinEdge: '#0a0e1a',
-  labelBg: 'rgba(10, 14, 26, 0.85)',
-  labelText: '#ffe9a8',
+  pin: '#f2c46d',
+  pinEdge: '#1c1714',
+  labelBg: 'rgba(42, 34, 29, 0.92)',
+  labelText: '#f2c46d',
 } as const;
