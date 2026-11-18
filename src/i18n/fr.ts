@@ -308,4 +308,6 @@ export const fr = {
   'toast.importError': 'Import impossible : fichier invalide. Rien n’a été modifié.',
   'toast.loadError': 'Sauvegarde illisible : nouvelle partie. L’ancienne est gardée à part.',
   'toast.exported': 'Partie exportée : {file}',
+  'tip.rich': 'Filon riche : un extracteur ici produit ×2',
+  'tip.richExtractor': 'Sur un filon riche (×2)',
 } as const;

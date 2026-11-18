@@ -272,3 +272,13 @@ export const EDIT = {
   /** Most copies placed by one paste drag. */
   maxPasteRow: 32,
 } as const;
+
+/** Rich veins (proposal 11): some deposits yield more. */
+export const RICH = {
+  /** Share of deposits that are rich, in thousandths. */
+  perMille: 130,
+  /** No rich vein this close to the hub (the start stays the same for everyone). */
+  minDistance: 20,
+  /** Production multiplier of an extractor on a rich vein. */
+  factor: 2,
+} as const;

@@ -9,7 +9,8 @@ import { isOperator } from '../sim/entities';
 import { cycleDuration } from '../sim/operators';
 import { type MessageKey } from '../i18n';
 import type { World } from '../sim/world';
-import { isExtractable } from '../world/deposits';
+import { isExtractable, isRich } from '../world/deposits';
+import { richFactor } from '../sim/extractor';
 
 /** Lines describing what is at tile `(x, y)` (PLAN §9.1, bottom left). Empty if nothing. */
 export function describeTile(world: World, x: number, y: number): string[] {
@@ -40,7 +41,12 @@ function describeObject(world: World, x: number, y: number): string[] {
     return [
       t('tip.extractor'),
       t('tip.extractValue', { value: num(b.extractValue ?? 0) }),
-      t('tip.rate', { rate: currentExtractorRate(world.state).toLocaleString(getLocale()) }),
+      t('tip.rate', {
+        rate: (currentExtractorRate(world.state) * richFactor(world, b)).toLocaleString(
+          getLocale(),
+        ),
+      }),
+      ...(richFactor(world, b) > 1 ? [t('tip.richExtractor')] : []),
       outs > 0 ? t('tip.outputs', { n: outs }) : t('tip.noOutput'),
     ];
   }
@@ -94,6 +100,7 @@ function describeObject(world: World, x: number, y: number): string[] {
   if (d) {
     return [
       t('tip.deposit', { value: num(d.value) }),
+      ...(isRich(world.state.seed, d) ? [t('tip.rich')] : []),
       isExtractable(d.value, world.state.maxExtraction) ? t('tip.extractable') : t('tip.locked'),
     ];
   }
