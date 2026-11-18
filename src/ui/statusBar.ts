@@ -13,13 +13,21 @@ export function formatAgo(ms: number): string {
 /** Bottom-right status (PLAN §9.1): pause, save state, cursor coordinates. */
 export class StatusBar {
   private readonly pause = el('span', 'status-paused', t('status.paused'));
+  private readonly speed = el('span', 'status-paused status-speed');
   private readonly saved = el('span', 'status-chip status-saved');
   private readonly cursor = el('span', 'status-chip status-cursor');
   private last = '';
 
   constructor(root: HTMLElement) {
     this.pause.hidden = true;
-    root.append(el('div', 'status-bar', this.pause, this.saved, this.cursor));
+    this.speed.hidden = true;
+    root.append(el('div', 'status-bar', this.speed, this.pause, this.saved, this.cursor));
+  }
+
+  /** "Speed ×4" chip while the game runs faster than normal. */
+  setSpeed(scale: number): void {
+    this.speed.hidden = scale <= 1;
+    this.speed.textContent = t('status.speed', { n: scale });
   }
 
   setPaused(paused: boolean): void {

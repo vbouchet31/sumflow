@@ -34,6 +34,7 @@ Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGR
 | Annuler / rétablir                               | `Ctrl+Z` / `Ctrl+Y` (ou `Ctrl+Shift+Z`)                                                                            |
 | Panneaux                                         | `U` améliorations, `L` niveaux, `N` nombres livrés                                                                 |
 | Menu (sauvegarde, export, import, options, aide) | `Échap` (sans outil actif)                                                                                         |
+| Vitesse du jeu ×1 / ×2 / ×4                      | `T` (`Shift+T` pour revenir)                                                                                       |
 | Pause                                            | `Espace`                                                                                                           |
 | Performances (FPS, temps de simulation, objets)  | `F3`                                                                                                               |
 

@@ -1312,3 +1312,13 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Game speed: chip in the status bar while faster than normal. */
+.status-speed {
+  background: #23744a;
+  color: #fff;
+}
+
+.top-btn[data-action='speed'] {
+  font: 700 13px var(--font-num);
+}
