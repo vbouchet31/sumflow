@@ -1,5 +1,5 @@
 import { AREA_COLORS, COLORS, GHOST_COLORS } from '../../config/colors';
-import { DX, DY } from '../../core/grid';
+import { DIRS, DX, DY } from '../../core/grid';
 import type { Ghost } from '../../build/tools';
 import { buildingSize, isOperator } from '../../sim/entities';
 import { drawOperator } from './operators';
@@ -17,29 +17,34 @@ export function drawGhosts(ctx: CanvasRenderingContext2D, cam: Camera, ghost: Gh
           ? GHOST_COLORS.new
           : t.status === 'bridge'
             ? GHOST_COLORS.bridge
-            : GHOST_COLORS.replace;
+            : t.status === 'addOutput'
+              ? GHOST_COLORS.split
+              : GHOST_COLORS.replace;
     ctx.fillRect(p.x + 1, p.y + 1, s - 2, s - 2);
     if (t.status === 'blocked') continue;
-    // Arrow toward the output.
+    // Arrow toward the output; a split shows every output it will have.
     const cx = p.x + s / 2;
     const cy = p.y + s / 2;
-    const fx = DX[t.dir];
-    const fy = DY[t.dir];
     ctx.strokeStyle = COLORS.text;
     ctx.lineWidth = Math.max(1, 0.08 * s);
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(cx - fx * 0.25 * s, cy - fy * 0.25 * s);
-    ctx.lineTo(cx + fx * 0.25 * s, cy + fy * 0.25 * s);
-    ctx.moveTo(
-      cx + fx * 0.25 * s - fy * 0.15 * s - fx * 0.15 * s,
-      cy + fy * 0.25 * s + fx * 0.15 * s - fy * 0.15 * s,
-    );
-    ctx.lineTo(cx + fx * 0.25 * s, cy + fy * 0.25 * s);
-    ctx.lineTo(
-      cx + fx * 0.25 * s + fy * 0.15 * s - fx * 0.15 * s,
-      cy + fy * 0.25 * s - fx * 0.15 * s - fy * 0.15 * s,
-    );
+    for (const d of DIRS) {
+      if (d !== t.dir && !(t.status === 'addOutput' && t.outputs & (1 << d))) continue;
+      const fx = DX[d];
+      const fy = DY[d];
+      ctx.moveTo(cx - fx * 0.25 * s, cy - fy * 0.25 * s);
+      ctx.lineTo(cx + fx * 0.25 * s, cy + fy * 0.25 * s);
+      ctx.moveTo(
+        cx + fx * 0.25 * s - fy * 0.15 * s - fx * 0.15 * s,
+        cy + fy * 0.25 * s + fx * 0.15 * s - fy * 0.15 * s,
+      );
+      ctx.lineTo(cx + fx * 0.25 * s, cy + fy * 0.25 * s);
+      ctx.lineTo(
+        cx + fx * 0.25 * s + fy * 0.15 * s - fx * 0.15 * s,
+        cy + fy * 0.25 * s - fx * 0.15 * s - fy * 0.15 * s,
+      );
+    }
     ctx.stroke();
   }
   for (const g of ghost.buildings) {

@@ -39,11 +39,13 @@ export const BELT_COLORS = {
   line: '#3d4860',
 } as const;
 
-/** Ghost fills: new, replace, bridge, impossible (PLAN §6.5). */
+/** Ghost fills: new, replace, bridge, split, impossible (PLAN §6.5). */
 export const GHOST_COLORS = {
   new: 'rgba(72, 199, 116, 0.45)',
   replace: 'rgba(237, 150, 54, 0.5)',
   bridge: 'rgba(80, 150, 240, 0.5)',
+  /** Branch added to an existing belt (split). */
+  split: 'rgba(170, 110, 240, 0.55)',
   blocked: 'rgba(230, 70, 70, 0.45)',
   demolish: 'rgba(230, 70, 70, 0.35)',
 } as const;
