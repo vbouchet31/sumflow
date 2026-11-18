@@ -28,6 +28,13 @@ Cible : tablette et téléphone en paysage d'abord. Branche `dev-mobile`.
 | T4 Confort                       | ✅ terminé |
 | T5 Installation                  | ✅ terminé |
 
+## Fiches tutoriel
+
+- [x] Fiche modale animée à la première partie et à chaque déblocage (démo jouée par le vrai moteur).
+- [x] Souris, doigt et clavier ; mise en page téléphone (paysage : démo à gauche, texte à droite).
+- [x] Menu Aide : liste des fiches rencontrées, chacune rejouable.
+- [x] Tests : chaque scène livre son résultat (unitaires), ouverture, série, sauvegarde, tactile et mise en page (e2e).
+
 ### T5 : détail
 
 - [x] **Manifeste** (`public/manifest.webmanifest`) : plein écran, toute orientation, chemins relatifs (le jeu s'installe depuis `/sumflow/` sur GitHub Pages). Balises d'écran d'accueil pour iOS.

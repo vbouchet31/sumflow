@@ -13,7 +13,7 @@ async function state(page: Page): Promise<DebugSnapshot> {
 }
 
 test('pinching never zooms the page, on the map or on the interface', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const touch = await touchDriver(page);
   const viewport = page.viewportSize();
   if (!viewport) throw new Error('no viewport');
@@ -37,7 +37,7 @@ test('pinching never zooms the page, on the map or on the interface', async ({ p
 });
 
 test('without a tool one finger moves the map, two fingers move it too', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const touch = await touchDriver(page);
   const from = tileCentre(page, 6, 0);
 
@@ -64,7 +64,7 @@ test('without a tool one finger moves the map, two fingers move it too', async (
 });
 
 test('a tap with a tool acts like a click', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const touch = await touchDriver(page);
   await page.locator('.build-btn[data-tool="belt"]').tap();
   expect((await state(page)).tool).toBe('belt');
@@ -75,7 +75,7 @@ test('a tap with a tool acts like a click', async ({ page }) => {
 });
 
 test('with a tool one finger draws, and the map stays still', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const touch = await touchDriver(page);
   await page.locator('.build-btn[data-tool="belt"]').tap();
 
@@ -87,7 +87,7 @@ test('with a tool one finger draws, and the map stays still', async ({ page }) =
 });
 
 test('a second finger abandons the drawing and takes the map', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const touch = await touchDriver(page);
   await page.locator('.build-btn[data-tool="belt"]').tap();
   const a = tileCentre(page, 5, 0);
@@ -112,7 +112,7 @@ test('a second finger abandons the drawing and takes the map', async ({ page }) 
 });
 
 test('the mouse still works on a touch device', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   await page.keyboard.press('1');
   const [x, y] = tileCentre(page, 5, 0);
   await page.mouse.move(x, y);
@@ -124,7 +124,7 @@ test('the mouse still works on a touch device', async ({ page }) => {
 });
 
 test('the action bar replaces the keys: rotate, elbow, clipboard, quit', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const touch = await touchDriver(page);
   const bar = page.locator('.tool-hint');
   const action = (id: string) => bar.locator(`.hint-btn[data-action="${id}"]`);
@@ -167,7 +167,7 @@ test('the action bar replaces the keys: rotate, elbow, clipboard, quit', async (
 });
 
 test('a long press picks the object under the finger', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const touch = await touchDriver(page);
   await page.evaluate(() => {
     const api = window.__sumflow;
@@ -190,7 +190,7 @@ test('a long press picks the object under the finger', async ({ page }) => {
 });
 
 test('a tap without a tool pins the tooltip of the object', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const touch = await touchDriver(page);
   const tooltip = page.locator('.tooltip');
   await page.evaluate(() => window.__sumflow?.place('belt', 5, -3, 0));
@@ -207,7 +207,7 @@ test('a tap without a tool pins the tooltip of the object', async ({ page }) => 
 });
 
 test('the pause button pauses and resumes the simulation', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const pause = page.locator('.top-btn[data-action="pause"]');
   await pause.tap();
   expect((await state(page)).paused).toBe(true);
@@ -222,7 +222,7 @@ test('the pause button pauses and resumes the simulation', async ({ page }) => {
 });
 
 test('pasting with a finger: the preview is put down, moved, then confirmed', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const touch = await touchDriver(page);
   const place = page.locator('.hint-btn[data-action="place"]');
   await page.evaluate(() => {
@@ -250,7 +250,7 @@ test('pasting with a finger: the preview is put down, moved, then confirmed', as
 });
 
 test('drawing a belt past the screen edge scrolls the map', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const touch = await touchDriver(page);
   const viewport = page.viewportSize();
   if (!viewport) throw new Error('no viewport');
@@ -282,7 +282,7 @@ test('drawing a belt past the screen edge scrolls the map', async ({ page }) => 
  * nothing either way).
  */
 async function flick(page: Page): Promise<{ atRelease: number; later: number }> {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   await page.evaluate(() => {
     const times: number[] = [];
     for (const type of ['pointerdown', 'pointermove', 'pointerup']) {
@@ -336,11 +336,10 @@ test('no glide when animations are reduced', async ({ page }) => {
 });
 
 test('level 1 can be completed with touches alone', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const touch = await touchDriver(page);
   const viewport = page.viewportSize();
   if (!viewport) throw new Error('no viewport');
-  await page.locator('.help-bubble button').tap();
 
   // Frame the nearest deposit of 1 and the hub between the bars.
   const margin = { top: 70, bottom: 130, side: 24 };
@@ -388,4 +387,34 @@ test('level 1 can be completed with touches alone', async ({ page }) => {
 
   await page.evaluate(() => window.__sumflow?.step(120));
   expect((await state(page)).level).toBeGreaterThan(1);
+});
+
+test('the tutorial card plays a finger demo and closes with a tap, on the card or beside it', async ({
+  page,
+}) => {
+  await page.goto('./?debug=1&seed=42');
+  const touch = await touchDriver(page);
+  const card = page.locator('.tut-card');
+  await expect(card).toBeVisible();
+  // Nothing touched yet: a touch screen gets the finger demo.
+  await expect(card).toHaveAttribute('data-pointer', 'touch');
+  await expect(card.locator('.tut-caption')).not.toBeEmpty();
+  // While the card is open, a finger on the map does nothing behind it.
+  const before = (await state(page)).camera;
+  const box = await card.boundingBox();
+  if (!box) throw new Error('no card');
+  await touch.tap([box.x + box.width / 2, box.y + box.height / 2]);
+  await expect(card).toBeVisible();
+  await card.locator('.tut-ok').tap();
+  await expect(card).toBeHidden();
+  expect((await state(page)).camera).toEqual(before);
+  expect((await state(page)).tool).toBe('none');
+
+  // The next card, after an unlock: a tap beside it closes it too.
+  await page.evaluate(() => window.__sumflow?.unlockAll());
+  const next = page.locator('.tut-card[data-tip="adder"]');
+  await expect(next).toBeVisible();
+  await expect(next.locator('.tut-count')).toHaveText('1 / 9');
+  await touch.tap([4, 4]);
+  await expect(page.locator('.tut-card[data-tip="upgrades"]')).toBeVisible();
 });

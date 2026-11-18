@@ -1,30 +1,108 @@
-import { type MessageKey, t } from '../i18n';
+import type { MessageKey } from '../i18n';
 import { isBuildingUnlocked, isFeatureUnlocked, type GameState } from '../sim/state';
-import { el } from './dom';
+import type { DemoId } from '../tutorial/scenes';
 
 export interface HelpTip {
   id: string;
+  title: MessageKey;
   text: MessageKey;
+  /** Animated demo of the card; tips without one show `icon` instead. */
+  demo?: DemoId;
+  icon: string;
   /** The tip is relevant once this holds. */
   when: (s: GameState) => boolean;
 }
 
-/** Contextual help bubbles, in order (PLAN §7.5). */
+/** Tutorial cards, in unlock order (PLAN §7.5). */
 export const HELP_TIPS: readonly HelpTip[] = [
-  { id: 'start', text: 'help.start', when: () => true },
-  { id: 'adder', text: 'help.adder', when: (s) => isBuildingUnlocked(s, 'adder') },
-  { id: 'upgrades', text: 'help.upgrades', when: (s) => isFeatureUnlocked(s, 'upgrades') },
-  { id: 'bridge', text: 'help.bridge', when: (s) => isBuildingUnlocked(s, 'bridge') },
-  { id: 'priorities', text: 'help.priorities', when: (s) => isFeatureUnlocked(s, 'priorities') },
-  { id: 'subtractor', text: 'help.subtractor', when: (s) => isBuildingUnlocked(s, 'subtractor') },
-  { id: 'divider', text: 'help.divider', when: (s) => isBuildingUnlocked(s, 'divider') },
-  { id: 'exponent', text: 'help.exponent', when: (s) => isBuildingUnlocked(s, 'exponent') },
-  { id: 'storage', text: 'help.storage', when: (s) => isBuildingUnlocked(s, 'storage') },
+  {
+    id: 'start',
+    title: 'help.title.start',
+    text: 'help.start',
+    demo: 'start',
+    icon: '▣',
+    when: () => true,
+  },
+  {
+    id: 'adder',
+    title: 'tool.adder',
+    text: 'help.adder',
+    demo: 'adder',
+    icon: '+',
+    when: (s) => isBuildingUnlocked(s, 'adder'),
+  },
+  {
+    id: 'upgrades',
+    title: 'reward.upgrades',
+    text: 'help.upgrades',
+    icon: '⇧',
+    when: (s) => isFeatureUnlocked(s, 'upgrades'),
+  },
+  {
+    id: 'bridge',
+    title: 'tool.bridge',
+    text: 'help.bridge',
+    demo: 'bridge',
+    icon: '≡',
+    when: (s) => isBuildingUnlocked(s, 'bridge'),
+  },
+  {
+    id: 'multiplier',
+    title: 'tool.multiplier',
+    text: 'help.multiplier',
+    demo: 'multiplier',
+    icon: '×',
+    when: (s) => isBuildingUnlocked(s, 'multiplier'),
+  },
+  {
+    id: 'priorities',
+    title: 'reward.priorities',
+    text: 'help.priorities',
+    icon: '◆',
+    when: (s) => isFeatureUnlocked(s, 'priorities'),
+  },
+  {
+    id: 'subtractor',
+    title: 'tool.subtractor',
+    text: 'help.subtractor',
+    demo: 'subtractor',
+    icon: '−',
+    when: (s) => isBuildingUnlocked(s, 'subtractor'),
+  },
+  {
+    id: 'divider',
+    title: 'tool.divider',
+    text: 'help.divider',
+    demo: 'divider',
+    icon: '÷',
+    when: (s) => isBuildingUnlocked(s, 'divider'),
+  },
+  {
+    id: 'exponent',
+    title: 'tool.exponent',
+    text: 'help.exponent',
+    demo: 'exponent',
+    icon: '^',
+    when: (s) => isBuildingUnlocked(s, 'exponent'),
+  },
+  {
+    id: 'storage',
+    title: 'tool.storage',
+    text: 'help.storage',
+    demo: 'storage',
+    icon: '▦',
+    when: (s) => isBuildingUnlocked(s, 'storage'),
+  },
 ];
+
+/** Relevant tips not yet dismissed, in order. */
+export function pendingTips(state: GameState): HelpTip[] {
+  return HELP_TIPS.filter((tip) => tip.when(state) && !state.helpSeen.includes(tip.id));
+}
 
 /** The next relevant tip not yet dismissed, or null. */
 export function nextTip(state: GameState): HelpTip | null {
-  return HELP_TIPS.find((tip) => tip.when(state) && !state.helpSeen.includes(tip.id)) ?? null;
+  return pendingTips(state)[0] ?? null;
 }
 
 /** Tips already relevant (for the Help menu). */
@@ -32,45 +110,7 @@ export function knownTips(state: GameState): HelpTip[] {
   return HELP_TIPS.filter((tip) => tip.when(state));
 }
 
-/**
- * Non-blocking help bubble (PLAN §7.5): one at a time, dismissed with its button; the
- * next relevant tip follows. Dismissed tips are stored in the game (`helpSeen`).
- */
-export class HelpBubble {
-  private readonly box = el('aside', 'help-bubble');
-  private readonly text = el('p');
-  /** Tip on screen; `undefined` forces a refresh. */
-  private current: string | null | undefined = undefined;
-
-  constructor(
-    root: HTMLElement,
-    private readonly state: GameState,
-  ) {
-    const ok = el('button', 'secondary-btn', t('help.dismiss'));
-    ok.type = 'button';
-    ok.addEventListener('click', () => this.dismiss());
-    this.box.setAttribute('role', 'note');
-    this.box.setAttribute('aria-label', t('help.label'));
-    this.box.append(el('span', 'help-icon', '?'), this.text, ok);
-    this.box.hidden = true;
-    root.append(this.box);
-  }
-
-  dismiss(): void {
-    if (this.current && !this.state.helpSeen.includes(this.current)) {
-      this.state.helpSeen.push(this.current);
-    }
-    this.current = undefined;
-    this.update();
-  }
-
-  /** Show the next pending tip, if any. Cheap: call every frame. */
-  update(): void {
-    const tip = nextTip(this.state);
-    const id = tip?.id ?? null;
-    if (id === this.current) return;
-    this.current = id;
-    this.box.hidden = tip === null;
-    if (tip) this.text.textContent = t(tip.text);
-  }
+/** Mark a tip as seen (stored in the game, `helpSeen`). */
+export function markSeen(state: GameState, id: string): void {
+  if (!state.helpSeen.includes(id)) state.helpSeen.push(id);
 }

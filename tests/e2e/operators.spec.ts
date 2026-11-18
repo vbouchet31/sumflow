@@ -5,7 +5,7 @@ test('the adder appears after level 1 and can be placed with the keyboard and mo
 }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
 
   const adderBtn = page.locator('.build-btn[data-tool="adder"]');
   await expect(adderBtn).toBeHidden();

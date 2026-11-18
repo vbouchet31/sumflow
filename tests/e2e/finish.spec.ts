@@ -19,7 +19,7 @@ test('a 1 + 1 chain feeds the hub, and survives a save and a reload (PLAN M11)',
     if (msg.type() === 'error') errors.push(msg.text());
   });
   page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
 
   const before = await page.evaluate(async () => {
     const api = window.__sumflow;
@@ -81,7 +81,7 @@ test('a 1 + 1 chain feeds the hub, and survives a save and a reload (PLAN M11)',
 });
 
 test('F3 toggles the performance overlay', async ({ page }) => {
-  await page.goto('./?seed=42'); // no debug mode needed
+  await page.goto('./?seed=42&tutorial=0'); // no debug mode needed
   const overlay = page.locator('.perf-overlay');
   await expect(overlay).toBeHidden();
   await page.keyboard.press('F3');
@@ -94,7 +94,7 @@ test('F3 toggles the performance overlay', async ({ page }) => {
 });
 
 test('time spent in a hidden tab is caught up when it comes back', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   await page.clock.install();
   await page.evaluate(() => window.__sumflow?.getState()); // page is running
   const setVisibility = (state: 'hidden' | 'visible'): Promise<void> =>
@@ -131,7 +131,7 @@ test('time spent in a hidden tab is caught up when it comes back', async ({ page
 });
 
 test('panels and the menu work with the keyboard alone (PLAN §9.5)', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   // Panel: opens focused, Escape closes it.
   await page.keyboard.press('l');
   const panel = page.locator('.levels-panel');
@@ -169,7 +169,7 @@ test('panels and the menu work with the keyboard alone (PLAN §9.5)', async ({ p
 });
 
 test('zoomed out, the cached belt layer follows edits', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42');
+  await page.goto('./?debug=1&seed=42&tutorial=0');
   const viewport = page.viewportSize();
   if (!viewport) throw new Error('no viewport');
   const zoom = 0.45;
