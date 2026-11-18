@@ -95,9 +95,7 @@ test('camera zooms around the cursor, pans with the mouse and keys, and H recent
   await page.keyboard.up('KeyD');
   expect((await camera(page)).x).toBeGreaterThan(dragged.x);
 
-  // H recentres on the hub.
+  // H glides back to the hub.
   await page.keyboard.press('h');
-  const home = await camera(page);
-  expect(home.x).toBe(0);
-  expect(home.y).toBe(0);
+  await expect.poll(async () => camera(page)).toMatchObject({ x: 0, y: 0 });
 });
