@@ -8,10 +8,12 @@ import { clearArea, demolishArea, type Rect, rectSize, selectionRect } from './a
 import {
   applyBeltPlan,
   computeLPath,
+  extendTrail,
   type PlannedBelt,
   planBeltPath,
   planManualBridge,
   planSingleBelt,
+  trailPath,
 } from './beltPath';
 import {
   applyPaste,
@@ -72,6 +74,14 @@ export interface ToolEvents {
   onMarker?: (x: number, y: number, text: string | null) => void;
 }
 
+interface Drag {
+  x: number;
+  y: number;
+  moved: boolean;
+  /** Belt tool: tiles the pointer went through, in order (freehand tracing). */
+  trail: { x: number; y: number }[];
+}
+
 function isAreaTool(tool: ToolId): tool is AreaTool {
   return tool === 'demolish' || tool === 'clear' || tool === 'copy' || tool === 'cut';
 }
@@ -94,6 +104,11 @@ export class ToolController {
    * inverts it for the time of the drag.
    */
   elbowSwap = false;
+  /**
+   * Belt drags follow the pointer tile by tile (`free`), or go straight in an L from the
+   * start to the pointer (`line`). Holding Shift draws a line for the time of the drag.
+   */
+  beltMode: 'free' | 'line' = 'free';
   private hover: { x: number; y: number } | null = null;
   /**
    * Touch: tile where the paste preview was put down. It stays there once the finger is
@@ -103,8 +118,9 @@ export class ToolController {
   private pendingBefore: { x: number; y: number } | null = null;
   /** A finger is moving the paste preview. */
   private touchPaste = false;
-  private drag: { x: number; y: number; moved: boolean } | null = null;
+  private drag: Drag | null = null;
   private ctrl = false;
+  private shift = false;
   private listeners = new Set<() => void>();
   private clipCache: { src: Clip; rot: Rot; mirror: boolean; clip: Clip } | null = null;
 
@@ -189,6 +205,15 @@ export class ToolController {
 
   toggleElbow(): void {
     this.elbowSwap = !this.elbowSwap;
+  }
+
+  toggleBeltMode(): void {
+    this.beltMode = this.beltMode === 'free' ? 'line' : 'free';
+  }
+
+  /** The belt drag in progress (or the next one) draws an L rather than following the pointer. */
+  get drawsLine(): boolean {
+    return this.beltMode === 'line' || this.shift;
   }
 
   /** Belt direction for a single click: East at rotation 0, then clockwise. */
@@ -280,6 +305,8 @@ export class ToolController {
   pointerMove(x: number, y: number, mods: Modifiers): void {
     this.hover = { x, y };
     this.ctrl = mods.ctrl;
+    this.shift = mods.shift;
+    if (this.drag && this.tool === 'belt') extendTrail(this.drag.trail, x, y);
     if (this.tool === 'paste') {
       if (mods.touch) {
         if (this.touchPaste) this.pending = { x, y };
@@ -319,13 +346,18 @@ export class ToolController {
     if (this.tool === 'belt' && mods.alt) return; // Alt+click = priority (on release)
     const t = this.tool;
     if (t === 'belt' || t === 'paste' || isAreaTool(t) || isFreeBuilding(t)) {
-      this.drag = { x, y, moved: false };
+      this.drag = { x, y, moved: false, trail: [{ x, y }] };
     }
   }
 
   pointerUp(x: number, y: number, mods: Modifiers): void {
     this.hover = { x, y };
     this.ctrl = mods.ctrl;
+    this.shift = mods.shift;
+    if (this.drag && this.tool === 'belt') {
+      extendTrail(this.drag.trail, x, y);
+      if (x !== this.drag.x || y !== this.drag.y) this.drag.moved = true;
+    }
     const tool = this.tool;
     const drag = this.drag;
     this.drag = null;
@@ -396,7 +428,7 @@ export class ToolController {
     }
   }
 
-  private applyArea(tool: AreaTool, drag: { x: number; y: number; moved: boolean } | null): void {
+  private applyArea(tool: AreaTool, drag: Drag | null): void {
     if (!this.hover) return;
     const rect = selectionRect(drag ?? this.hover, this.hover);
     if (tool === 'demolish') {
@@ -480,8 +512,11 @@ export class ToolController {
     return rectSize(selectionRect(this.drag, this.hover));
   }
 
-  private beltPlan(drag: { x: number; y: number; moved: boolean } | null): PlannedBelt[] {
+  private beltPlan(drag: Drag | null): PlannedBelt[] {
     if (!this.hover) return [];
+    if (drag?.moved && !this.drawsLine && drag.trail.length > 1) {
+      return planBeltPath(this.world, trailPath(drag.trail, this.beltDir));
+    }
     if (drag?.moved) {
       return planBeltPath(
         this.world,
@@ -492,17 +527,14 @@ export class ToolController {
     return planSingleBelt(this.world, at.x, at.y, this.beltDir);
   }
 
-  private operatorPlans(
-    type: FreeBuildingType,
-    drag: { x: number; y: number; moved: boolean } | null,
-  ): BuildingPlan[] {
+  private operatorPlans(type: FreeBuildingType, drag: Drag | null): BuildingPlan[] {
     if (!this.hover) return [];
     const from = drag ?? this.hover;
     const to = drag?.moved ? this.hover : from;
     return planOperatorRow(this.world, type, from, to, this.rot);
   }
 
-  private pastePlans(drag: { x: number; y: number; moved: boolean } | null): PastePlan[] {
+  private pastePlans(drag: Drag | null): PastePlan[] {
     const clip = this.currentClip();
     if (!clip) return [];
     // A preview put down by a finger is a single copy, where it was put.

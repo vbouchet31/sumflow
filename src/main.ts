@@ -458,7 +458,11 @@ async function bootstrap(): Promise<void> {
     // Keep the drag preview in sync with Ctrl even when the mouse is still. A finger
     // leaves no hovered tile behind: the gestures drive the tools themselves.
     if (pointer.hovering) {
-      tools.pointerMove(hover.x, hover.y, { ctrl: keyboard.ctrl, shift: false, alt: false });
+      tools.pointerMove(hover.x, hover.y, {
+        ctrl: keyboard.ctrl,
+        shift: keyboard.shift,
+        alt: false,
+      });
       pinned = null;
     }
     renderer.selection = pinned ? inspectedRect(world, pinned.x, pinned.y) : null;

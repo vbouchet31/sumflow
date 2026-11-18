@@ -146,6 +146,10 @@ test('the action bar replaces the keys: rotate, elbow, clipboard, quit', async (
   expect(rows).toHaveLength(2);
   expect(rows[0]?.replace(/^\[-?\d+,/, '')).not.toBe(rows[1]?.replace(/^\[-?\d+,/, ''));
 
+  // Freehand by default: the elbow only matters for straight lines.
+  await expect(action('elbow')).toBeHidden();
+  await action('beltMode').tap();
+  await expect(action('beltMode')).toHaveAttribute('aria-pressed', 'true');
   await action('elbow').tap();
   await expect(action('elbow')).toHaveAttribute('aria-pressed', 'true');
 

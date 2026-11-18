@@ -173,3 +173,48 @@ export function planManualBridge(
   const v = keep !== null && axisOf(keep) === 1 ? keep : (fed(1) ?? (axisOf(dir) === 1 ? dir : S));
   return { h, v };
 }
+
+/**
+ * Freehand belt tracing: add the tile under the pointer to the trail of tiles the drag went
+ * through. Going back over the trail cuts it there (undo the last steps, or close a loop
+ * short). A pointer that skipped tiles (fast move) is joined with an L, larger gap first.
+ */
+export function extendTrail(trail: { x: number; y: number }[], x: number, y: number): void {
+  const step = (tx: number, ty: number): void => {
+    const at = trail.findIndex((t) => t.x === tx && t.y === ty);
+    if (at >= 0) {
+      trail.length = at + 1;
+      return;
+    }
+    trail.push({ x: tx, y: ty });
+  };
+  const last = trail[trail.length - 1];
+  if (!last) {
+    trail.push({ x, y });
+    return;
+  }
+  if (last.x === x && last.y === y) return;
+  for (const t of computeLPath(last.x, last.y, x, y, false).slice(1)) step(t.x, t.y);
+}
+
+/**
+ * Belt path along a trail: each tile faces the next one, the last keeps the direction of
+ * the step into it. A single tile faces `dir`.
+ */
+export function trailPath(trail: readonly { x: number; y: number }[], dir: Dir): PathTile[] {
+  const tiles: PathTile[] = [];
+  let last: Dir = dir;
+  for (let i = 0; i < trail.length; i++) {
+    const t = trail[i] as { x: number; y: number };
+    const next = trail[i + 1];
+    if (next) last = stepDir(t, next);
+    tiles.push({ x: t.x, y: t.y, dir: last });
+  }
+  return tiles;
+}
+
+function stepDir(a: { x: number; y: number }, b: { x: number; y: number }): Dir {
+  if (b.x > a.x) return E;
+  if (b.x < a.x) return W;
+  return b.y > a.y ? S : N;
+}
