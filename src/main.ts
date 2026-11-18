@@ -1,7 +1,8 @@
 import './ui/styles.css';
 import { Sfx } from './audio/sfx';
 import { ToolController } from './build/tools';
-import { CATCH_UP } from './config/balance';
+import { CATCH_UP, RENAISSANCE } from './config/balance';
+import { canBeReborn } from './sim/renaissance';
 import { CAMERA } from './config/keymap';
 import { toSeed } from './core/rng';
 import { installDebugApi, isDebugEnabled } from './debug/debugApi';
@@ -222,6 +223,20 @@ async function bootstrap(): Promise<void> {
         createInitialState(seed ?? toSeed(Math.random() * 2 ** 32)),
         new DepositMap(0),
       );
+      reloadWith(encodeSaveSync(serialize(fresh, { x: 0, y: 0, zoom: 1 })));
+    },
+    renaissance: () => ({
+      count: state.renaissance,
+      open: canBeReborn(state),
+      bonus: RENAISSANCE.bonus,
+    }),
+    reborn: () => {
+      if (!canBeReborn(state)) return;
+      const fresh = new World(
+        createInitialState(toSeed(Math.random() * 2 ** 32)),
+        new DepositMap(0),
+      );
+      fresh.state.renaissance = state.renaissance + 1;
       reloadWith(encodeSaveSync(serialize(fresh, { x: 0, y: 0, zoom: 1 })));
     },
     save: () => void saves.save(true),

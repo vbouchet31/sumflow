@@ -1,6 +1,7 @@
 import { formatFull } from '../core/format';
 import { getLocale, t } from '../i18n';
 import { rewardFor } from '../sim/levels';
+import { roman } from '../sim/renaissance';
 import type { World } from '../sim/world';
 import { el } from './dom';
 import { rewardLabel } from './labels';
@@ -58,10 +59,13 @@ export class Hud {
     const req = state.levelRequirement;
     const loc = getLocale();
     const rate = req ? world.stats.rate(req.value) : 0;
-    const key = `${state.level}|${req?.value}|${req?.delivered}|${req?.required}|${rate.toFixed(2)}|${loc}`;
+    const key = `${state.renaissance}|${state.level}|${req?.value}|${req?.delivered}|${req?.required}|${rate.toFixed(2)}|${loc}`;
     if (key === this.last) return;
     this.last = key;
-    this.level.textContent = t('hud.level', { n: state.level });
+    this.level.textContent =
+      state.renaissance > 0
+        ? `${t('hud.level', { n: state.level })} · ✦ ${t('rebirth.badge', { n: roman(state.renaissance) })}`
+        : t('hud.level', { n: state.level });
     if (!req) {
       this.target.textContent = '';
       this.count.textContent = t('hud.finished');

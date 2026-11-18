@@ -1312,3 +1312,14 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Renaissance (proposal 17). */
+.menu-rebirth:not(:disabled) {
+  border-color: #b98cff;
+  color: #e3d4ff;
+}
+.rebirth-list {
+  margin: 8px 0 14px;
+  padding-left: 20px;
+  line-height: 1.5;
+}

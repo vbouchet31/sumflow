@@ -272,3 +272,11 @@ export const EDIT = {
   /** Most copies placed by one paste drag. */
   maxPasteRow: 32,
 } as const;
+
+/** Renaissance (proposal 17): start over on a new map, a little faster each time. */
+export const RENAISSANCE = {
+  /** Reaching this level (the end of the fixed table) opens the renaissance. */
+  fromLevel: 31,
+  /** Speed bonus per renaissance, cumulative (belts, extractors and operators). */
+  bonus: 0.25,
+} as const;

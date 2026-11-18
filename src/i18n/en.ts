@@ -290,4 +290,12 @@ export const en: Record<MessageKey, string> = {
   'toast.importError': 'Import failed: invalid file. Nothing was changed.',
   'toast.loadError': 'Unreadable save: new game started. The old one is kept aside.',
   'toast.exported': 'Game exported: {file}',
+  'rebirth.menu': 'Renaissance ✦',
+  'rebirth.locked': 'Reach level 31 to be reborn',
+  'rebirth.title': 'Renaissance',
+  'rebirth.body': 'Your factory has seen it all. Start again elsewhere, stronger.',
+  'rebirth.lose': 'New map, back to level 1, buildings and upgrades to unlock again.',
+  'rebirth.keep': 'Permanent speed bonus (belts, extractors, operators): {now} → {next}.',
+  'rebirth.go': 'Be reborn',
+  'rebirth.badge': 'Renaissance {n}',
 };

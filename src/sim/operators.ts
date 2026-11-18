@@ -1,6 +1,7 @@
 import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT, type Track } from '../config/balance';
 import { add, divmod, mul, pow, sub } from '../core/intmath';
 import { EPS } from './belts';
+import { renaissanceFactor } from './renaissance';
 import { type Building, isOperator, type OperatorType } from './entities';
 import { outputGroup, pushOut } from './outputs';
 import type { World } from './world';
@@ -39,7 +40,7 @@ export function compute(
 /** Seconds per operation for a building, from its track's upgrade level. */
 export function cycleDuration(world: World, type: OperatorType): number {
   const track = OPERATOR_TRACK[type];
-  return 1 / operatorSpeed(track, world.state.upgrades[track]);
+  return 1 / (operatorSpeed(track, world.state.upgrades[track]) * renaissanceFactor(world.state));
 }
 
 function hasRoom(buf: number[] | undefined): boolean {

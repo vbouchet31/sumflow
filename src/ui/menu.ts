@@ -6,6 +6,9 @@ import type { HelpTip } from './help';
 
 export interface MenuActions {
   newGame: (seed: number | null) => void;
+  /** Renaissance (proposal 17): how many so far, whether it is open, and doing it. */
+  renaissance: () => { count: number; open: boolean; bonus: number };
+  reborn: () => void;
   save: () => void;
   exportGame: () => void;
   importGame: (file: File) => void;
@@ -18,7 +21,7 @@ export interface MenuActions {
   reshowHelp: () => void;
 }
 
-type View = 'main' | 'newGame' | 'options' | 'help' | 'about';
+type View = 'main' | 'newGame' | 'rebirth' | 'options' | 'help' | 'about';
 
 /** Rows of the read-only controls list (PLAN §9.4). */
 const CONTROLS = [
@@ -139,11 +142,13 @@ export class GameMenu {
         ? this.mainView()
         : view === 'newGame'
           ? this.newGameView()
-          : view === 'options'
-            ? this.optionsView()
-            : view === 'help'
-              ? this.helpView()
-              : this.aboutView();
+          : view === 'rebirth'
+            ? this.rebirthView()
+            : view === 'options'
+              ? this.optionsView()
+              : view === 'help'
+                ? this.helpView()
+                : this.aboutView();
     this.card.dataset['view'] = view;
     this.card.replaceChildren(...content);
     const focus = this.card.querySelector<HTMLElement>('input, select, button.menu-btn, button');
@@ -159,6 +164,7 @@ export class GameMenu {
         'menu-list',
         this.button('menu.resume', () => this.close()),
         this.button('menu.newGame', () => this.show('newGame')),
+        this.rebirthButton(),
         this.button('menu.save', () => {
           this.close();
           a.save();
@@ -171,6 +177,38 @@ export class GameMenu {
         this.button('menu.options', () => this.show('options')),
         this.button('menu.help', () => this.show('help')),
         this.button('menu.about', () => this.show('about')),
+      ),
+    ];
+  }
+
+  private rebirthButton(): HTMLButtonElement {
+    const r = this.actions.renaissance();
+    const b = this.button('rebirth.menu', () => this.show('rebirth'), 'menu-btn menu-rebirth');
+    b.disabled = !r.open;
+    if (!r.open) b.title = t('rebirth.locked');
+    return b;
+  }
+
+  private rebirthView(): HTMLElement[] {
+    const r = this.actions.renaissance();
+    const pct = (n: number): string => `+${Math.round(100 * n)} %`;
+    return [
+      this.header('rebirth.title', true),
+      el(
+        'div',
+        'menu-form',
+        el('p', undefined, t('rebirth.body')),
+        el(
+          'ul',
+          'rebirth-list',
+          el('li', undefined, t('rebirth.lose')),
+          el(
+            'li',
+            undefined,
+            t('rebirth.keep', { now: pct(r.bonus * r.count), next: pct(r.bonus * (r.count + 1)) }),
+          ),
+        ),
+        this.button('rebirth.go', () => this.actions.reborn(), 'primary-btn'),
       ),
     ];
   }
