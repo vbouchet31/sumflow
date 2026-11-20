@@ -94,10 +94,10 @@ export const BELT_SHAPE = {
 
 /** Ghost fills: new, replace, bridge, impossible (PLAN §6.5), in coloured chalk. */
 export const GHOST_COLORS = {
-  new: 'rgba(159, 211, 154, 0.45)',
-  replace: 'rgba(240, 180, 110, 0.5)',
-  bridge: 'rgba(140, 190, 230, 0.5)',
-  blocked: 'rgba(242, 155, 143, 0.5)',
+  new: 'rgba(159, 211, 154, 0.3)',
+  replace: 'rgba(240, 180, 110, 0.35)',
+  bridge: 'rgba(140, 190, 230, 0.35)',
+  blocked: 'rgba(242, 155, 143, 0.4)',
   demolish: 'rgba(242, 155, 143, 0.35)',
 } as const;
 
