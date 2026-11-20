@@ -3,7 +3,10 @@ import { TOUCH } from '../../src/config/keymap';
 import { edgeScroll, Gestures, type GestureSink, PanInertia } from '../../src/input/gestures';
 
 /** A sink that records what the gestures ask for, as short strings. */
-function recorder(tool: boolean, longPress = true): { log: string[]; sink: GestureSink } {
+function recorder(
+  tool: boolean,
+  longPress: boolean | 'grab' = true,
+): { log: string[]; sink: GestureSink } {
   const log: string[] = [];
   const sink: GestureSink = {
     buildsOnDrag: () => tool,
@@ -270,5 +273,42 @@ describe('PanInertia', () => {
     inertia.release(1000);
     inertia.stop();
     expect(inertia.step(16)).toBeNull();
+  });
+});
+
+describe('Gestures: lifting with a long press', () => {
+  it("a long press answered 'grab' turns the press into a drag that builds", () => {
+    const { log, sink } = recorder(false, 'grab');
+    const g = new Gestures(sink);
+    g.pointerDown(1, 100, 100, 0);
+    g.pointerMove(1, 103, 101); // within the slop
+    g.update(TOUCH.longPressMs);
+    expect(g.phase).toBe('build');
+    g.pointerMove(1, 160, 100);
+    g.pointerUp(1, 160, 100);
+    expect(log).toEqual([
+      'long 100,100',
+      'down 100,100',
+      'move 103,101',
+      'move 160,100',
+      'up 160,100',
+      'leave',
+    ]);
+  });
+
+  it('the drag decision gets the point where the finger lands', () => {
+    const seen: string[] = [];
+    const { sink } = recorder(false);
+    sink.buildsOnDrag = (x, y) => {
+      seen.push(`${x},${y}`);
+      return x > 50;
+    };
+    const g = new Gestures(sink);
+    g.pointerDown(1, 10, 10, 0);
+    g.pointerUp(1, 10, 10);
+    g.pointerDown(1, 100, 10, 1000);
+    g.pointerMove(1, 140, 10);
+    expect(g.phase).toBe('build');
+    expect(seen).toEqual(['10,10', '100,10']);
   });
 });

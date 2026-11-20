@@ -49,6 +49,8 @@ export interface DebugSnapshot {
   tool: string;
   /** Tile the tools consider hovered (null on a touch screen once the finger is up). */
   hover: { x: number; y: number } | null;
+  /** Outline of the selected object (no tool), or null. */
+  selection: { x0: number; y0: number; x1: number; y1: number } | null;
   totalDelivered: number;
   paused: boolean;
   camera: { x: number; y: number; zoom: number };
@@ -88,6 +90,10 @@ export interface DebugApi {
   demolishArea: (x0: number, y0: number, x1: number, y1: number) => number;
   clearArea: (x0: number, y0: number, x1: number, y1: number) => number;
   setMarker: (x: number, y: number, text: string) => void;
+  /** Output mask of the plain belt at (x, y) (bit d = direction d), or null. */
+  beltAt: (x: number, y: number) => number | null;
+  /** The building covering (x, y): its type, origin and rotation, or null. */
+  buildingAt: (x: number, y: number) => { type: string; x: number; y: number; rot: number } | null;
   /** Layout of every building except the hub, sorted (for comparisons in tests). */
   layout: () => string;
   /** Save now (compressed) and report the result. */
@@ -145,6 +151,7 @@ export function installDebugApi(ctx: DebugContext): void {
         redo: history.canRedo,
         tool: tools.tool,
         hover: tools.hovered ? { ...tools.hovered } : null,
+        selection: tools.selectionRect,
         totalDelivered: s.totalDelivered,
         paused: loop.paused,
         camera: { x: camera.x, y: camera.y, zoom: camera.zoom },
@@ -181,6 +188,11 @@ export function installDebugApi(ctx: DebugContext): void {
     demolishArea: (x0, y0, x1, y1) => history.run(() => demolishArea(world, rect(x0, y0, x1, y1))),
     clearArea: (x0, y0, x1, y1) => clearArea(world, rect(x0, y0, x1, y1)),
     setMarker: (x, y, text) => tools.setMarker(x, y, text),
+    beltAt: (x, y) => world.beltAt(x, y)?.outputs ?? null,
+    buildingAt: (x, y) => {
+      const b = world.buildingAt(x, y);
+      return b ? { type: b.type, x: b.x, y: b.y, rot: b.rot } : null;
+    },
     layout: () => layoutString(world),
     save: () => saves.save(),
     stateHash: () => stateHash(world, camera),

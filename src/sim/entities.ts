@@ -199,6 +199,44 @@ export function portFaces(
   return out;
 }
 
+/** A port face, with where it comes from in the definition (stable across rotations). */
+export interface LocalPortFace extends PortFace {
+  /** Index of the footprint tile in `BUILDINGS[type].tiles`. */
+  tile: number;
+  /** Face in rotation 0, before the mirror. */
+  local: Dir;
+}
+
+/**
+ * `portFaces` with each face's origin in the definition: the same `tile` and `local` name
+ * the same port whatever the rotation, which lets a moved building keep its connections.
+ */
+export function localPortFaces(
+  type: BuildingType,
+  x: number,
+  y: number,
+  rot: number,
+  mirror = false,
+): LocalPortFace[] {
+  const def = BUILDINGS[type];
+  const r = normalizeRot(rot);
+  const tiles = footprintTiles(type, x, y, r, mirror);
+  const inside = new Set(tiles.map((t) => key(t.x, t.y)));
+  const out: LocalPortFace[] = [];
+  def.tiles.forEach((t, i) => {
+    if (t.role === 'body') return;
+    const world = tiles[i];
+    if (!world) return;
+    const locals: Dir[] = t.faces === 'outward' ? [0, 1, 2, 3] : [...t.faces];
+    for (const local of locals) {
+      const face = transformDir(local, r, mirror);
+      if (inside.has(key(world.x + DX[face], world.y + DY[face]))) continue;
+      out.push({ x: world.x, y: world.y, face, kind: kindOf(t.role, def.anyRole), tile: i, local });
+    }
+  });
+  return out;
+}
+
 /** Port lookup key: building tile key and face. */
 export function portKey(tileKey: number, face: Dir): number {
   return tileKey * 4 + face;

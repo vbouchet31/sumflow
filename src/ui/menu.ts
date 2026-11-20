@@ -30,6 +30,7 @@ const CONTROLS = [
   'home',
   'build',
   'rotate',
+  'move',
   'priority',
   'demolish',
   'clear',
@@ -54,6 +55,7 @@ const TOUCH_CONTROLS = [
   'actions',
   'paste',
   'inspect',
+  'move',
   'pick',
 ] as const;
 

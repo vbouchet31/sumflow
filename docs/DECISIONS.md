@@ -163,6 +163,7 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Pas de minuteur dans les gestes** : `Gestures.update(now)` est appelé à chaque image, avec l'horloge des événements. Tout est testable sans DOM.
 - **Outils sans glisser (extracteur, pont, priorité, marqueur)** : un doigt qui glisse déplace le fantôme, l'objet est posé là où le doigt se lève. Cela permet d'ajuster la position avant de lâcher.
 - **Barre d'actions pour tout le monde** : pas de détection d'appareil. Le texte de la barre ne cite plus de touches (elles sont dans les infobulles des boutons).
+- **Appui long sans outil = sélection** (voir « Sélection et déplacement ») : la pipette au doigt ressemblait trop à « en poser un autre ». Avec un outil, l'appui long reste la pipette.
 - **Appui long sur rien** : le geste continue comme si de rien n'était. Garder le doigt immobile pour viser, puis lâcher, pose bien l'objet. L'appui long ne prend la main que s'il y a un objet à prendre à la pipette.
 - **Info-bulle épinglée** : seulement sans outil. Elle tombe dès qu'un outil est choisi ou qu'une souris bouge (le survol reprend la main).
 - **Coude** : le bouton est un état qui reste jusqu'à ce qu'on le rebascule ; `Ctrl` l'inverse pendant qu'il est tenu.
@@ -180,6 +181,21 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **`storage.persist()` au niveau 2** et non au chargement : Firefox pose la question au joueur, autant attendre qu'il ait quelque chose à perdre.
 - **`display: fullscreen`** dans le manifeste, avec repli `standalone` (iOS). Orientation libre : la tablette debout est prise en charge.
 - **Pas de réduction du ratio de pixels pendant le pincement** : la mesure disponible ne la justifie pas. À revoir après un essai sur un téléphone Android milieu de gamme.
+
+## Sélection et déplacement
+
+- **Sélection persistante** : sans outil, un clic ou un appui sélectionne l'objet. Elle remplace l'info-bulle épinglée au doigt, et vaut aussi pour la souris. Un bâtiment est retenu par son identifiant, pour suivre ses déplacements ; un tapis, un pont ou un gisement, par sa tuile.
+- **Fin de la sélection** : clic dans le vide ou sur un autre objet, `Échap` (avant le menu), choix d'un outil, objet disparu. Déplacer la carte la garde.
+- **Barre d'actions réutilisée** : la même barre qu'avec un outil, avec le nom de l'objet et ses actions. Pas de bouton flottant près de l'objet : il gênerait le glisser et sortirait de l'écran au bord de la carte.
+- **Petit écran** : l'info-bulle monte au-dessus de la barre d'actions quand les deux sont visibles (elles se chevauchaient sur téléphone debout).
+- **Saisir un bâtiment** : à la souris, glisser n'importe quel bâtiment le déplace (le clic gauche sans outil ne faisait rien). Au doigt, seul le bâtiment sélectionné se glisse, sinon le doigt ne pourrait plus déplacer la carte quand l'écran est rempli de bâtiments. L'appui long soulève directement.
+- **Déplacement sur place** : `World.moveBuilding` garde l'objet (identifiant, tampons, stock). Annuler un déplacement le remet en place avec son contenu, au lieu de le reconstruire vide. La priorité de sortie suit le même port.
+- **Non déplaçables** : le Hub, et l'extracteur, qui n'a de sens que sur son gisement.
+- **Lignes suivies** : une ligne qui pointe dans un port d'entrée, ou une ligne que rien d'autre n'alimente devant un port de sortie. Une ligne qui longe le bâtiment ne suit pas : la tirer créerait des formes absurdes.
+- **Élastique en L** : on remonte la ligne (24 tapis au plus, tant qu'elle est une simple file) et on choisit le point d'ancrage, la face d'arrivée (même rôle de port) et le coude qui écrivent et retirent le moins de tapis. Égalité : la même face qu'avant. Pas de recherche de chemin : le résultat doit rester prévisible et se calculer à chaque image (mis en cache par position).
+- **Obstacles** : bâtiments, autres tapis (sauf pont, comme l'outil Tapis), cases devant une sortie (le tapis volerait les nombres, et faisait boucler un opérateur sur lui-même lors des essais). Deux lignes réacheminées peuvent se croiser par un pont.
+- **Ordre des lignes** : elles sont tracées l'une après l'autre. Si l'une reste débranchée, on réessaie en mettant chaque ligne en premier, et on garde le résultat avec le moins de lignes débranchées.
+- **Ligne bloquée** : elle reste telle quelle, débranchée, en rouge sur le fantôme (choix validé : autoriser plutôt que refuser, Annuler sert de filet). Au-delà de 160 cases de tracé, la ligne est aussi laissée en place.
 
 ## Audit de `balance.ts` (après M11)
 

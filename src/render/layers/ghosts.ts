@@ -8,6 +8,17 @@ import type { Camera } from '../camera';
 /** Construction ghosts (PLAN §10.2 layer 7): green new, orange replace, red impossible. */
 export function drawGhosts(ctx: CanvasRenderingContext2D, cam: Camera, ghost: Ghost): void {
   const s = cam.scale;
+  // What is being moved away is wiped from the board, faintly.
+  if (ghost.fade && ghost.fade.length > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = COLORS.background;
+    for (const r of ghost.fade) {
+      const p = cam.worldToScreen(r.x0, r.y0);
+      ctx.fillRect(p.x, p.y, (r.x1 - r.x0 + 1) * s, (r.y1 - r.y0 + 1) * s);
+    }
+    ctx.restore();
+  }
   for (const t of ghost.belts) {
     const p = cam.worldToScreen(t.x, t.y);
     ctx.fillStyle =

@@ -23,10 +23,16 @@ export interface PointerHandlers {
   onLeave?: () => void;
   /** Touch: a brief press ended (after its `onDown` / `onUp`). */
   onTap?: (tx: number, ty: number) => void;
-  /** Touch: the finger stayed still on a tile. Return true if that did something. */
-  onLongPress?: (tx: number, ty: number) => boolean;
-  /** Touch: true when a one-finger drag builds (a tool is active) instead of panning. */
-  buildsOnDrag?: () => boolean;
+  /**
+   * Touch: the finger stayed still on a tile. Return true if that did something, `'grab'`
+   * to go on as a drag that builds (moving a building).
+   */
+  onLongPress?: (tx: number, ty: number) => boolean | 'grab';
+  /**
+   * Touch: true when a one-finger drag from this tile builds (a tool is active, or it
+   * grabs the selected building) instead of panning.
+   */
+  buildsOnDrag?: (tx: number, ty: number) => boolean;
   /** Wheel; return true to consume it (no zoom). `delta` > 0 = scroll down. */
   onWheel?: (delta: number, mods: PointerMods) => boolean;
 }
@@ -68,7 +74,10 @@ export class PointerInput {
     private readonly handlers: PointerHandlers,
   ) {
     this.gestures = new Gestures({
-      buildsOnDrag: () => handlers.buildsOnDrag?.() ?? false,
+      buildsOnDrag: (x, y) => {
+        const t = this.tileAt(x, y);
+        return handlers.buildsOnDrag?.(t.x, t.y) ?? false;
+      },
       down: (x, y) => this.toTile(x, y, handlers.onDown),
       move: (x, y) => this.toTile(x, y, handlers.onMove),
       up: (x, y) => this.toTile(x, y, handlers.onUp),

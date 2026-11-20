@@ -77,3 +77,57 @@ test('placing, editing and deleting a marker', async ({ page }) => {
   await page.keyboard.press('Control+z');
   expect(await page.evaluate(() => window.__sumflow?.getState().markers.length)).toBe(1);
 });
+
+test('without a tool, dragging a building moves it with its belts; R rotates it', async ({
+  page,
+}) => {
+  await page.goto('./?debug=1&seed=42&tutorial=0');
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error('no viewport');
+  const at = (tx: number, ty: number): [number, number] => [
+    viewport.width / 2 + tx * 32 + 16,
+    viewport.height / 2 + ty * 32 + 16,
+  ];
+  await page.evaluate(() => {
+    const api = window.__sumflow;
+    if (!api) throw new Error('debug API missing');
+    api.unlockAll();
+    api.place('adder', 6, -6, 0);
+    api.beltPath(3, -6, 5, -6); // → A, from the West
+  });
+  const layout = () => page.evaluate(() => window.__sumflow?.layout());
+  const snapshot = () => page.evaluate(() => window.__sumflow?.getState());
+  const before = await layout();
+
+  await page.mouse.move(...at(6, -6));
+  await page.mouse.down();
+  await page.mouse.move(...at(9, -6), { steps: 6 });
+  await page.mouse.up();
+  expect(await page.evaluate(() => window.__sumflow?.buildingAt(9, -6))).toEqual({
+    type: 'adder',
+    x: 9,
+    y: -6,
+    rot: 0,
+  });
+  // The belt followed: it now runs on to the new A port.
+  const belts = await page.evaluate(() => [
+    window.__sumflow?.beltAt(5, -6),
+    window.__sumflow?.beltAt(8, -6),
+  ]);
+  expect(belts).toEqual([2, 2]);
+  // The moved building is selected; R rotates it in place, belts included.
+  expect((await snapshot())?.selection).toEqual({ x0: 9, y0: -6, x1: 10, y1: -5 });
+  await page.keyboard.press('r');
+  expect((await page.evaluate(() => window.__sumflow?.buildingAt(9, -6)))?.rot).toBe(1);
+  expect((await snapshot())?.undo).toBe(4);
+
+  await page.keyboard.press('Control+z');
+  await page.keyboard.press('Control+z');
+  expect(await layout()).toBe(before);
+  // Escape drops the selection before opening the menu.
+  await page.mouse.click(...at(6, -6));
+  expect((await snapshot())?.selection).not.toBeNull();
+  await page.keyboard.press('Escape');
+  expect((await snapshot())?.selection).toBeNull();
+  await expect(page.locator('.menu-card')).toBeHidden();
+});

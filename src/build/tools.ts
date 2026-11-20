@@ -1,6 +1,11 @@
 import { type Dir, key, normalizeRot, type Rot, rotateDir } from '../core/grid';
 import type { Clip } from '../sim/clip';
-import { type FreeBuildingType, isFreeBuilding } from '../sim/entities';
+import {
+  type Building,
+  buildingSize,
+  type FreeBuildingType,
+  isFreeBuilding,
+} from '../sim/entities';
 import { togglePriorityAt } from '../sim/priority';
 import { isBuildingUnlocked, isFeatureUnlocked } from '../sim/state';
 import { singleOutput, type World } from '../sim/world';
@@ -25,6 +30,7 @@ import {
   transformClip,
 } from './clipboard';
 import { History } from './history';
+import { applyMove, isMovable, isRotatable, type MovePlan, planMove, rotatedOrigin } from './move';
 import {
   applyBuildingPlan,
   type BuildingPlan,
@@ -71,6 +77,18 @@ export interface Ghost {
   demolish: { x: number; y: number } | null;
   /** Selection rectangle of a zone tool while dragging. */
   area: { rect: Rect; kind: AreaTool } | null;
+  /** Tiles drawn faded: a building being moved, at its old place, and belts it drops. */
+  fade?: Rect[];
+}
+
+/** A building being dragged to a new place (no tool). */
+interface Moving {
+  id: number;
+  /** Tile grabbed, and the rotation of the ghost (R while dragging). */
+  grabX: number;
+  grabY: number;
+  rot: Rot;
+  moved: boolean;
 }
 
 export interface ToolEvents {
@@ -82,6 +100,13 @@ export interface ToolEvents {
   /** A marker tile was clicked: open the editor (existing text or null). */
   onMarker?: (x: number, y: number, text: string | null) => void;
 }
+
+/**
+ * Object selected without a tool (tap or click): a building, by id so that it follows the
+ * building when it moves, or a tile (belt, bridge, deposit). It stays until the player
+ * clicks elsewhere, presses Escape or picks a tool.
+ */
+export type Selection = { kind: 'building'; id: number } | { kind: 'tile'; x: number; y: number };
 
 function isAreaTool(tool: ToolId): tool is AreaTool {
   return tool === 'demolish' || tool === 'clear' || tool === 'copy' || tool === 'cut';
@@ -108,6 +133,9 @@ export class ToolController {
   /** Belt drag: L-shaped path (`l`) or along the tiles the pointer went through (`free`). */
   beltMode: 'l' | 'free' = 'l';
   private hover: { x: number; y: number } | null = null;
+  private selected: Selection | null = null;
+  private moving: Moving | null = null;
+  private moveCache: { at: string; plan: MovePlan | null } | null = null;
   /**
    * Touch: tile where the paste preview was put down. It stays there once the finger is
    * up, until `confirmPaste` (a finger hides what is under it, and a paste is large).
@@ -144,6 +172,8 @@ export class ToolController {
     if (!this.isAvailable(tool)) return;
     this.tool = this.tool === tool ? 'none' : tool;
     this.drag = null;
+    this.moving = null;
+    this.selected = null;
     this.dropPending();
     this.notify();
   }
@@ -152,6 +182,8 @@ export class ToolController {
   private forceTool(tool: ToolId): void {
     this.tool = tool;
     this.drag = null;
+    this.moving = null;
+    this.selected = null;
     this.dropPending();
     this.notify();
   }
@@ -172,12 +204,29 @@ export class ToolController {
   }
 
   cancel(): void {
-    if (this.drag) this.drag = null;
+    if (this.moving) this.moving = null;
+    else if (this.drag) this.drag = null;
+    else if (this.tool === 'none') this.clearSelection();
     else this.setTool('none');
   }
 
-  /** `R` / `Shift+R`: rotates the ghost, or the paste preview in paste mode. */
+  /**
+   * `R` / `Shift+R`: rotates the ghost, or the paste preview in paste mode. Without a tool,
+   * the building being moved, else the selected building (in place, with its belts).
+   */
   rotate(delta: number): void {
+    if (this.tool === 'none') {
+      const b = this.selectedBuilding;
+      if (this.moving) {
+        this.moving.rot = normalizeRot(this.moving.rot + delta);
+      } else if (b && isRotatable(b)) {
+        const to = rotatedOrigin(b, delta);
+        const plan = planMove(this.world, b.id, to.x, to.y, to.rot);
+        if (plan && this.history.run(() => applyMove(this.world, plan))) this.events.onBuild?.();
+        else this.events.onError?.();
+      }
+      return;
+    }
     if (this.tool === 'paste') this.pasteRot = normalizeRot(this.pasteRot + delta);
     else this.rot = normalizeRot(this.rot + delta);
   }
@@ -195,6 +244,10 @@ export class ToolController {
   /** Whether rotating changes what the current tool builds. */
   get canRotate(): boolean {
     const t = this.tool;
+    if (t === 'none') {
+      const b = this.selectedBuilding;
+      return b !== null && isRotatable(b);
+    }
     return (
       t === 'belt' || t === 'bridge' || t === 'paste' || (isFreeBuilding(t) && t !== 'storage')
     );
@@ -207,6 +260,92 @@ export class ToolController {
   /** Belt direction for a single click: East at rotation 0, then clockwise. */
   get beltDir(): Dir {
     return rotateDir(1, this.rot);
+  }
+
+  // ---- selection ---------------------------------------------------------
+
+  /** The selection, or null once its object is gone (demolished, undone). */
+  get selection(): Selection | null {
+    const s = this.selected;
+    if (!s) return null;
+    const alive =
+      s.kind === 'building'
+        ? this.world.state.buildings.has(s.id)
+        : selectableTile(this.world, s.x, s.y);
+    if (!alive) this.selected = null;
+    return this.selected;
+  }
+
+  /** The selected building, if the selection is one. */
+  get selectedBuilding(): Building | null {
+    const s = this.selection;
+    return s?.kind === 'building' ? (this.world.state.buildings.get(s.id) ?? null) : null;
+  }
+
+  /** A tile of the selected object (for the tooltip and the pipette). */
+  get selectionTile(): { x: number; y: number } | null {
+    const s = this.selection;
+    if (!s) return null;
+    if (s.kind === 'tile') return { x: s.x, y: s.y };
+    const b = this.selectedBuilding;
+    return b ? { x: b.x, y: b.y } : null;
+  }
+
+  /** Tiles to outline around the selection. */
+  get selectionRect(): Rect | null {
+    const s = this.selection;
+    if (!s) return null;
+    if (s.kind === 'tile') return { x0: s.x, y0: s.y, x1: s.x, y1: s.y };
+    const b = this.selectedBuilding;
+    if (!b) return null;
+    const { w, h } = buildingSize(b.type, b.rot);
+    return { x0: b.x, y0: b.y, x1: b.x + w - 1, y1: b.y + h - 1 };
+  }
+
+  /** Select the object at `(x, y)`, or nothing when the tile is empty. Returns the result. */
+  select(x: number, y: number): Selection | null {
+    const b = this.world.buildingAt(x, y);
+    if (b) this.selected = { kind: 'building', id: b.id };
+    else this.selected = selectableTile(this.world, x, y) ? { kind: 'tile', x, y } : null;
+    this.notify();
+    return this.selected;
+  }
+
+  clearSelection(): void {
+    if (!this.selected) return;
+    this.selected = null;
+    this.notify();
+  }
+
+  /** The selection can be demolished (everything but the hub and bare ground). */
+  get canDeleteSelection(): boolean {
+    const t = this.selectionTile;
+    return t !== null && demolishTarget(this.world, t.x, t.y) !== null;
+  }
+
+  /** Demolish the selected object, as one undoable action. */
+  deleteSelection(): boolean {
+    const t = this.selectionTile;
+    if (!t || !this.history.run(() => demolishAt(this.world, t.x, t.y))) return false;
+    this.selected = null;
+    this.notify();
+    this.events.onDemolish?.();
+    return true;
+  }
+
+  /** The selected object can be taken with the pipette (not the hub, nor bare ground). */
+  get canPickSelection(): boolean {
+    const t = this.selectionTile;
+    if (!t) return false;
+    const b = this.world.buildingAt(t.x, t.y);
+    if (b) return b.type !== 'hub' && this.isAvailable(b.type);
+    return this.world.beltAt(t.x, t.y) !== null || this.world.bridgeAt(t.x, t.y) !== null;
+  }
+
+  /** Pipette on the selected object: its tool and orientation, ready to build another. */
+  pickSelection(): boolean {
+    const t = this.selectionTile;
+    return t !== null && this.pick(t);
   }
 
   // ---- clipboard ---------------------------------------------------------
@@ -303,11 +442,14 @@ export class ToolController {
     }
     if (this.drag && (x !== this.drag.x || y !== this.drag.y)) this.drag.moved = true;
     if (this.drag?.trail) extendTrail(this.drag.trail, x, y);
+    const m = this.moving;
+    if (m && (x !== m.grabX || y !== m.grabY)) m.moved = true;
   }
 
   /** The gesture was interrupted (system, second finger): drop the drag, build nothing. */
   pointerCancel(): void {
     this.drag = null;
+    this.moving = null;
     if (this.touchPaste) {
       // The preview goes back to where it was before this finger moved it.
       this.pending = this.pendingBefore;
@@ -319,6 +461,40 @@ export class ToolController {
   clearHover(): void {
     this.hover = null;
     this.drag = null;
+    this.moving = null;
+  }
+
+  /**
+   * A press at `(x, y)` without a tool would grab a building to move it. With the mouse any
+   * movable building can be dragged; a finger only drags the selected one (otherwise it
+   * moves the map), or any one after a long press.
+   */
+  grabsAt(x: number, y: number, touch: boolean): boolean {
+    if (this.tool !== 'none') return false;
+    const b = this.world.buildingAt(x, y);
+    if (!b || !isMovable(b)) return false;
+    return !touch || this.selectedBuilding === b;
+  }
+
+  /** A building is being dragged (and has left its tile). */
+  get isMoving(): boolean {
+    return this.moving?.moved === true;
+  }
+
+  /** Where the building being dragged would go, with its belts. */
+  private movePlan(): MovePlan | null {
+    const m = this.moving;
+    const h = this.hover;
+    const b = m ? this.world.state.buildings.get(m.id) : undefined;
+    if (!m || !h || !b) return null;
+    const base = rotatedOrigin(b, m.rot - b.rot);
+    const x = base.x + h.x - m.grabX;
+    const y = base.y + h.y - m.grabY;
+    const at = `${m.id}|${x}|${y}|${base.rot}`;
+    if (this.moveCache?.at !== at) {
+      this.moveCache = { at, plan: planMove(this.world, m.id, x, y, base.rot) };
+    }
+    return this.moveCache.plan;
   }
 
   pointerDown(x: number, y: number, mods: Modifiers): void {
@@ -332,6 +508,12 @@ export class ToolController {
     }
     if (this.tool === 'belt' && mods.alt) return; // Alt+click = priority (on release)
     const t = this.tool;
+    if (t === 'none' && this.grabsAt(x, y, mods.touch === true)) {
+      const b = this.world.buildingAt(x, y);
+      if (b) this.moving = { id: b.id, grabX: x, grabY: y, rot: b.rot, moved: false };
+      this.moveCache = null;
+      return;
+    }
     if (t === 'belt' || t === 'paste' || isAreaTool(t) || isFreeBuilding(t)) {
       this.drag = { x, y, moved: false };
       if (t === 'belt' && this.beltMode === 'free') this.drag.trail = [{ x, y }];
@@ -352,9 +534,26 @@ export class ToolController {
       return;
     }
     const run = <T>(fn: () => T): T => this.history.run(fn);
+    const moving = this.moving;
+    this.moving = null;
+    if (tool === 'none' && moving?.moved) {
+      this.moving = moving;
+      const plan = this.movePlan();
+      this.moving = null;
+      this.moveCache = null;
+      if (plan && run(() => applyMove(this.world, plan))) {
+        this.selected = { kind: 'building', id: moving.id };
+        this.notify();
+        this.events.onBuild?.();
+      } else {
+        this.events.onError?.();
+      }
+      return;
+    }
     if (tool === 'none' || tool === 'marker') {
       const marker = this.world.state.markers.get(key(x, y));
       if (marker || tool === 'marker') this.events.onMarker?.(x, y, marker?.text ?? null);
+      if (tool === 'none') this.select(x, y);
       return;
     }
     if (tool === 'priority' || (tool === 'belt' && mods.alt && !drag)) {
@@ -433,10 +632,17 @@ export class ToolController {
     }
   }
 
-  /** `Delete`: removes the clipboard entry in paste mode, else the hovered object. */
+  /**
+   * `Delete`: removes the clipboard entry in paste mode, else the selected object, else the
+   * hovered one.
+   */
   deletePressed(): void {
     if (this.tool === 'paste') {
       this.removeClip();
+      return;
+    }
+    if (this.tool === 'none' && this.selection) {
+      this.deleteSelection();
       return;
     }
     const h = this.hover;
@@ -532,6 +738,7 @@ export class ToolController {
     const tool = this.tool;
     const drag = this.drag;
     if (tool === 'paste') return pasteGhost(this.pastePlans(drag));
+    if (tool === 'none') return this.moving?.moved ? moveGhost(this.world, this.movePlan()) : empty;
     if (!this.hover) return empty;
     if (tool === 'belt') return { ...empty, belts: this.beltPlan(drag) };
     if (tool === 'extractor') {
@@ -562,9 +769,34 @@ export class ToolController {
   }
 }
 
+/** Something worth selecting on a tile without a building: a belt, a bridge or a deposit. */
+function selectableTile(world: World, x: number, y: number): boolean {
+  return (
+    world.beltAt(x, y) !== null ||
+    world.bridgeAt(x, y) !== null ||
+    world.deposits.depositAt(x, y) !== null
+  );
+}
+
 function firstDir(mask: number): Dir {
   for (let d = 0; d < 4; d++) if (mask & (1 << d)) return d as Dir;
   return 1;
+}
+
+/** Building being moved: at its new place, with its rerouted belts; red lines left behind. */
+function moveGhost(world: World, plan: MovePlan | null): Ghost {
+  const ghost: Ghost = { belts: [], buildings: [], demolish: null, area: null, fade: [] };
+  if (!plan) return ghost;
+  ghost.buildings.push(plan.building);
+  ghost.belts.push(...plan.belts);
+  for (const t of plan.broken) ghost.belts.push({ ...t, status: 'blocked', outputs: 0 });
+  const b = world.state.buildings.get(plan.id);
+  if (b) {
+    const { w, h } = buildingSize(b.type, b.rot);
+    ghost.fade?.push({ x0: b.x, y0: b.y, x1: b.x + w - 1, y1: b.y + h - 1 });
+  }
+  for (const t of plan.removed) ghost.fade?.push({ x0: t.x, y0: t.y, x1: t.x, y1: t.y });
+  return ghost;
 }
 
 /** Paste preview drawn with the regular ghost layers. */
