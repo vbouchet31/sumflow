@@ -1,4 +1,5 @@
-import { COLORS, FONT_NUM } from '../../config/colors';
+import { FONT_NUM } from '../../config/colors';
+import { chalkStroke } from '../chalk';
 import { type Dir, DX, DY, opposite } from '../../core/grid';
 import { formatCompact } from '../../core/format';
 import { type Belt, hasOutput } from '../../sim/entities';
@@ -65,19 +66,20 @@ function textFit(text: string): number {
 function paintItem(ctx: CanvasRenderingContext2D, value: number, s: number, sizePx: number): void {
   const c = sizePx / 2;
   const r = 0.36 * s;
-  ctx.fillStyle = 'rgba(242, 239, 230, 0.18)';
+  ctx.fillStyle = 'rgba(242, 239, 230, 0.07)';
   ctx.beginPath();
   ctx.arc(c + 0 * s, c + 0 * s, r * 1.13, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = itemColor(value);
+  ctx.fillStyle = '#2a382f';
   ctx.beginPath();
-  ctx.arc(c, c, r, 0, Math.PI * 2);
+  ctx.arc(c, c, r * 0.94, 0, Math.PI * 2);
   ctx.fill();
+  chalkStroke(ctx, itemColor(value), 0.08 * s);
   const text = formatCompact(value);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = `700 ${textFit(text) * s}px ${FONT_NUM}`;
-  ctx.fillStyle = COLORS.text === '#f2efe6' ? '#1f2a24' : COLORS.text;
+  ctx.fillStyle = itemColor(value);
   ctx.fillText(text, c, c + 0.02 * s);
 }
 

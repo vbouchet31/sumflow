@@ -1,4 +1,5 @@
 import { COLORS, FONT_NUM } from '../../config/colors';
+import { chalkStroke } from '../chalk';
 import { CHUNK_SIZE } from '../../core/grid';
 import type { GameState } from '../../sim/state';
 import type { DepositMap } from '../../world/chunks';
@@ -59,6 +60,7 @@ export function drawDeposits(
     else ctx.rect(p.x, p.y, Math.max(1, size), Math.max(1, size));
   }
   ctx.fill();
+  if (radius > 0) chalkStroke(ctx, 'rgba(242, 239, 230, 0.45)', Math.max(1, 0.06 * s));
 
   if (cam.zoom < LOD.depositText) return;
 

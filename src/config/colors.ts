@@ -1,9 +1,9 @@
 /** Visual palette (PLAN §10.1). Rendering only, no gameplay values here. */
 export const COLORS = {
   background: '#26332b',
-  gridLine: '#2d3b32',
-  deposit: '#31443a',
-  hub: '#2e4a3a',
+  gridLine: 'rgba(242, 239, 230, 0.045)',
+  deposit: 'rgba(242, 239, 230, 0.05)',
+  hub: 'rgba(0, 0, 0, 0.18)',
   text: '#f2efe6',
   depositLocked: '#5f7166',
 } as const;
@@ -21,7 +21,7 @@ export const BUILDING_COLORS = {
 } as const;
 
 export const HUB_COLORS = {
-  fill: '#2e4a3a',
+  fill: 'rgba(0, 0, 0, 0.18)',
   barTrack: '#1f2a24',
   barFill: '#f3e08a',
   textMuted: '#d8dccf',
@@ -34,8 +34,8 @@ export const BELT_COLORS = {
   bridgeBase: '#223029',
   bridgeDeck: '#4a5c50',
   priority: '#9fd39a',
-  base: '#2e3d34',
-  chevron: '#a9b5ab',
+  base: 'rgba(242, 239, 230, 0.05)',
+  chevron: 'rgba(242, 239, 230, 0.6)',
   line: '#3a4b40',
 } as const;
 

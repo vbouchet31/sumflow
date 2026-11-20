@@ -72,7 +72,7 @@ export function drawBelts(
 
   const animated = cam.zoom >= LOD.full;
   ctx.strokeStyle = BELT_COLORS.chevron;
-  ctx.lineWidth = Math.max(1, 0.07 * s);
+  ctx.lineWidth = Math.max(1, 0.1 * s);
   // Round ends cost a lot on thousands of live chevrons and do not show on thin lines:
   // keep them where chevrons are cached (static) or large (zoom ≥ 1).
   const round = !animated || cam.zoom >= 1;

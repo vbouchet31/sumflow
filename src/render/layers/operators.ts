@@ -1,3 +1,4 @@
+import { chalkStroke } from '../chalk';
 import { BUILDINGS } from '../../config/buildings';
 import { BUILDING_COLORS, COLORS, FONT_NUM } from '../../config/colors';
 import { DX, DY, type Rot, transformLocal } from '../../core/grid';
@@ -83,8 +84,10 @@ export function drawOperator(
       opts.tint ?? (isIn ? shade(base, -0.3) : t.role === 'body' ? base : shade(base, 0.12));
     ctx.beginPath();
     ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0.18 * s);
+    ctx.globalAlpha = (opts.alpha ?? 1) * (opts.tint ? 1 : 0.4);
     ctx.fill();
-    if (!opts.tint) { ctx.lineWidth = Math.max(1.5, 0.05 * s); ctx.strokeStyle = 'rgba(242, 239, 230, 0.8)'; ctx.stroke(); }
+    ctx.globalAlpha = opts.alpha ?? 1;
+    if (!opts.tint) chalkStroke(ctx, shade(base, 0.5), Math.max(1.5, 0.08 * s));
   }
 
   if (cam.zoom >= LOD.buildingText && !opts.tint) {

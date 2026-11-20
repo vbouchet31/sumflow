@@ -4,6 +4,7 @@ import type { GameState } from '../../sim/state';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
 import { roundRect } from '../shapes';
+import { chalkStroke } from '../chalk';
 import { drawHub } from './hub';
 import { drawOperator } from './operators';
 import { drawStorage } from './storage';
@@ -19,8 +20,10 @@ function drawExtractor(ctx: CanvasRenderingContext2D, cam: Camera, b: Building, 
   ctx.globalAlpha = alpha;
   ctx.fillStyle = BUILDING_COLORS.extractor;
   roundRect(ctx, p.x + inset, p.y + inset, 3 * s - 2 * inset, 3 * s - 2 * inset, 0.4 * s);
+  ctx.globalAlpha = alpha * 0.35;
   ctx.fill();
-  ctx.lineWidth = Math.max(1.5, 0.05 * s); ctx.strokeStyle = 'rgba(242, 239, 230, 0.8)'; ctx.stroke();
+  ctx.globalAlpha = alpha;
+  chalkStroke(ctx, '#bfe3ea', Math.max(1.5, 0.09 * s));
   if (cam.zoom >= LOD.buildingText) {
     // Output notches: small light bars on each outer face.
     ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
