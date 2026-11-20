@@ -214,3 +214,35 @@ export function drawHatch(
   ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
   ctx.restore();
 }
+
+/** A single hand-drawn chalk line from (x0, y0) to (x1, y1): slightly bent, two passes. */
+export function chalkLine(
+  ctx: CanvasRenderingContext2D,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  seed: number,
+  color: string,
+  lw: number,
+): void {
+  const r = rng(seed);
+  const len = Math.hypot(x1 - x0, y1 - y0) || 1;
+  const nx = -(y1 - y0) / len;
+  const ny = (x1 - x0) / len;
+  ctx.save();
+  const alpha = ctx.globalAlpha;
+  ctx.strokeStyle = color;
+  ctx.lineCap = 'round';
+  for (let pass = 0; pass < 2; pass++) {
+    const bend = (r() - 0.5) * len * 0.06;
+    const j = (): number => (r() - 0.5) * lw * 1.2;
+    ctx.lineWidth = pass ? lw * 0.6 : lw;
+    ctx.globalAlpha = alpha * (pass ? 0.5 : 0.9);
+    ctx.beginPath();
+    ctx.moveTo(x0 + j(), y0 + j());
+    ctx.quadraticCurveTo((x0 + x1) / 2 + nx * bend, (y0 + y1) / 2 + ny * bend, x1 + j(), y1 + j());
+    ctx.stroke();
+  }
+  ctx.restore();
+}

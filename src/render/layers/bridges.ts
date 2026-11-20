@@ -1,4 +1,5 @@
-import { BELT_COLORS } from '../../config/colors';
+import { BELT_COLORS, COLORS } from '../../config/colors';
+import { chalkLine, tileSeed } from '../chalk';
 import type { Belt, Bridge } from '../../sim/entities';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
@@ -19,34 +20,68 @@ export function drawBridges(
 ): void {
   if (bridges.length === 0) return;
   const s = cam.scale;
-  if (cam.zoom >= LOD.buildingText) {
-    ctx.fillStyle = BELT_COLORS.bridgeBase;
-    ctx.beginPath();
-    for (const b of bridges) {
-      const p = cam.worldToScreen(b.x, b.y);
-      ctx.roundRect(p.x + 0.04 * s, p.y + 0.04 * s, 0.92 * s, 0.92 * s, 0.12 * s);
-    }
-    ctx.fill();
-  }
   const vertical = bridges.map((b) => b.v).filter((l): l is Belt => l !== null);
   drawBelts(ctx, cam, vertical, phase);
   drawItems(ctx, cam, vertical, itemValuesAlways);
   if (cam.zoom >= LOD.buildingText) {
-    // Raised deck for the horizontal lane, with side rails.
-    ctx.fillStyle = BELT_COLORS.bridgeDeck;
-    ctx.beginPath();
+    // Draft tableau noir: a plank footbridge drawn in chalk over the lower lane.
+    const lw = Math.max(1, 0.06 * s);
     for (const b of bridges) {
       const p = cam.worldToScreen(b.x, b.y);
-      ctx.rect(p.x, p.y + 0.18 * s, s, 0.64 * s);
-    }
-    ctx.fill();
-    for (const b of bridges) {
-      const p = cam.worldToScreen(b.x, b.y);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-      ctx.fillRect(p.x, p.y + 0.82 * s, s, 0.06 * s);
-      ctx.fillStyle = 'rgba(190, 210, 255, 0.55)';
-      ctx.fillRect(p.x, p.y + 0.16 * s, s, 0.05 * s);
-      ctx.fillRect(p.x, p.y + 0.79 * s, s, 0.05 * s);
+      const seed = tileSeed(b.x, b.y);
+      ctx.fillStyle = COLORS.background;
+      ctx.fillRect(p.x, p.y + 0.12 * s, s, 0.76 * s);
+      ctx.fillStyle = 'rgba(242, 239, 230, 0.06)';
+      ctx.fillRect(p.x, p.y + 0.12 * s, s, 0.76 * s);
+      // Planks across the deck.
+      for (let i = 0; i < 4; i++) {
+        const x = p.x + (0.14 + i * 0.24) * s;
+        chalkLine(
+          ctx,
+          x,
+          p.y + 0.16 * s,
+          x,
+          p.y + 0.84 * s,
+          seed + i,
+          'rgba(232, 201, 154, 0.55)',
+          lw * 0.7,
+        );
+      }
+      // Side beams, a little longer than the tile, and the posts at each end.
+      for (const y of [0.12, 0.88]) {
+        chalkLine(
+          ctx,
+          p.x - 0.14 * s,
+          p.y + y * s,
+          p.x + 1.14 * s,
+          p.y + y * s,
+          seed + y * 100,
+          '#e8c99a',
+          lw * 1.8,
+        );
+      }
+      for (const x of [0.02, 0.98]) {
+        chalkLine(
+          ctx,
+          p.x + x * s,
+          p.y + 0.02 * s,
+          p.x + x * s,
+          p.y + 0.22 * s,
+          seed + x * 50,
+          '#e8c99a',
+          lw,
+        );
+        chalkLine(
+          ctx,
+          p.x + x * s,
+          p.y + 0.78 * s,
+          p.x + x * s,
+          p.y + 0.98 * s,
+          seed + x * 70,
+          '#e8c99a',
+          lw,
+        );
+      }
     }
   }
   const horizontal = bridges.map((b) => b.h).filter((l): l is Belt => l !== null);

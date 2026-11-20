@@ -132,7 +132,7 @@ L'émulation Chromium ne reproduit ni Safari ni un vrai écran. Liste du `PLAN-t
 - [x] Options (`sumflow.settings`) : langue, volume, grille, valeurs sur les items, intervalle de sauvegarde, achat auto, réduire les animations, liste des commandes.
 - [x] Bulles d'aide (§7.5), une à la fois, masquables, réaffichables depuis l'Aide.
 - [x] Sons WebAudio : pose, démolition, clic UI, amélioration prête, niveau terminé, erreur ; volume réglable.
-- [x] Barre d'état : pause, « Sauvegardé il y a 12 s », coordonnées du curseur.
+- [x] Barre d'état : pause ; « Sauvegardé il y a 12 s » et coordonnées du curseur en mode debug uniquement.
 - [x] Tests : aller-retour sauvegarde → chargement au même hash d'état (compressé ou non) ; partie rechargée qui continue comme l'originale ; imports invalides sans effet ; migrations ; clés i18n identiques FR/EN ; aucune chaîne en dur dans `src/ui` (test par motifs) ; e2e sauvegarde + rechargement, import invalide, changement de langue, nouvelle partie, bulle d'aide.
 
 ## M9 : détail

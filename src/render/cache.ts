@@ -60,6 +60,20 @@ export class RegionCache {
     this.regions.delete(id);
   }
 
+  /** Forget every region touching the tile rectangle (inclusive). */
+  invalidateRect(x0: number, y0: number, x1: number, y1: number): void {
+    const { span } = this;
+    for (let ry = Math.floor(y0 / span); ry <= Math.floor(y1 / span); ry++) {
+      for (let rx = Math.floor(x0 / span); rx <= Math.floor(x1 / span); rx++) {
+        const id = `${rx},${ry}`;
+        const r = this.regions.get(id);
+        if (!r) continue;
+        r.canvas.width = 0;
+        this.regions.delete(id);
+      }
+    }
+  }
+
   /**
    * Draw the layer over the visible area. `signature` describes everything the layer
    * depends on besides its tiles (for example the highest extractable value).
