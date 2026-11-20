@@ -214,3 +214,10 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Polices embarquées** plutôt que Google Fonts : pas de requête vers un tiers à chaque visite, et le jeu reste jouable sans réseau une fois chargé. Fredericka the Great pèse 203 Ko (sous-ensemble latin) ; un sous-ensemble plus petit ne gagne rien (le poids vient du dessin des lettres). Les caches qui contiennent du texte (gisements, items) sont redessinés quand la police manuscrite a fini de charger.
 - **Icônes d'aide** : cercle à la craie au lieu de blanc sur bleu (4,34:1, sous le seuil de 4,5:1).
 - **Coût mesuré** (build de production, Chromium sans GPU, usine de référence) : vues fixes à 60 images/s comme avant ; zoom continu à environ 53 images/s contre 57 sur l'ancien rendu.
+
+## Couleur des extracteurs (§5, §10.1)
+
+- **Une couleur par valeur** : l'extracteur est colorié avec la craie de sa valeur, la même que celle de ses items sur les tapis. On voit d'un coup d'œil d'où vient un nombre.
+- **Palette « boîte de craies »** retenue parmi quatre maquettes (craies vives, boîte de craies, craies poudrées, Okabe-Ito). Choisie à la main pour aller avec les craies déjà présentes (rouge, vert, jaune et rose sont les mêmes). Elle remplace les teintes HSL saturées d'avant.
+- **Valeur de l'extracteur en blanc** : plus lisible qu'en couleur sur les hachures de la même teinte (le 7 orange sur orange était le pire cas).
+- **Couleur jamais seule** : le nombre est toujours écrit, la couleur n'est qu'une aide. Les valeurs au-delà de 9 gardent une teinte tirée d'un hachage, dans le même ton craie ; deux d'entre elles peuvent donc se ressembler.
