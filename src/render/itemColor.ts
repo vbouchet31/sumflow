@@ -1,7 +1,9 @@
 import { ITEM_CHALK_TONE, ITEM_CHALKS } from '../config/colors';
-import { mix32 } from '../core/rng';
 
 const cache = new Map<number, string>();
+
+/** Hue step between consecutive values: the golden angle, so neighbours never look alike. */
+const GOLDEN_ANGLE = 137.50776405;
 
 /** `#rrggbb` of an HSL colour (h in degrees, s and l in %). */
 export function hslHex(h: number, s: number, l: number): string {
@@ -19,14 +21,16 @@ export function hslHex(h: number, s: number, l: number): string {
 }
 
 /**
- * Item colour (PLAN §5), as `#rrggbb`: a fixed chalk for 1..9, otherwise a hue hashed from
- * the value in the same chalk tone. Extractors use it too, so they match their items.
+ * Item colour (PLAN §5), as `#rrggbb`: a fixed chalk for 1..9, otherwise a hue spread
+ * evenly around the colour wheel (one golden angle per value) in the same chalk tone.
+ * Extractors use it too, so they match their items.
  */
 export function itemColor(value: number): string {
   let c = cache.get(value);
   if (c === undefined) {
     const fixed = value >= 1 && value <= 9 ? ITEM_CHALKS[value - 1] : undefined;
-    c = fixed ?? hslHex(mix32(value) % 360, ITEM_CHALK_TONE.saturation, ITEM_CHALK_TONE.lightness);
+    const hue = (((value * GOLDEN_ANGLE) % 360) + 360) % 360;
+    c = fixed ?? hslHex(hue, ITEM_CHALK_TONE.saturation, ITEM_CHALK_TONE.lightness);
     if (cache.size > 4096) cache.clear();
     cache.set(value, c);
   }
