@@ -1,4 +1,5 @@
-import { COLORS, FONT_NUM } from '../../config/colors';
+import { CHALK, FONT_NUM } from '../../config/colors';
+import { sketchCircle } from '../chalk';
 import { type Dir, DX, DY, opposite } from '../../core/grid';
 import { formatCompact } from '../../core/format';
 import { type Belt, hasOutput } from '../../sim/entities';
@@ -49,6 +50,11 @@ function itemPosition(
 }
 
 const sprites = new SpriteCache();
+
+/** Forget the item pictures (they hold their number, drawn with the font of the time). */
+export function clearItemSprites(): void {
+  sprites.clear();
+}
 /** Disc centres per colour, reused between frames to avoid allocations. */
 const batches = new Map<string, number[]>();
 
@@ -67,23 +73,27 @@ function textFit(text: string): number {
   return text.length <= 2 ? 0.42 : text.length === 3 ? 0.32 : text.length === 4 ? 0.25 : 0.2;
 }
 
-/** Disc with its shadow and value, centred in a square of `sizePx` device pixels. */
+/**
+ * An item in chalk: a smudge, the slate cleared under it, a hand-drawn ring and the value in
+ * the item colour, centred in a square of `sizePx` device pixels.
+ */
 function paintItem(ctx: CanvasRenderingContext2D, value: number, s: number, sizePx: number): void {
   const c = sizePx / 2;
   const r = 0.36 * s;
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+  ctx.fillStyle = CHALK.smudge;
   ctx.beginPath();
-  ctx.arc(c + 0.04 * s, c + 0.06 * s, r, 0, Math.PI * 2);
+  ctx.arc(c, c, r * 1.13, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = itemColor(value);
+  ctx.fillStyle = CHALK.itemBack;
   ctx.beginPath();
-  ctx.arc(c, c, r, 0, Math.PI * 2);
+  ctx.arc(c, c, r * 0.94, 0, Math.PI * 2);
   ctx.fill();
+  sketchCircle(ctx, c, c, r * 0.92, value, itemColor(value), 0.08 * s);
   const text = formatCompact(value);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = `700 ${textFit(text) * s}px ${FONT_NUM}`;
-  ctx.fillStyle = COLORS.text;
+  ctx.fillStyle = itemColor(value);
   ctx.fillText(text, c, c + 0.02 * s);
 }
 

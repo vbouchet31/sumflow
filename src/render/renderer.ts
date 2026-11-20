@@ -8,14 +8,14 @@ import { RegionCache } from './cache';
 import type { Camera } from './camera';
 import { LOD } from './lod';
 import { drawBelts, type InputsOf, straightInputs } from './layers/belts';
-import { beltInputs } from './beltLinks';
+import { beltInputs, type BeltLinks, beltLinks, NO_BELT_LINKS } from './beltLinks';
 import { drawBridges, drawPriorities } from './layers/bridges';
 import { priorityTiles } from '../sim/priority';
 import { drawBuildings } from './layers/buildings';
 import { drawDeposits } from './layers/deposits';
 import { drawGhosts } from './layers/ghosts';
 import { drawGrid } from './layers/grid';
-import { drawItems } from './layers/items';
+import { clearItemSprites, drawItems } from './layers/items';
 import { drawMarkers } from './layers/markers';
 import { drawWave } from './layers/wave';
 
@@ -43,6 +43,7 @@ export class Renderer {
   private world: World | null = null;
   private unwatch: (() => void) | null = null;
   private inputsOf: InputsOf = straightInputs;
+  private links: BeltLinks = NO_BELT_LINKS;
   private lastZoom = 0;
   /** Frames since the zoom last changed. */
   private stableFrames = 0;
@@ -71,6 +72,15 @@ export class Renderer {
    * Draw one frame in layer order (PLAN §10.2). Reads the world, never mutates it.
    * Deposits and belts come from off-screen caches once the zoom has settled.
    */
+  /**
+   * The fonts have changed (the handwriting font finished loading): drop the cached
+   * pictures that hold text drawn with the fallback font.
+   */
+  refreshText(): void {
+    this.depositCache.clear();
+    clearItemSprites();
+  }
+
   draw(world: World, ghost: Ghost, nowMs: number): void {
     const { ctx, camera, dpr } = this;
     const { state } = world;
@@ -103,15 +113,17 @@ export class Renderer {
         drawBelts(
           c,
           cam,
-          [...world.beltsInRect(r.x0, r.y0, r.x1, r.y1)],
+          // A margin: belt chains (chalk rails) run on across region edges.
+          [...world.beltsInRect(r.x0 - 3, r.y0 - 3, r.x1 + 3, r.y1 + 3)],
           0,
           liveChevrons ? 'base' : 'all',
           this.inputsOf,
+          this.links,
         ),
       );
-      if (liveChevrons) drawBelts(ctx, camera, belts, phase, 'chevrons', this.inputsOf);
+      if (liveChevrons) drawBelts(ctx, camera, belts, phase, 'chevrons', this.inputsOf, this.links);
     } else {
-      drawBelts(ctx, camera, belts, phase, 'all', this.inputsOf);
+      drawBelts(ctx, camera, belts, phase, 'all', this.inputsOf, this.links);
     }
     const bridges = [...world.bridgesInRect(v.x0, v.y0, v.x1, v.y1)];
     drawBridges(ctx, camera, bridges, phase, this.itemValuesAlways);
@@ -147,6 +159,7 @@ export class Renderer {
     this.beltCache.clear();
     this.depositCache.clear();
     this.inputsOf = beltInputs(world);
+    this.links = beltLinks(world);
     // A belt is drawn joined to its neighbours: a change also redraws the tiles around it.
     const offBelt = world.events.on('beltChanged', ({ x, y }) =>
       this.beltCache.invalidateRect(x - 1, y - 1, x + 1, y + 1),

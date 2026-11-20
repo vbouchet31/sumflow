@@ -1,4 +1,5 @@
-import { BELT_COLORS } from '../../config/colors';
+import { BELT_COLORS, CHALK, COLORS } from '../../config/colors';
+import { chalkLine, tileSeed } from '../chalk';
 import type { Belt, Bridge } from '../../sim/entities';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
@@ -7,8 +8,8 @@ import { drawItems } from './items';
 
 /**
  * Bridges (PLAN §10.2 layer 3): the vertical lane runs underneath (with its items), the
- * horizontal lane on a raised deck with light rails, its items drawn on top. Lanes reuse
- * the belt chevrons and item drawing.
+ * horizontal lane on a light chalk footbridge (two beams, a few planks), its items drawn
+ * on top. Lanes reuse the belt rails, chevrons and item drawing.
  */
 export function drawBridges(
   ctx: CanvasRenderingContext2D,
@@ -19,34 +20,33 @@ export function drawBridges(
 ): void {
   if (bridges.length === 0) return;
   const s = cam.scale;
-  if (cam.zoom >= LOD.buildingText) {
-    ctx.fillStyle = BELT_COLORS.bridgeBase;
-    ctx.beginPath();
-    for (const b of bridges) {
-      const p = cam.worldToScreen(b.x, b.y);
-      ctx.roundRect(p.x + 0.04 * s, p.y + 0.04 * s, 0.92 * s, 0.92 * s, 0.12 * s);
-    }
-    ctx.fill();
-  }
   const vertical = bridges.map((b) => b.v).filter((l): l is Belt => l !== null);
   drawBelts(ctx, cam, vertical, phase);
   drawItems(ctx, cam, vertical, itemValuesAlways);
   if (cam.zoom >= LOD.buildingText) {
-    // Raised deck for the horizontal lane, with side rails.
-    ctx.fillStyle = BELT_COLORS.bridgeDeck;
-    ctx.beginPath();
+    const lw = Math.max(1, 0.06 * s);
     for (const b of bridges) {
       const p = cam.worldToScreen(b.x, b.y);
-      ctx.rect(p.x, p.y + 0.18 * s, s, 0.64 * s);
-    }
-    ctx.fill();
-    for (const b of bridges) {
-      const p = cam.worldToScreen(b.x, b.y);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-      ctx.fillRect(p.x, p.y + 0.82 * s, s, 0.06 * s);
-      ctx.fillStyle = 'rgba(190, 210, 255, 0.55)';
-      ctx.fillRect(p.x, p.y + 0.16 * s, s, 0.05 * s);
-      ctx.fillRect(p.x, p.y + 0.79 * s, s, 0.05 * s);
+      const seed = tileSeed(b.x, b.y);
+      ctx.fillStyle = COLORS.background;
+      ctx.fillRect(p.x, p.y + 0.12 * s, s, 0.76 * s);
+      // The deck hides the lower lane; two chalk beams along it, a few faint planks across.
+      for (let i = 0; i < 3; i++) {
+        const x = p.x + (0.22 + i * 0.28) * s;
+        chalkLine(ctx, x, p.y + 0.2 * s, x, p.y + 0.8 * s, seed + i, CHALK.plank, lw * 0.6);
+      }
+      for (const y of [0.13, 0.87]) {
+        chalkLine(
+          ctx,
+          p.x - 0.05 * s,
+          p.y + y * s,
+          p.x + 1.05 * s,
+          p.y + y * s,
+          seed + y * 100,
+          CHALK.beam,
+          lw,
+        );
+      }
     }
   }
   const horizontal = bridges.map((b) => b.h).filter((l): l is Belt => l !== null);

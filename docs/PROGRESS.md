@@ -28,6 +28,14 @@ Cible : tablette et téléphone en paysage d'abord. Branche `dev-mobile`.
 | T4 Confort                       | ✅ terminé |
 | T5 Installation                  | ✅ terminé |
 
+## Direction artistique « Tableau noir »
+
+- [x] Palette ardoise et craie (canvas et variables CSS), cadres en bois, polices manuscrites embarquées.
+- [x] Bâtiments coloriés et esquissés, Hub tracé à la règle, nombres entourés à la main, stockage, fantômes, icônes.
+- [x] Tapis en rails continus par chaîne : virages serrés, portes de bâtiments, bouts libres, jonctions en T et en +, ponts.
+- [x] Tests : géométrie des chaînes et utilitaires craie (unitaires), couleurs et cache des tapis (e2e), contraste.
+- [ ] À vérifier sur appareil : coût du rendu craie sur un téléphone milieu de gamme (zoom continu).
+
 ## Fiches tutoriel
 
 - [x] Fiche modale animée à la première partie et à chaque déblocage (démo jouée par le vrai moteur).

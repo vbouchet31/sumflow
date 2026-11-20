@@ -1,15 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
-
-async function pixelAt(page: Page, x: number, y: number): Promise<number[]> {
-  return page.locator('canvas#world').evaluate(
-    (el: HTMLCanvasElement, [px, py]) => {
-      const ctx = el.getContext('2d');
-      const dpr = el.width / el.clientWidth;
-      return ctx ? Array.from(ctx.getImageData(px * dpr, py * dpr, 1, 1).data) : [];
-    },
-    [x, y] as const,
-  );
-}
+import { expect, test } from '@playwright/test';
+import { COLORS } from '../../src/config/colors';
+import { inkIn, rgba } from './pixels';
 
 test('a 1 + 1 chain feeds the hub, and survives a save and a reload (PLAN M11)', async ({
   page,
@@ -175,18 +166,24 @@ test('zoomed out, the cached belt layer follows edits', async ({ page }) => {
   const zoom = 0.45;
   const scale = 32 * zoom;
   await page.evaluate((z) => window.__sumflow?.lookAt(60, 60, z), zoom);
-  // Upper middle of tile (60, 60): on the belt's running surface, clear of its chevrons.
-  const px = Math.round(viewport.width / 2 + 0.5 * scale);
-  const py = Math.round(viewport.height / 2 + 0.27 * scale);
-  const BELT_BASE = [38, 47, 67, 255];
+  // Tile (60, 60), and the one to its right: count the chalk marks drawn in each.
+  const tile = (dx: number) => ({
+    x: Math.round(viewport.width / 2 + dx * scale) + 1,
+    y: Math.round(viewport.height / 2) + 1,
+    w: Math.floor(scale) - 2,
+    h: Math.floor(scale) - 2,
+  });
+  const background = [...rgba(COLORS.background).slice(0, 3), 255];
   await page.waitForTimeout(200); // let the zoom settle so the caches are in use
-  expect(await pixelAt(page, px, py)).not.toEqual(BELT_BASE);
+  const empty0 = await inkIn(page, tile(0), background);
+  const empty1 = await inkIn(page, tile(1), background);
 
+  // A belt: its rails and chevrons appear in the cached layer.
   await page.evaluate(() => window.__sumflow?.place('belt', 60, 60, 0));
-  await expect.poll(() => pixelAt(page, px, py)).toEqual(BELT_BASE);
+  await expect.poll(() => inkIn(page, tile(0), background)).toBeGreaterThan(empty0 + 10);
   await page.evaluate(() => window.__sumflow?.demolishArea(60, 60, 60, 60));
-  await expect.poll(() => pixelAt(page, px, py)).not.toEqual(BELT_BASE);
+  await expect.poll(() => inkIn(page, tile(0), background)).toBe(empty0);
   // Panning reuses the bitmaps: the belt-free tile stays belt-free elsewhere on screen.
   await page.evaluate(() => window.__sumflow?.place('belt', 61, 60, 0));
-  await expect.poll(() => pixelAt(page, px + Math.round(scale), py)).toEqual(BELT_BASE);
+  await expect.poll(() => inkIn(page, tile(1), background)).toBeGreaterThan(empty1 + 10);
 });

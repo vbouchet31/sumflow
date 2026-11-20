@@ -1,15 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
-
-async function pixelAt(page: Page, x: number, y: number): Promise<number[]> {
-  return page.locator('canvas#world').evaluate(
-    (el: HTMLCanvasElement, [px, py]) => {
-      const ctx = el.getContext('2d');
-      const dpr = el.width / el.clientWidth;
-      return ctx ? Array.from(ctx.getImageData(px * dpr, py * dpr, 1, 1).data) : [];
-    },
-    [x, y] as const,
-  );
-}
+import { COLORS, HUB_COLORS } from '../../src/config/colors';
+import { near, over, pixelAt, rgba } from './pixels';
 
 async function camera(page: Page): Promise<{ x: number; y: number; zoom: number }> {
   return page.evaluate(() => {
@@ -19,9 +10,10 @@ async function camera(page: Page): Promise<{ x: number; y: number; zoom: number 
   });
 }
 
-const BACKGROUND = [15, 20, 34, 255];
-const DEPOSIT = [30, 39, 64, 255];
-const HUB = [43, 108, 176, 255];
+const BACKGROUND = [...rgba(COLORS.background).slice(0, 3), 255];
+const DEPOSIT = over(COLORS.deposit, COLORS.background);
+/** Inside the hub: the darker wash of its frame over the board. */
+const HUB = over(HUB_COLORS.fill, COLORS.background);
 
 test('loads the page without console errors and draws the hub', async ({ page }) => {
   const errors: string[] = [];
@@ -45,10 +37,13 @@ test('loads the page without console errors and draws the hub', async ({ page })
   const cy = viewport.height / 2;
   // The corner shows either the background or a deposit square (never transparent black).
   await expect
-    .poll(async () => [BACKGROUND, DEPOSIT].map(String).includes(String(await pixelAt(page, 2, 2))))
+    .poll(async () => {
+      const corner = await pixelAt(page, 2, 2);
+      return near(corner, BACKGROUND) || near(corner, DEPOSIT);
+    })
     .toBe(true);
   // Inside the hub, away from its text (hub spans ±96 px at zoom 1).
-  await expect.poll(() => pixelAt(page, cx - 80, cy - 80)).toEqual(HUB);
+  await expect.poll(async () => near(await pixelAt(page, cx - 80, cy - 80), HUB)).toBe(true);
 
   const state = await page
     .evaluate(() => window.__sumflow?.getState() ?? null)
@@ -75,7 +70,7 @@ test('camera zooms around the cursor, pans with the mouse and keys, and H recent
   await page.mouse.move(cx, cy);
   await page.mouse.wheel(0, 800);
   await expect.poll(async () => (await camera(page)).zoom).toBeLessThan(0.5);
-  await expect.poll(() => pixelAt(page, cx - 80, cy - 80)).not.toEqual(HUB);
+  await expect.poll(async () => near(await pixelAt(page, cx - 80, cy - 80), HUB)).toBe(false);
   const zoomed = await camera(page);
   expect(zoomed.x).toBeCloseTo(0, 5);
   expect(zoomed.y).toBeCloseTo(0, 5);

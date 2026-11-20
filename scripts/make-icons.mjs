@@ -14,9 +14,9 @@ const plain = await readFile(new URL('favicon.svg', OUT), 'utf8');
  * artwork stays inside the central 80 % safe zone.
  */
 const maskable = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" fill="#0f1422"/>
-  <rect x="7" y="7" width="18" height="18" rx="4" fill="#2b6cb0"/>
-  <path d="M16 11v10M11 16h10" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>
+  <rect width="32" height="32" fill="#26332b"/>
+  <rect x="7" y="7" width="18" height="18" rx="2" fill="none" stroke="#f3e08a" stroke-width="1.4"/>
+  <path d="M16.3 11.4Q15.8 16 16.1 20.7M11.4 16.3Q16 15.7 20.7 16.1" fill="none" stroke="#f2efe6" stroke-width="2.6" stroke-linecap="round"/>
 </svg>`;
 
 const ICONS = [

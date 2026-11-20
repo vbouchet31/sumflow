@@ -1,8 +1,9 @@
 import { BUILDINGS } from '../../config/buildings';
-import { BUILDING_COLORS, COLORS, FONT_NUM } from '../../config/colors';
+import { BUILDING_COLORS, CHALK, COLORS, FONT_NUM } from '../../config/colors';
 import { DX, DY, type Rot, transformLocal } from '../../core/grid';
 import { buildingSize, type OperatorType, portFaces } from '../../sim/entities';
 import type { Camera } from '../camera';
+import { chalkSquare, shade, tileSeed } from '../chalk';
 import { LOD } from '../lod';
 
 export const OPERATOR_SYMBOL: Record<OperatorType, string> = {
@@ -12,27 +13,6 @@ export const OPERATOR_SYMBOL: Record<OperatorType, string> = {
   divider: '÷',
   exponent: '^',
 };
-
-/** Mix a #rrggbb colour toward black (f < 0) or white (f > 0). */
-export function shade(hex: string, f: number): string {
-  const id = `${hex}${f}`;
-  let c = shades.get(id);
-  if (c === undefined) {
-    c = computeShade(hex, f);
-    shades.set(id, c);
-  }
-  return c;
-}
-
-const shades = new Map<string, string>();
-
-function computeShade(hex: string, f: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) =>
-    Math.round(f < 0 ? c * (1 + f) : c + (255 - c) * f),
-  );
-  return `rgb(${ch[0]}, ${ch[1]}, ${ch[2]})`;
-}
 
 export interface OperatorDrawOptions {
   alpha?: number;
@@ -79,11 +59,24 @@ export function drawOperator(
     const p = transformLocal(t.x, t.y, def.w, def.h, rot, mirror);
     const sp = cam.worldToScreen(ox + p.x, oy + p.y);
     const isIn = t.role === 'A' || t.role === 'B';
-    ctx.fillStyle =
-      opts.tint ?? (isIn ? shade(base, -0.3) : t.role === 'body' ? base : shade(base, 0.12));
-    ctx.beginPath();
-    ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0.22 * s);
-    ctx.fill();
+    if (opts.tint) {
+      // Ghost of an impossible placement: a plain wash of the warning colour.
+      ctx.fillStyle = opts.tint;
+      ctx.beginPath();
+      ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0.18 * s);
+      ctx.fill();
+      continue;
+    }
+    // Inputs are coloured in darker than the body and the outputs.
+    chalkSquare(
+      ctx,
+      sp.x + inset,
+      sp.y + inset,
+      s - 2 * inset,
+      tileSeed(ox + p.x, oy + p.y),
+      { wash: base, hatch: shade(base, isIn ? 0 : 0.25), outline: shade(base, 0.5) },
+      { hatch: Math.max(1, 0.07 * s), outline: Math.max(1.5, 0.08 * s) },
+    );
   }
 
   if (cam.zoom >= LOD.buildingText && !opts.tint) {
@@ -93,7 +86,7 @@ export function drawOperator(
     for (const f of portFaces(type, ox, oy, rot, mirror)) {
       const c = cam.worldToScreen(f.x + 0.5 + DX[f.face] * 0.5, f.y + 0.5 + DY[f.face] * 0.5);
       const isIn = f.kind === 'A' || f.kind === 'B';
-      ctx.fillStyle = isIn ? 'rgba(0, 0, 0, 0.55)' : 'rgba(255, 255, 255, 0.75)';
+      ctx.fillStyle = isIn ? CHALK.notchIn : CHALK.mark;
       const back = inset + th / 2;
       const cx = c.x - DX[f.face] * back;
       const cy = c.y - DY[f.face] * back;
@@ -114,12 +107,12 @@ export function drawOperator(
       const len2 = Math.hypot(vx, vy) || 1;
       // Push letters away from a symbol at a tile corner; none needed when it sits on a tile.
       const push = def.tiles.length < def.w * def.h ? 0 : 0.14 * s;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+      ctx.fillStyle = COLORS.text;
       ctx.fillText(t.role, tc.x + (vx / len2) * push, tc.y + (vy / len2) * push);
     }
 
     // Operator symbol in a disc at the centre of the footprint box.
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+    ctx.fillStyle = CHALK.shadow;
     ctx.beginPath();
     ctx.arc(center.x, center.y, 0.36 * s, 0, Math.PI * 2);
     ctx.fill();
@@ -129,12 +122,12 @@ export function drawOperator(
   }
 
   if (opts.flash && opts.flash > 0) {
-    ctx.fillStyle = `rgba(255, 255, 255, ${0.35 * opts.flash})`;
+    ctx.fillStyle = `rgba(242, 239, 230, ${0.35 * opts.flash})`;
     for (const t of def.tiles) {
       const p = transformLocal(t.x, t.y, def.w, def.h, rot, mirror);
       const sp = cam.worldToScreen(ox + p.x, oy + p.y);
       ctx.beginPath();
-      ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0.22 * s);
+      ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0.18 * s);
       ctx.fill();
     }
   }

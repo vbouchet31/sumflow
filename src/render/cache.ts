@@ -175,6 +175,10 @@ export class SpriteCache {
 
   constructor(private readonly limit = 1024) {}
 
+  clear(): void {
+    this.sprites.clear();
+  }
+
   get(
     key: number,
     scale: string,

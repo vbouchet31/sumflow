@@ -1,9 +1,100 @@
+/* ---- Fonts (SIL Open Font License, see public/fonts) ----------------------------------- */
+
+@font-face {
+  font-family: 'Patrick Hand';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/patrick-hand-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Patrick Hand';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/patrick-hand-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF,
+    U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Fredericka the Great';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/fredericka-the-great-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Fredericka the Great';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/fredericka-the-great-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF,
+    U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/*
+ * Chalkboard theme (DECISIONS: "Tableau noir"): a green slate written on in chalk, small
+ * boards in wooden frames, and a wooden tray for the tools. Canvas colours live in
+ * src/config/colors.ts and match these.
+ */
 :root {
-  --bg: #0f1422;
-  --fg: #e8edf7;
-  --muted: #a3b0c8;
-  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-num: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* The slate, from the deepest to the most raised surface. */
+  --board-deep: #1f2a24;
+  --board-sunk: #223029;
+  --board: #26332b;
+  --board-card: #2b3a31;
+  --board-raised: #2f4036;
+  --board-pressed: #33452f;
+  --board-hover: #37493e;
+  /* Behind dialogs. */
+  --overlay: #0f1411;
+  /* Chalk: text, then lines from the faintest to the strongest. */
+  --chalk: #f2efe6;
+  --chalk-soft: #cdd3c8;
+  --chalk-dim: #b1baae;
+  --chalk-line-faint: #4a5c50;
+  --chalk-line: #6b7d70;
+  --chalk-line-strong: #7d8f82;
+  --chalk-stroke: rgb(242 239 230 / 75%);
+  /* Coloured chalk. */
+  --chalk-yellow: #f3e08a;
+  --chalk-yellow-deep: #e8c95a;
+  --chalk-yellow-bg: #4a4426;
+  --chalk-green: #9fd39a;
+  --chalk-red: #f29b8f;
+  --chalk-pink: #f29bb8;
+  /* Wooden frames and tray. */
+  --wood-pale: #b07e4a;
+  --wood-light: #a87745;
+  --wood-warm: #9a6a3a;
+  --wood: #8a5a2e;
+  --wood-mid: #7a4f27;
+  --wood-deep: #6e4523;
+  --wood-dark: #5a3818;
+  --wood-shadow: #4a2d12;
+  --frame: 7px;
+  /* A border drawn by hand: uneven corners. */
+  --hand-drawn: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --chalk-glow: 0 0 1px rgb(242 239 230 / 90%), 0 0 6px rgb(242 239 230 / 25%);
+
+  --bg: var(--board);
+  --fg: var(--chalk);
+  --muted: var(--chalk-soft);
+  --font-ui: 'Patrick Hand', 'Comic Sans MS', cursive;
+  --font-num: 'Patrick Hand', cursive;
+  --font-title: 'Fredericka the Great', 'Patrick Hand', cursive;
   color-scheme: dark;
   /* Distance kept from the screen edges, plus the safe areas (notch, home indicator). */
   --gap: 12px;
@@ -65,6 +156,53 @@ textarea {
   position: fixed;
   inset: 0;
   pointer-events: none;
+  /* Chalk text is a little blurred at the edges. */
+  text-shadow: var(--chalk-glow);
+}
+
+/* The slate in its wooden frame, above everything but never in the way of a click. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  border: 9px solid transparent;
+  border-image: linear-gradient(
+      135deg,
+      var(--wood-pale),
+      var(--wood-deep) 35%,
+      var(--wood-warm) 60%,
+      var(--wood-dark) 85%,
+      var(--wood)
+    )
+    1;
+  box-shadow:
+    inset 0 0 0 1px var(--wood-shadow),
+    inset 0 0 40px rgb(0 0 0 / 55%);
+}
+
+/* Chalk dust and the marks of the eraser. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 51;
+  pointer-events: none;
+  opacity: 0.22;
+  mix-blend-mode: screen;
+  background-image:
+    radial-gradient(ellipse 22% 5% at 18% 28%, rgb(255 255 255 / 55%), transparent 70%),
+    radial-gradient(ellipse 30% 6% at 72% 64%, rgb(255 255 255 / 45%), transparent 70%),
+    radial-gradient(ellipse 18% 4% at 40% 86%, rgb(255 255 255 / 40%), transparent 70%),
+    radial-gradient(ellipse 25% 7% at 85% 18%, rgb(255 255 255 / 35%), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  body::after {
+    display: none;
+  }
 }
 
 /*
@@ -81,7 +219,7 @@ textarea {
   bottom: calc(var(--above-bar) + 36px);
   padding: 6px 10px;
   border-radius: 6px;
-  background: rgb(10 14 26 / 85%);
+  background: color-mix(in srgb, var(--board) 85%, transparent);
   color: var(--fg);
   font: 12px/1.5 var(--font-num);
   white-space: pre;
@@ -94,7 +232,7 @@ textarea {
   bottom: calc(var(--above-bar) + 150px);
   padding: 6px 10px;
   border-radius: 6px;
-  background: rgb(10 14 26 / 85%);
+  background: color-mix(in srgb, var(--board) 85%, transparent);
   color: var(--fg);
   font: 12px/1.5 var(--font-num);
   white-space: pre;
@@ -109,8 +247,8 @@ textarea {
   width: 220px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgb(10 14 26 / 88%);
-  border: 1px solid #26304a;
+  background: color-mix(in srgb, var(--board) 88%, transparent);
+  border: 1px solid var(--chalk-line);
   color: var(--fg);
   font: 13px/1.4 var(--font-ui);
   text-align: center;
@@ -121,14 +259,14 @@ textarea {
   height: 6px;
   margin-top: 6px;
   border-radius: 3px;
-  background: #1c4a7d;
+  background: var(--board-deep);
   overflow: hidden;
 }
 
 .catch-up-fill {
   height: 100%;
   width: 0;
-  background: #ffffff;
+  background: var(--chalk-yellow);
 }
 
 .tooltip {
@@ -138,11 +276,11 @@ textarea {
   min-width: 160px;
   max-width: 320px;
   padding: 8px 12px;
-  border-radius: 8px;
-  background: rgb(10 14 26 / 88%);
-  border: 1px solid #26304a;
+  border-radius: var(--hand-drawn);
+  background: color-mix(in srgb, var(--board) 88%, transparent);
+  border: 2px solid var(--chalk-stroke);
   color: var(--fg);
-  font: 13px/1.5 var(--font-ui);
+  font: 15px/1.4 var(--font-ui);
   pointer-events: none;
 }
 
@@ -158,9 +296,13 @@ textarea {
   display: flex;
   gap: 6px;
   padding: 6px;
-  border-radius: 12px;
-  background: rgb(10 14 26 / 88%);
-  border: 1px solid #26304a;
+  /* The wooden tray of the board, where the chalk lies. */
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--wood-light), var(--wood-mid));
+  border: 3px solid var(--wood-dark);
+  box-shadow:
+    0 6px 0 var(--wood-shadow),
+    0 10px 20px rgb(0 0 0 / 45%);
   /* Never wider than the screen: the buttons that do not fit are scrolled into view. */
   max-width: calc(100vw - var(--edge-l) - var(--edge-r));
   overflow-x: auto;
@@ -200,23 +342,27 @@ textarea {
   position: relative;
   min-width: 60px;
   padding: 6px 10px 4px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: #1a2236;
+  border: 2px solid var(--chalk-stroke);
+  border-radius: var(--hand-drawn);
+  background: var(--board);
   color: var(--fg);
-  font: 12px var(--font-ui);
+  font: 14px var(--font-ui);
   cursor: pointer;
   flex: none;
 }
 
 .build-btn:focus-visible {
-  outline: 2px solid #7fb2ff;
+  outline: 2px solid var(--chalk-yellow);
   outline-offset: 1px;
 }
 
+/* The selected tool is circled in yellow chalk. */
 .build-btn[aria-pressed='true'] {
-  border-color: #7fb2ff;
-  background: #22345a;
+  border: 3px solid var(--chalk-yellow);
+  border-radius: 50% 45% 55% 40% / 45% 55% 45% 55%;
+  background: var(--board-pressed);
+  color: var(--chalk-yellow);
+  transform: rotate(-2deg);
 }
 
 .build-icon {
@@ -242,10 +388,11 @@ textarea {
 
 .status-paused {
   padding: 4px 10px;
-  border-radius: 6px;
-  background: #b7791f;
-  color: #111;
-  font: 700 13px var(--font-ui);
+  border-radius: var(--hand-drawn);
+  background: var(--chalk-yellow-deep);
+  color: var(--board-deep);
+  font: 700 14px var(--font-ui);
+  text-shadow: none;
 }
 
 /* Top-left column: HUD, then the help bubble. */
@@ -265,26 +412,32 @@ textarea {
   position: relative;
   min-width: 200px;
   padding: 10px 14px 12px;
-  border-radius: 10px;
-  background: rgb(10 14 26 / 88%);
-  border: 1px solid #26304a;
+  border-radius: 6px;
+  background: var(--board);
+  border: var(--frame) solid var(--wood);
+  box-shadow:
+    inset 0 0 0 1px var(--wood-dark),
+    inset 0 0 24px rgb(0 0 0 / 35%),
+    0 8px 24px rgb(0 0 0 / 45%);
   pointer-events: none;
 }
 
 .hud-level {
-  color: var(--muted);
-  font: 600 13px var(--font-ui);
+  color: var(--chalk-pink);
+  font: 600 14px var(--font-ui);
+  letter-spacing: 0.05em;
 }
 
 .hud-target {
-  font: 700 34px/1.15 var(--font-num);
+  color: var(--chalk-yellow);
+  font: 400 42px/1.05 var(--font-title);
 }
 
 .hud-count,
 .hud-rate,
 .hud-reward {
   color: var(--muted);
-  font: 13px/1.5 var(--font-num);
+  font: 15px/1.4 var(--font-num);
 }
 
 .hud-reward {
@@ -295,14 +448,14 @@ textarea {
   height: 6px;
   margin: 6px 0;
   border-radius: 3px;
-  background: #1c4a7d;
+  background: var(--board-deep);
   overflow: hidden;
 }
 
 .hud-bar-fill {
   height: 100%;
   width: 0;
-  background: #ffffff;
+  background: var(--chalk-yellow);
   transition: width 0.2s;
 }
 
@@ -327,9 +480,9 @@ textarea {
   width: var(--top-h);
   height: var(--top-h);
   padding: 0;
-  border: 1px solid #26304a;
-  border-radius: 8px;
-  background: rgb(10 14 26 / 88%);
+  border: 2px solid var(--chalk-stroke);
+  border-radius: var(--hand-drawn);
+  background: color-mix(in srgb, var(--board) 55%, transparent);
   color: var(--fg);
   font: 18px var(--font-ui);
   cursor: pointer;
@@ -338,7 +491,7 @@ textarea {
 .top-btn:focus-visible,
 .panel-close:focus-visible,
 .primary-btn:focus-visible {
-  outline: 2px solid #7fb2ff;
+  outline: 2px solid var(--chalk-yellow);
   outline-offset: 1px;
 }
 
@@ -353,10 +506,13 @@ textarea {
   overflow: auto;
   overscroll-behavior: contain;
   padding: 12px 16px 16px;
-  border-radius: 12px;
-  background: rgb(12 17 30 / 96%);
-  border: 1px solid #2c3754;
-  box-shadow: 0 10px 30px rgb(0 0 0 / 40%);
+  border-radius: 6px;
+  background: var(--board);
+  border: var(--frame) solid var(--wood);
+  box-shadow:
+    inset 0 0 0 1px var(--wood-dark),
+    inset 0 0 24px rgb(0 0 0 / 35%),
+    0 8px 24px rgb(0 0 0 / 45%);
 }
 
 .panel-header {
@@ -366,17 +522,24 @@ textarea {
   margin-bottom: 8px;
 }
 
-.panel h2 {
+/* Board titles: hollow chalk letters, underlined with a wavy yellow stroke. */
+.panel h2,
+.menu-header h2,
+.end-card h2 {
   margin: 0;
-  font: 700 16px var(--font-ui);
+  font: 400 26px var(--font-title);
+  letter-spacing: 0.03em;
+  text-decoration: underline wavy rgb(243 224 138 / 80%);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 7px;
 }
 
 .panel-close {
   width: 30px;
   height: 30px;
   border: none;
-  border-radius: 6px;
-  background: #1a2236;
+  border-radius: var(--hand-drawn);
+  background: var(--board-raised);
   color: var(--fg);
   cursor: pointer;
 }
@@ -392,12 +555,12 @@ textarea {
   font-weight: 600;
   text-align: left;
   padding: 4px 6px;
-  border-bottom: 1px solid #26304a;
+  border-bottom: 1px solid var(--chalk-line);
 }
 
 .levels-table td {
   padding: 5px 6px;
-  border-bottom: 1px solid #1a2236;
+  border-bottom: 1px solid var(--board-raised);
 }
 
 .levels-table td.num {
@@ -406,7 +569,7 @@ textarea {
 }
 
 .levels-table tr.current td {
-  color: #ffd866;
+  color: var(--chalk-yellow);
   font-weight: 700;
 }
 
@@ -425,11 +588,11 @@ textarea {
 
 .toast {
   padding: 8px 16px;
-  border-radius: 8px;
-  background: #1f3b63;
-  border: 1px solid #3b6aa8;
-  color: #fff;
-  font: 13px/1.4 var(--font-ui);
+  border-radius: var(--hand-drawn);
+  background: color-mix(in srgb, var(--board) 88%, transparent);
+  border: 2px solid var(--chalk-stroke);
+  color: var(--fg);
+  font: 15px/1.35 var(--font-ui);
   text-align: center;
   animation: toast-in 0.2s ease-out;
 }
@@ -463,21 +626,25 @@ textarea {
   place-items: center;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
     env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-  background: rgb(5 8 15 / 70%);
+  background: color-mix(in srgb, var(--overlay) 70%, transparent);
 }
 
 .end-card {
   width: min(420px, calc(100vw - 32px));
   padding: 24px;
-  border-radius: 14px;
-  background: #121a2c;
-  border: 1px solid #2c3754;
+  border-radius: 6px;
+  background: var(--board);
+  border: var(--frame) solid var(--wood);
+  box-shadow:
+    inset 0 0 0 1px var(--wood-dark),
+    inset 0 0 24px rgb(0 0 0 / 35%),
+    0 8px 24px rgb(0 0 0 / 45%);
   text-align: center;
 }
 
 .end-card h2 {
-  margin: 0 0 8px;
-  font: 700 24px var(--font-ui);
+  margin: 0 0 12px;
+  font-size: 30px;
 }
 
 .end-stats {
@@ -486,13 +653,14 @@ textarea {
   font: 14px/1.7 var(--font-num);
 }
 
+/* Main actions: outlined in yellow chalk. */
 .primary-btn {
-  padding: 10px 18px;
-  border: none;
-  border-radius: 8px;
-  background: #2b6cb0;
-  color: #fff;
-  font: 600 14px var(--font-ui);
+  padding: 9px 18px;
+  border: 2px solid var(--chalk-yellow);
+  border-radius: var(--hand-drawn);
+  background: transparent;
+  color: var(--chalk-yellow);
+  font: 600 17px var(--font-ui);
   cursor: pointer;
 }
 
@@ -508,8 +676,8 @@ textarea {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #48c774;
-  box-shadow: 0 0 0 2px #0a0e1a;
+  background: var(--chalk-green);
+  box-shadow: 0 0 0 2px var(--board);
 }
 
 .panel h3 {
@@ -533,9 +701,9 @@ textarea {
 
 .upg-row {
   padding: 10px 12px;
-  border-radius: 10px;
-  background: #161e31;
-  border: 1px solid #222c45;
+  border-radius: var(--hand-drawn);
+  background: color-mix(in srgb, var(--board) 55%, transparent);
+  border: 2px dashed var(--chalk-stroke);
 }
 
 .upg-head {
@@ -546,7 +714,7 @@ textarea {
 }
 
 .upg-title {
-  font: 700 14px var(--font-ui);
+  font: 700 16px var(--font-ui);
 }
 
 .upg-effect {
@@ -582,17 +750,17 @@ textarea {
   grid-column: 1 / -1;
   height: 4px;
   border-radius: 2px;
-  background: #26304a;
+  background: var(--chalk-line);
   overflow: hidden;
 }
 
 .upg-bar-fill {
   height: 100%;
-  background: #7fb2ff;
+  background: var(--chalk-yellow);
 }
 
 .upg-req.done .upg-bar-fill {
-  background: #48c774;
+  background: var(--chalk-green);
 }
 
 .upg-buy {
@@ -601,7 +769,7 @@ textarea {
 }
 
 .primary-btn:disabled {
-  background: #26304a;
+  border-color: var(--chalk-line);
   color: var(--muted);
   cursor: default;
 }
@@ -614,11 +782,11 @@ textarea {
 
 .unit-btn {
   padding: 4px 10px;
-  border: 1px solid #2c3754;
-  border-radius: 6px;
-  background: #1a2236;
+  border: 2px solid var(--chalk-stroke);
+  border-radius: var(--hand-drawn);
+  background: transparent;
   color: var(--fg);
-  font: 600 12px var(--font-num);
+  font: 600 14px var(--font-num);
   cursor: pointer;
 }
 
@@ -633,12 +801,12 @@ textarea {
   font-weight: 600;
   text-align: left;
   padding: 4px 6px;
-  border-bottom: 1px solid #26304a;
+  border-bottom: 1px solid var(--chalk-line);
 }
 
 .deliv-table td {
   padding: 4px 6px;
-  border-bottom: 1px solid #1a2236;
+  border-bottom: 1px solid var(--board-raised);
 }
 
 .deliv-table .num {
@@ -647,12 +815,12 @@ textarea {
 }
 
 .deliv-table tr.is-target td {
-  color: #ffd866;
+  color: var(--chalk-yellow);
   font-weight: 700;
 }
 
 .deliv-table tr.is-other td {
-  color: #8592ab;
+  color: var(--chalk-dim);
 }
 
 .next-targets {
@@ -662,15 +830,16 @@ textarea {
 }
 
 .chip {
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #1a2236;
-  font: 12px var(--font-num);
+  padding: 1px 8px;
+  border: 1px solid var(--chalk-line);
+  border-radius: var(--hand-drawn);
+  font: 14px var(--font-num);
 }
 
 .chip.current {
-  background: #4a3d12;
-  color: #ffd866;
+  border-color: var(--chalk-yellow);
+  background: var(--chalk-yellow-bg);
+  color: var(--chalk-yellow);
 }
 
 .build-group {
@@ -680,7 +849,7 @@ textarea {
 
 .build-group-edit {
   padding-left: 8px;
-  border-left: 1px solid #2c3754;
+  border-left: 1px solid var(--chalk-line-strong);
 }
 
 .build-btn:disabled {
@@ -694,8 +863,9 @@ textarea {
 }
 
 .top-btn[aria-pressed='true'] {
-  border-color: #7fb2ff;
-  background: #22345a;
+  border: 2px dashed var(--chalk-yellow);
+  background: var(--board-pressed);
+  color: var(--chalk-yellow);
 }
 
 .tool-hint {
@@ -705,11 +875,11 @@ textarea {
   transform: translateX(-50%);
   max-width: calc(100vw - var(--edge-l) - var(--edge-r));
   padding: 5px 12px;
-  border-radius: 8px;
-  background: rgb(10 14 26 / 88%);
-  border: 1px solid #26304a;
+  border-radius: var(--hand-drawn);
+  background: color-mix(in srgb, var(--board) 88%, transparent);
+  border: 2px solid var(--chalk-stroke);
   color: var(--fg);
-  font: 12px/1.4 var(--font-ui);
+  font: 14px/1.3 var(--font-ui);
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -724,9 +894,9 @@ textarea {
   min-width: 36px;
   height: 36px;
   padding: 0 8px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: #1a2236;
+  border: 2px solid transparent;
+  border-radius: var(--hand-drawn);
+  background: var(--board-raised);
   color: var(--fg);
   font: 700 18px var(--font-num);
   cursor: pointer;
@@ -737,18 +907,20 @@ textarea {
 }
 
 .hint-btn:focus-visible {
-  outline: 2px solid #7fb2ff;
+  outline: 2px solid var(--chalk-yellow);
   outline-offset: 1px;
 }
 
 .hint-btn-primary {
-  background: #2b6cb0;
-  color: #fff;
+  border-color: var(--chalk-yellow);
+  background: transparent;
+  color: var(--chalk-yellow);
 }
 
 .hint-btn[aria-pressed='true'] {
-  border-color: #7fb2ff;
-  background: #22345a;
+  border: 2px dashed var(--chalk-yellow);
+  background: var(--board-pressed);
+  color: var(--chalk-yellow);
 }
 
 /* Key labels mean nothing without a keyboard. */
@@ -759,7 +931,7 @@ textarea {
 }
 
 .marker-overlay {
-  background: rgb(5 8 15 / 45%);
+  background: color-mix(in srgb, var(--overlay) 45%, transparent);
 }
 
 .marker-card {
@@ -767,9 +939,13 @@ textarea {
   gap: 12px;
   width: min(360px, calc(100vw - 32px));
   padding: 18px;
-  border-radius: 12px;
-  background: #121a2c;
-  border: 1px solid #2c3754;
+  border-radius: 6px;
+  background: var(--board);
+  border: var(--frame) solid var(--wood);
+  box-shadow:
+    inset 0 0 0 1px var(--wood-dark),
+    inset 0 0 24px rgb(0 0 0 / 35%),
+    0 8px 24px rgb(0 0 0 / 45%);
 }
 
 .marker-card h2 {
@@ -780,16 +956,16 @@ textarea {
 .marker-input {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #2c3754;
+  border: 1px solid var(--chalk-line-strong);
   border-radius: 8px;
-  background: #0c111e;
+  background: var(--board-sunk);
   color: var(--fg);
   font: 14px var(--font-ui);
 }
 
 .marker-input:focus-visible,
 .secondary-btn:focus-visible {
-  outline: 2px solid #7fb2ff;
+  outline: 2px solid var(--chalk-yellow);
   outline-offset: 1px;
 }
 
@@ -801,17 +977,17 @@ textarea {
 
 .secondary-btn {
   padding: 10px 14px;
-  border: 1px solid #2c3754;
-  border-radius: 8px;
-  background: #1a2236;
+  border: 2px solid var(--chalk-stroke);
+  border-radius: var(--hand-drawn);
+  background: transparent;
   color: var(--fg);
-  font: 600 14px var(--font-ui);
+  font: 600 16px var(--font-ui);
   cursor: pointer;
 }
 
 .secondary-btn.danger {
   margin-right: auto;
-  color: #ff9c9c;
+  color: var(--chalk-red);
 }
 
 /* Editing tools: icon only (name in the tooltip) to keep the bar narrow. */
@@ -826,9 +1002,9 @@ textarea {
 
 .status-chip {
   padding: 4px 10px;
-  border-radius: 6px;
-  background: rgb(10 14 26 / 85%);
-  border: 1px solid #26304a;
+  border-radius: var(--hand-drawn);
+  background: color-mix(in srgb, var(--board) 55%, transparent);
+  border: 2px solid var(--chalk-stroke);
   color: var(--muted);
   font: 12px var(--font-ui);
 }
@@ -852,10 +1028,13 @@ textarea {
   max-height: 100%;
   overflow: auto;
   overscroll-behavior: contain;
-  border-radius: 16px;
-  background: #121a2c;
-  border: 1px solid #2c3754;
-  box-shadow: 0 12px 36px rgb(0 0 0 / 45%);
+  border-radius: 6px;
+  background: var(--board);
+  border: var(--frame) solid var(--wood);
+  box-shadow:
+    inset 0 0 0 1px var(--wood-dark),
+    inset 0 0 24px rgb(0 0 0 / 35%),
+    0 8px 24px rgb(0 0 0 / 45%);
   outline: none;
 }
 
@@ -864,7 +1043,7 @@ textarea {
   grid-template-rows: 1fr auto;
   min-height: 0;
   background: var(--bg);
-  border-bottom: 1px solid #2c3754;
+  border-bottom: 1px solid var(--chalk-line-strong);
 }
 
 .tut-stage {
@@ -888,11 +1067,11 @@ textarea {
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border: 1px solid #7fb2ff;
-  border-radius: 8px;
-  background: #22345a;
+  border: 1px solid var(--chalk-yellow);
+  border-radius: var(--hand-drawn);
+  background: var(--board-pressed);
   color: var(--fg);
-  font: 600 13px var(--font-ui);
+  font: 600 14px var(--font-ui);
   pointer-events: none;
 }
 
@@ -904,8 +1083,8 @@ textarea {
   min-height: 2.6em;
   margin: 0;
   padding: 8px 14px;
-  background: #0b101c;
-  color: #cfe0ff;
+  background: var(--board-sunk);
+  color: var(--chalk);
   font: 600 14px/1.35 var(--font-ui);
   text-align: center;
 }
@@ -922,10 +1101,10 @@ textarea {
   place-items: center;
   width: 84px;
   height: 84px;
-  border-radius: 50%;
-  background: #22345a;
-  border: 2px solid #7fb2ff;
-  color: #fff;
+  border-radius: 50% 45% 55% 40% / 45% 55% 45% 55%;
+  background: var(--board-pressed);
+  border: 3px solid var(--chalk-yellow);
+  color: var(--chalk);
   font: 700 40px var(--font-num);
 }
 
@@ -937,13 +1116,13 @@ textarea {
 
 .tut-heading h2 {
   margin: 0;
-  font: 700 22px/1.2 var(--font-ui);
+  font: 700 26px/1.15 var(--font-ui);
 }
 
 .tut-kicker {
   margin: 0 0 2px;
-  color: #7fb2ff;
-  font: 700 12px var(--font-ui);
+  color: var(--chalk-pink);
+  font: 700 13px var(--font-ui);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -951,7 +1130,7 @@ textarea {
 .tut-text {
   margin: 0;
   color: var(--fg);
-  font: 15px/1.5 var(--font-ui);
+  font: 17px/1.4 var(--font-ui);
 }
 
 .tut-footer {
@@ -982,7 +1161,7 @@ textarea {
 
   .ui-compact .tut-demo {
     border-bottom: none;
-    border-right: 1px solid #2c3754;
+    border-right: 1px solid var(--chalk-line-strong);
   }
 
   .ui-compact .tut-stage,
@@ -1011,14 +1190,15 @@ textarea {
   place-items: center;
   width: 22px;
   height: 22px;
-  border-radius: 50%;
-  background: #3b6aa8;
-  color: #fff;
-  font: 700 13px var(--font-ui);
+  border: 2px solid var(--chalk-stroke);
+  border-radius: 50% 45% 55% 40% / 45% 55% 45% 55%;
+  background: var(--board);
+  color: var(--chalk);
+  font: 700 13px var(--font-num);
 }
 
 .menu-overlay {
-  background: rgb(5 8 15 / 70%);
+  background: color-mix(in srgb, var(--overlay) 70%, transparent);
 }
 
 .menu-card {
@@ -1028,10 +1208,13 @@ textarea {
   overscroll-behavior: contain;
   overflow: auto;
   padding: 20px;
-  border-radius: 14px;
-  background: #121a2c;
-  border: 1px solid #2c3754;
-  box-shadow: 0 10px 30px rgb(0 0 0 / 40%);
+  border-radius: 6px;
+  background: var(--board);
+  border: var(--frame) solid var(--wood);
+  box-shadow:
+    inset 0 0 0 1px var(--wood-dark),
+    inset 0 0 24px rgb(0 0 0 / 35%),
+    0 8px 24px rgb(0 0 0 / 45%);
 }
 
 .menu-header {
@@ -1043,8 +1226,7 @@ textarea {
 }
 
 .menu-header h2 {
-  margin: 0;
-  font: 700 20px var(--font-ui);
+  font-size: 28px;
 }
 
 .menu-header .secondary-btn {
@@ -1058,11 +1240,11 @@ textarea {
 
 .menu-btn {
   padding: 11px 14px;
-  border: 1px solid #2c3754;
-  border-radius: 10px;
-  background: #1a2236;
+  border: 2px solid var(--chalk-stroke);
+  border-radius: var(--hand-drawn);
+  background: color-mix(in srgb, var(--board) 55%, transparent);
   color: var(--fg);
-  font: 600 15px var(--font-ui);
+  font: 600 17px var(--font-ui);
   text-align: left;
   cursor: pointer;
 }
@@ -1072,7 +1254,7 @@ textarea {
 .opt-range:focus-visible,
 .menu-card a:focus-visible,
 .menu-card input[type='checkbox']:focus-visible {
-  outline: 2px solid #7fb2ff;
+  outline: 2px solid var(--chalk-yellow);
   outline-offset: 2px;
 }
 
@@ -1106,9 +1288,9 @@ textarea {
 
 .opt-select {
   padding: 6px 8px;
-  border: 1px solid #2c3754;
+  border: 1px solid var(--chalk-line-strong);
   border-radius: 8px;
-  background: #0c111e;
+  background: var(--board-sunk);
   color: var(--fg);
   font: 13px var(--font-ui);
 }
@@ -1160,7 +1342,7 @@ textarea {
 }
 
 .menu-card a {
-  color: #7fb2ff;
+  color: var(--chalk-yellow);
 }
 
 .menu-card p {
@@ -1175,7 +1357,7 @@ textarea {
   .hint-btn:not(.hint-btn-primary):hover,
   .menu-btn:hover,
   .secondary-btn:hover {
-    background: #232d46;
+    background: var(--board-hover);
   }
 }
 
@@ -1192,7 +1374,7 @@ textarea {
 }
 
 .hud-toggle:focus-visible {
-  outline: 2px solid #7fb2ff;
+  outline: 2px solid var(--chalk-yellow);
   outline-offset: 1px;
 }
 
@@ -1208,7 +1390,7 @@ textarea {
 }
 
 .ui-compact .hud-target {
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .ui-compact .hud-bar {
@@ -1274,6 +1456,8 @@ textarea {
 .ui-compact {
   --gap: 8px;
   --bar-h: 56px;
+  /* Thinner frames: space is short on a phone. */
+  --frame: 4px;
 }
 
 .ui-compact .build-bar {
@@ -1361,9 +1545,9 @@ textarea {
   right: 0;
   gap: 6px;
   padding: 6px;
-  border-radius: 10px;
-  background: rgb(10 14 26 / 96%);
-  border: 1px solid #26304a;
+  border-radius: 6px;
+  background: var(--board);
+  border: 3px solid var(--wood);
 }
 
 .ui-narrow .top-bar.more-open .top-more {

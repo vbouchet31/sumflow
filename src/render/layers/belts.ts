@@ -1,8 +1,11 @@
-import { BELT_COLORS, BELT_SHAPE } from '../../config/colors';
+import { BELT_COLORS, BELT_SHAPE, CHALK, COLORS } from '../../config/colors';
 import { DIRS, type Dir, DX, DY, opposite } from '../../core/grid';
 import { axisOf, type Belt, hasOutput } from '../../sim/entities';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
+import { chalkCurve, chalkLine, hash01, tileSeed } from '../chalk';
+import { beltChains, type RailNode, railNodes } from '../beltChains';
+import { type BeltLinks, NO_BELT_LINKS } from '../beltLinks';
 
 /**
  * Sides a belt receives from, as a direction mask (bit d = something on side d pushes into
@@ -83,46 +86,11 @@ export function curvePoint(
 }
 
 /**
- * Add the outline of a quarter turn band, `half` tiles wide on each side of the centre line,
- * to the current path (tile top-left at `(x, y)`, side `s`). The outer edge of the rails is
- * rounded by BELT_SHAPE.corner; every other edge is offset from it, so the rail stays the
- * same width all along the turn.
+ * Draw a chalk chevron pointing along `(fx, fy)` (unit vector), centred at `(cx, cy)`.
+ * `seed` gives each one its own hand: unequal arms, a tilt, the tip a little off, and the
+ * second arm not quite starting where the first one ended. Thousands are drawn every frame:
+ * straight segments, and all the randomness from one hash.
  */
-function turnPath(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  s: number,
-  from: Dir,
-  to: Dir,
-  half: number,
-): void {
-  const g = curveGeometry(from, to, 0);
-  const ccw = g.sweep < 0;
-  // Outer radius of this edge (rails or running surface), then the inner one.
-  const ro = Math.max(0, Math.min(0.5 + half, BELT_SHAPE.corner - (BELT_SHAPE.band - half)));
-  const ri = Math.max(0, ro - 2 * half);
-  // Local frame: `a` toward the entry side, `b` toward the exit side, origin at the centre.
-  const ax = DX[from];
-  const ay = DY[from];
-  const bx = DX[to];
-  const by = DY[to];
-  const X = (pa: number, pb: number): number => x + (0.5 + ax * pa + bx * pb) * s;
-  const Y = (pa: number, pb: number): number => y + (0.5 + ay * pa + by * pb) * s;
-  // Outer edge: entry side, rounded corner, exit side.
-  ctx.moveTo(X(0.5, -half), Y(0.5, -half));
-  const co = ro - half;
-  ctx.arc(X(co, co), Y(co, co), ro * s, g.a0, g.a0 + g.sweep, ccw);
-  ctx.lineTo(X(-half, 0.5), Y(-half, 0.5));
-  // Inner edge, back to the entry side.
-  ctx.lineTo(X(half, 0.5), Y(half, 0.5));
-  const ci = half + ri;
-  ctx.arc(X(ci, ci), Y(ci, ci), ri * s, g.a0 + g.sweep, g.a0, !ccw);
-  ctx.lineTo(X(0.5, half), Y(0.5, half));
-  ctx.closePath();
-}
-
-/** Draw a chevron pointing along `(fx, fy)` (unit vector), centred at `(cx, cy)`. */
 function chevron(
   ctx: CanvasRenderingContext2D,
   cx: number,
@@ -130,15 +98,115 @@ function chevron(
   fx: number,
   fy: number,
   size: number,
+  seed = 0,
 ): void {
-  // Perpendicular.
-  const px = -fy;
-  const py = fx;
-  const back = size * 0.5;
-  const half = size;
-  ctx.moveTo(cx - fx * back + px * half, cy - fy * back + py * half);
-  ctx.lineTo(cx + fx * back * 0.6, cy + fy * back * 0.6);
-  ctx.lineTo(cx - fx * back - px * half, cy - fy * back - py * half);
+  const h = tileSeed(seed, 11);
+  const r1 = (h & 255) / 255;
+  const r2 = ((h >>> 8) & 255) / 255;
+  const r3 = ((h >>> 16) & 255) / 255;
+  const r4 = (h >>> 24) / 255;
+  const tilt = (r1 - 0.5) * 0.45;
+  const px = -fy + fx * tilt;
+  const py = fx + fy * tilt;
+  const back = size * (0.45 + r2 * 0.2);
+  const tipX = cx + fx * back * 0.6 + px * (r3 - 0.5) * size * 0.2;
+  const tipY = cy + fy * back * 0.6 + py * (r3 - 0.5) * size * 0.2;
+  const armA = size * (0.8 + r4 * 0.35);
+  const armB = size * (0.8 + r2 * 0.35);
+  const backB = back * (0.85 + r1 * 0.3);
+  ctx.moveTo(cx - fx * back + px * armA, cy - fy * back + py * armA);
+  ctx.lineTo(tipX, tipY);
+  ctx.lineTo(cx - fx * backB - px * armB, cy - fy * backB - py * armB);
+}
+
+/**
+ * Belt rails in chalk (DECISIONS: "Tableau noir"): each chain of belts (see beltChains.ts)
+ * gets two rails, each one continuous stroke in two passes. Where a belt joins another from
+ * the side, that piece of rail is rubbed out; against a building, a chalk threshold closes
+ * the rails; a loose end is closed by a rounded stroke (BELT_SHAPE.cap). Every wobble is
+ * derived from world positions, so cached regions drawn separately meet without a seam.
+ */
+function drawRails(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  list: readonly Belt[],
+  inputsOf: InputsOf,
+  links: BeltLinks,
+): void {
+  const s = cam.scale;
+  const K = BELT_SHAPE.band;
+  const radius = turnRadius();
+  const { chains, gaps } = beltChains(list, inputsOf, links);
+  ctx.save();
+  ctx.strokeStyle = BELT_COLORS.line;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (const chain of chains) {
+    for (const side of [1, -1] as const) {
+      for (let pass = 0; pass < 2; pass++) {
+        const nodes = railNodes(
+          chain.points,
+          side,
+          radius,
+          (p) =>
+            (hash01(Math.round(p.x * 8) + side * 7 + pass * 3, Math.round(p.y * 8) - pass * 5) -
+              0.5) *
+            (pass ? 0.1 : 0.06),
+        );
+        ctx.lineWidth = Math.max(1, (pass ? 0.03 : 0.055) * s);
+        ctx.globalAlpha = pass ? 0.45 : 0.9;
+        ctx.beginPath();
+        const first = cam.worldToScreen((nodes[0] as RailNode).x, (nodes[0] as RailNode).y);
+        ctx.moveTo(first.x, first.y);
+        for (let i = 1; i < nodes.length - 1; i++) {
+          const n = nodes[i] as RailNode;
+          const m = nodes[i + 1] as RailNode;
+          const p = cam.worldToScreen(n.x, n.y);
+          const q = cam.worldToScreen(m.x, m.y);
+          // A corner keeps its radius; elsewhere the stroke flows through the midpoints.
+          if (n.r !== undefined) ctx.arcTo(p.x, p.y, q.x, q.y, n.r * s);
+          else if (m.r !== undefined) ctx.lineTo(p.x, p.y);
+          else ctx.quadraticCurveTo(p.x, p.y, (p.x + q.x) / 2, (p.y + q.y) / 2);
+        }
+        const last = nodes[nodes.length - 1] as RailNode;
+        const l = cam.worldToScreen(last.x, last.y);
+        ctx.lineTo(l.x, l.y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Rub out the rail where a belt joins from the side or a branch leaves.
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = COLORS.background;
+  for (const g of gaps) {
+    const cx = g.x + 0.5 + DX[g.d] * K;
+    const cy = g.y + 0.5 + DY[g.d] * K;
+    const hw = DY[g.d] ? K * 0.8 : 0.1;
+    const hh = DX[g.d] ? K * 0.8 : 0.1;
+    const p = cam.worldToScreen(cx - hw, cy - hh);
+    ctx.fillRect(p.x, p.y, 2 * hw * s, 2 * hh * s);
+  }
+
+  // Ends against a building (threshold) or against nothing (rounded cap).
+  for (const chain of chains) {
+    for (const end of [chain.start, chain.end]) {
+      if (end.kind !== 'door' && end.kind !== 'loose') continue;
+      const px = -DY[end.d];
+      const py = DX[end.d];
+      const a = cam.worldToScreen(end.x + px * K, end.y + py * K);
+      const b = cam.worldToScreen(end.x - px * K, end.y - py * K);
+      const seed = tileSeed(Math.round(end.x * 4), Math.round(end.y * 4));
+      if (end.kind === 'door') {
+        chalkLine(ctx, a.x, a.y, b.x, b.y, seed, CHALK.threshold, Math.max(1, 0.06 * s));
+      } else {
+        const bulge = 2 * K * BELT_SHAPE.cap;
+        const c = cam.worldToScreen(end.x + DX[end.d] * bulge, end.y + DY[end.d] * bulge);
+        chalkCurve(ctx, a.x, a.y, c.x, c.y, b.x, b.y, seed, CHALK.rail, Math.max(1, 0.055 * s));
+      }
+    }
+  }
+  ctx.restore();
 }
 
 /** Sides a belt is joined on: its outputs, its inputs, and straight behind when unfed. */
@@ -147,53 +215,12 @@ function joints(b: Belt, inputs: number): number {
 }
 
 /**
- * Add the band of one belt tile to the current path, `half` tiles wide on each side of the
- * centre line. A quarter turn is an annulus sector; anything else is a centre square with
- * an arm to every joined side (a straight belt is two opposite arms).
- */
-function bandPath(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  s: number,
-  b: Belt,
-  inputs: number,
-  half: number,
-): void {
-  const curve = curveOf(b.outputs, inputs);
-  if (curve) {
-    turnPath(ctx, x, y, s, curve.from, curve.to, half);
-    return;
-  }
-  const mx = x + 0.5 * s;
-  const my = y + 0.5 * s;
-  const h = half * s;
-  const mask = joints(b, inputs);
-  let count = 0;
-  for (const d of DIRS) {
-    if (!(mask & (1 << d))) continue;
-    count++;
-    // Arm from the centre to the side, as wide as the band.
-    const x0 = DX[d] === 0 ? mx - h : DX[d] > 0 ? mx : x;
-    const x1 = DX[d] === 0 ? mx + h : DX[d] > 0 ? x + s : mx;
-    const y0 = DY[d] === 0 ? my - h : DY[d] > 0 ? my : y;
-    const y1 = DY[d] === 0 ? my + h : DY[d] > 0 ? y + s : my;
-    ctx.rect(x0, y0, x1 - x0, y1 - y0);
-  }
-  if (count === 1) {
-    // A loose end (start of a line, or nothing joined yet): rounded by BELT_SHAPE.cap.
-    ctx.roundRect(mx - h, my - h, 2 * h, 2 * h, BELT_SHAPE.cap * h);
-  } else {
-    ctx.rect(mx - h, my - h, 2 * h, 2 * h);
-  }
-}
-
-/**
- * Belts layer (PLAN §10.2 layer 3): a continuous band joining each belt to what feeds it
- * and to where it leads, rounded in turns, with chevrons animated along the flow (they
+ * Belts layer (PLAN §10.2 layer 3): two chalk rails joining each belt to what feeds it and
+ * to where it leads, with tight turns, and chalk chevrons animated along the flow (they
  * follow the curve in a turn). `phase` ∈ [0, 1) scrolls with time × belt speed. `part`
- * draws only the static band or only the chevrons (below zoom 0.3 belts are plain lines and
- * count as base). `inputsOf` tells which sides feed each belt.
+ * draws only the static rails or only the chevrons (below zoom 0.3 belts are plain lines
+ * and count as base). `inputsOf` tells which sides feed each belt, `links` where belts meet
+ * buildings.
  */
 export function drawBelts(
   ctx: CanvasRenderingContext2D,
@@ -202,6 +229,7 @@ export function drawBelts(
   phase: number,
   part: 'all' | 'base' | 'chevrons' = 'all',
   inputsOf: InputsOf = straightInputs,
+  links: BeltLinks = NO_BELT_LINKS,
 ): void {
   const s = cam.scale;
   const list = Array.isArray(belts) ? (belts as Belt[]) : [...belts];
@@ -240,27 +268,13 @@ export function drawBelts(
     return;
   }
 
-  if (part !== 'chevrons') {
-    // Rails (darker edge), then the running surface: neighbouring tiles join seamlessly.
-    for (const [color, half] of [
-      [BELT_COLORS.rail, BELT_SHAPE.band],
-      [BELT_COLORS.base, BELT_SHAPE.surface],
-    ] as const) {
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      for (const b of list) {
-        const p = cam.worldToScreen(b.x, b.y);
-        bandPath(ctx, p.x, p.y, s, b, inputsOf(b), half);
-      }
-      ctx.fill('nonzero');
-    }
-  }
+  if (part !== 'chevrons') drawRails(ctx, cam, list, inputsOf, links);
 
   if (part === 'base') return;
 
   const animated = cam.zoom >= LOD.full;
   ctx.strokeStyle = BELT_COLORS.chevron;
-  ctx.lineWidth = Math.max(1, 0.07 * s);
+  ctx.lineWidth = Math.max(1, 0.1 * s);
   // Round ends cost a lot on thousands of live chevrons and do not show on thin lines:
   // keep them where chevrons are cached (static) or large (zoom ≥ 1).
   const round = !animated || cam.zoom >= 1;
@@ -278,7 +292,7 @@ export function drawBelts(
       for (let i = 0; i < 2; i++) {
         const t = animated ? (phase + i * 0.5) % 1 : 0.25 + i * 0.5;
         const c = curvePoint(curve.from, curve.to, 0.1 + t * 0.8);
-        chevron(ctx, p.x + c.x * s, p.y + c.y * s, c.fx, c.fy, size);
+        chevron(ctx, p.x + c.x * s, p.y + c.y * s, c.fx, c.fy, size, tileSeed(b.x * 2 + i, b.y));
       }
       continue;
     }
@@ -291,12 +305,28 @@ export function drawBelts(
         for (let i = 0; i < 2; i++) {
           const t = (animated ? (phase + i * 0.5) % 1 : 0.25 + i * 0.5) - 0.5;
           const off = t * 0.8;
-          chevron(ctx, cx + DX[d] * off * s, cy + DY[d] * off * s, DX[d], DY[d], size);
+          chevron(
+            ctx,
+            cx + DX[d] * off * s,
+            cy + DY[d] * off * s,
+            DX[d],
+            DY[d],
+            size,
+            tileSeed(b.x * 2 + i, b.y),
+          );
         }
       } else {
         // One chevron on the half tile toward each output.
         const t = animated ? 0.15 + (phase % 1) * 0.25 : 0.27;
-        chevron(ctx, cx + DX[d] * t * s, cy + DY[d] * t * s, DX[d], DY[d], size * 0.9);
+        chevron(
+          ctx,
+          cx + DX[d] * t * s,
+          cy + DY[d] * t * s,
+          DX[d],
+          DY[d],
+          size * 0.9,
+          tileSeed(b.x, b.y * 2 + d),
+        );
       }
     }
   }

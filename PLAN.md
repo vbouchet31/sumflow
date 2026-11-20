@@ -535,13 +535,16 @@ Reprendre, Nouvelle partie (seed aléatoire ou saisi), Sauvegarder, Exporter (.j
 
 ## 10. Rendu
 
-### 10.1 Direction artistique (originale)
-- Fond bleu nuit `#0f1422`, lignes de grille `#1a2236` (visibles à zoom ≥ 0,5).
-- Gisements : carré `#1e2740` à coins arrondis, valeur blanche en police monospace grasse.
-- Bâtiments : formes arrondies, couleur pleine désaturée, symbole blanc au centre (`+ × − ÷ ^`), lettres `A`/`B`/`Q`/`R` sur les tuiles de port, tuiles d'entrée plus sombres, tuiles de sortie plus claires.
-- Hub : grand carré `#2b6cb0` arrondi, texte blanc.
-- Items : disque de couleur (5.) avec la valeur en blanc. Ombre légère.
-- Police : pile système `ui-monospace, "SF Mono", Menlo, Consolas, monospace` pour les nombres ; `system-ui` pour l'UI.
+### 10.1 Direction artistique (originale) : « Tableau noir »
+Une ardoise verte sur laquelle on écrit à la craie. Ce que le joueur construit est **dessiné à main levée** ; ce que le jeu fournit (le Hub, « donné par le prof ») est **tracé à la règle**. Palette dans `src/config/colors.ts` (canvas) et en variables CSS dans `src/ui/styles.css` (interface).
+- Fond ardoise `#26332b`, grille à peine visible (craie à 4,5 %), poussière de craie et traces d'éponge par-dessus, cadre en bois autour de l'écran.
+- Gisements : léger voile de craie, contour à la craie, valeur blanche manuscrite.
+- Bâtiments : coloriés à la craie (hachures en diagonale, 3 motifs en cache vus sous 8 orientations), contour tremblé qui dépasse aux coins, symbole blanc au centre (`+ × − ÷ ^`), lettres `A`/`B`/`Q`/`R` sur les tuiles de port, tuiles d'entrée plus sombres, tuiles de sortie plus claires.
+- Hub : cadre blanc net doublé d'un cadre jaune, intérieur légèrement assombri, texte blanc.
+- Tapis : deux rails à la craie, chacun d'un seul trait sur toute la chaîne de tapis (virages serrés, `BELT_SHAPE`), flèches à la craie de travers. Contre un bâtiment, un trait ferme les rails ; un bout libre est fermé par un trait arrondi ; une jonction efface le morceau de rail traversé. Ponts : passerelle légère (deux poutres, quelques planches).
+- Items : cercle tracé à la main dans la couleur de l'item (5.), valeur de la même couleur.
+- Tous les tremblements viennent de graines tirées des positions sur la carte : rien ne bouge d'une image à l'autre, et les morceaux mis en cache se raccordent.
+- Polices manuscrites embarquées (`public/fonts`, licence SIL OFL) : Patrick Hand pour le texte et les nombres, Fredericka the Great pour les titres. Repli `cursive`.
 - Tous les visuels sont **dessinés par code** (Canvas) et mis en cache dans des canvas hors écran. **Aucun fichier image** sauf favicon (SVG original) et les icônes d'installation (PNG générés depuis ce SVG par `scripts/make-icons.mjs`).
 
 ### 10.2 Couches (ordre de dessin)

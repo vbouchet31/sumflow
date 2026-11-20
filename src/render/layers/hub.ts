@@ -25,9 +25,9 @@ export function rewardIcon(reward: Reward): { glyph: string; color: string } {
         color: BUILDING_COLORS[reward.building],
       };
     case 'extraction':
-      return { glyph: String(reward.max), color: COLORS.deposit };
+      return { glyph: String(reward.max), color: HUB_COLORS.rewardExtraction };
     case 'feature':
-      return { glyph: reward.feature === 'upgrades' ? '↑' : '◆', color: '#3a8f8a' };
+      return { glyph: reward.feature === 'upgrades' ? '↑' : '◆', color: HUB_COLORS.rewardFeature };
   }
 }
 
@@ -43,6 +43,13 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
   ctx.fillStyle = HUB_COLORS.fill;
   roundRect(ctx, x, y, w, w, Math.max(2, 0.4 * s));
   ctx.fill();
+  ctx.strokeStyle = HUB_COLORS.frame;
+  ctx.lineWidth = Math.max(2, 0.12 * s);
+  ctx.stroke();
+  roundRect(ctx, x + 0.22 * s, y + 0.22 * s, w - 0.44 * s, w - 0.44 * s, Math.max(2, 0.3 * s));
+  ctx.strokeStyle = HUB_COLORS.innerFrame;
+  ctx.lineWidth = Math.max(1, 0.05 * s);
+  ctx.stroke();
 
   if (cam.zoom < LOD.buildingText) return;
 

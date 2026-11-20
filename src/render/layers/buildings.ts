@@ -1,9 +1,9 @@
-import { BUILDING_COLORS, COLORS, FONT_NUM } from '../../config/colors';
+import { BUILDING_COLORS, CHALK, COLORS, FONT_NUM } from '../../config/colors';
 import { buildingSize, type Building, isOperator } from '../../sim/entities';
 import type { GameState } from '../../sim/state';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
-import { roundRect } from '../shapes';
+import { chalkSquare, shade, tileSeed } from '../chalk';
 import { drawHub } from './hub';
 import { drawOperator } from './operators';
 import { drawStorage } from './storage';
@@ -11,18 +11,25 @@ import { drawStorage } from './storage';
 /** Cycle-end flash duration in ticks (150 ms, PLAN §6.2). */
 const FLASH_TICKS = 9;
 
-/** Extractor: rounded 3×3 block with the extracted value and notches on its 12 output faces. */
+/** Extractor: a 3×3 block coloured in chalk, its extracted value and notches on its 12 output faces. */
 function drawExtractor(ctx: CanvasRenderingContext2D, cam: Camera, b: Building, alpha = 1): void {
   const s = cam.scale;
   const p = cam.worldToScreen(b.x, b.y);
   const inset = 0.1 * s;
+  const base = BUILDING_COLORS.extractor;
   ctx.globalAlpha = alpha;
-  ctx.fillStyle = BUILDING_COLORS.extractor;
-  roundRect(ctx, p.x + inset, p.y + inset, 3 * s - 2 * inset, 3 * s - 2 * inset, 0.4 * s);
-  ctx.fill();
+  chalkSquare(
+    ctx,
+    p.x + inset,
+    p.y + inset,
+    3 * s - 2 * inset,
+    tileSeed(b.x, b.y),
+    { wash: base, hatch: shade(base, 0.35), outline: shade(base, 0.65) },
+    { hatch: Math.max(1, 0.09 * s), outline: Math.max(1.5, 0.09 * s) },
+  );
   if (cam.zoom >= LOD.buildingText) {
     // Output notches: small light bars on each outer face.
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.fillStyle = CHALK.markFaint;
     const len = 0.36 * s;
     const th = 0.08 * s;
     for (let i = 0; i < 3; i++) {

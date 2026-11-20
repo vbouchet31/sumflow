@@ -201,3 +201,16 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Fiches sans démo** : Améliorations et Priorités (pas de bâtiment à poser) montrent leur icône.
 - **Nouvelle fiche Multiplicateur** : elle manquait à la liste. Une partie qui l'a déjà débloqué la verra une fois.
 - **`?tutorial=0`** : les fiches ne s'ouvrent plus seules. Utilisé par les tests e2e qui ne portent pas sur elles.
+
+## Direction artistique « Tableau noir » (§10.1)
+
+- **Pourquoi** : le premier rendu ressemblait trop à Beltmatic (bleu nuit, tuiles arrondies pleines). Six pistes ont été maquettées (branches `claude/design-*`) ; « Tableau noir » a été retenue et poussée jusqu'au dessin à main levée.
+- **Main levée contre règle** : ce que le joueur construit (bâtiments, tapis, nombres) est esquissé ; le Hub est net, comme un point de départ donné par le prof.
+- **Aléatoire stable** : aucun `Math.random` au rendu. Chaque tremblement vient d'une graine tirée de la position (`tileSeed`, mélange MurmurHash3). Sinon les traits « bouilliraient » d'une image à l'autre, et deux régions de cache dessinées à part ne se raccorderaient pas.
+- **Tapis en chaînes** (`src/render/beltChains.ts`, pur et testé) : un rail continu par chaîne au lieu d'un morceau par case, qui donnait un effet de pointillés. Une séparation continue tout droit, ses branches partent du rail ; une fusion s'arrête contre le rail ; le morceau de rail traversé est effacé. Les régions de cache sont dessinées avec 3 cases de marge pour que les chaînes se prolongent au-delà de leur bord.
+- **Hachures en cache** : 3 motifs par couleur et taille, montrés sous 8 orientations (quarts de tour, miroir) ; tailles par quart d'octave et 512 px au plus, pour qu'un zoom réutilise les mêmes images ; budget de 32 Mo.
+- **Flèches de tapis** : une seule ligne brisée par flèche, aléa tiré d'un seul hachage. Les versions courbes en deux morceaux coûtaient environ 10 images/s pendant un zoom sur l'usine de référence.
+- **Pas de flèche jaune aux portes des bâtiments** : essayée, elle cassait l'ensemble. Le trait qui ferme les rails suffit.
+- **Polices embarquées** plutôt que Google Fonts : pas de requête vers un tiers à chaque visite, et le jeu reste jouable sans réseau une fois chargé. Fredericka the Great pèse 203 Ko (sous-ensemble latin) ; un sous-ensemble plus petit ne gagne rien (le poids vient du dessin des lettres). Les caches qui contiennent du texte (gisements, items) sont redessinés quand la police manuscrite a fini de charger.
+- **Icônes d'aide** : cercle à la craie au lieu de blanc sur bleu (4,34:1, sous le seuil de 4,5:1).
+- **Coût mesuré** (build de production, Chromium sans GPU, usine de référence) : vues fixes à 60 images/s comme avant ; zoom continu à environ 53 images/s contre 57 sur l'ancien rendu.
