@@ -101,7 +101,8 @@ export class Renderer {
         drawBelts(
           c,
           cam,
-          [...world.beltsInRect(r.x0, r.y0, r.x1, r.y1)],
+          // Draft tableau noir: a margin so belt chains run on across region edges.
+          [...world.beltsInRect(r.x0 - 3, r.y0 - 3, r.x1 + 3, r.y1 + 3)],
           0,
           liveChevrons ? 'base' : 'all',
         ),

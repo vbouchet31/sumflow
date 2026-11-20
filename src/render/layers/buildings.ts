@@ -4,7 +4,7 @@ import type { GameState } from '../../sim/state';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
 import { roundRect } from '../shapes';
-import { hatchRect, sketchRect, tileSeed } from '../chalk';
+import { drawHatch, sketchRect, tileSeed } from '../chalk';
 import { drawHub } from './hub';
 import { drawOperator } from './operators';
 import { drawStorage } from './storage';
@@ -24,9 +24,26 @@ function drawExtractor(ctx: CanvasRenderingContext2D, cam: Camera, b: Building, 
   ctx.fill();
   const size = 3 * s - 2 * inset;
   ctx.globalAlpha = alpha * 0.6;
-  hatchRect(ctx, p.x + 1.5 * inset, p.y + 1.5 * inset, size - inset, size - inset, tileSeed(b.x, b.y), '#7fb3bf', Math.max(1, 0.09 * s));
+  drawHatch(
+    ctx,
+    p.x + 1.5 * inset,
+    p.y + 1.5 * inset,
+    size - inset,
+    tileSeed(b.x, b.y),
+    '#7fb3bf',
+    Math.max(1, 0.09 * s),
+  );
   ctx.globalAlpha = alpha;
-  sketchRect(ctx, p.x + inset, p.y + inset, size, size, tileSeed(b.x, b.y), '#bfe3ea', Math.max(1.5, 0.09 * s));
+  sketchRect(
+    ctx,
+    p.x + inset,
+    p.y + inset,
+    size,
+    size,
+    tileSeed(b.x, b.y),
+    '#bfe3ea',
+    Math.max(1.5, 0.09 * s),
+  );
   if (cam.zoom >= LOD.buildingText) {
     // Output notches: small light bars on each outer face.
     ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';

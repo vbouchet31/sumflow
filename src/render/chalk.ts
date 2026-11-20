@@ -174,3 +174,43 @@ export function hatchRect(
   ctx.stroke();
   ctx.restore();
 }
+
+const hatchSprites = new Map<string, HTMLCanvasElement>();
+
+/**
+ * Chalk colouring of a `size` square from a cache: only 3 hatch variants per colour and
+ * size, each shown under one of 8 orientations (4 quarter turns, with or without a mirror)
+ * picked from `seed`, so neighbouring tiles still look different.
+ */
+export function drawHatch(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  seed: number,
+  color: string,
+  lw: number,
+): void {
+  const dpr = ctx.getTransform().a;
+  const px = Math.max(4, Math.round(size * dpr));
+  const h = seed >>> 0;
+  const variant = h % 3;
+  const key = `${color}|${px}|${variant}`;
+  let sprite = hatchSprites.get(key);
+  if (!sprite) {
+    if (hatchSprites.size > 256) hatchSprites.clear();
+    sprite = document.createElement('canvas');
+    sprite.width = px;
+    sprite.height = px;
+    const g = sprite.getContext('2d');
+    if (g) hatchRect(g, 0, 0, px, px, variant * 7919 + 13, color, lw * dpr);
+    hatchSprites.set(key, sprite);
+  }
+  const t = (h >>> 3) % 8;
+  ctx.save();
+  ctx.translate(x + size / 2, y + size / 2);
+  ctx.rotate(((t & 3) * Math.PI) / 2);
+  if (t & 4) ctx.scale(-1, 1);
+  ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+  ctx.restore();
+}
