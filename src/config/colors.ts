@@ -130,6 +130,19 @@ export const GHOST_COLORS = {
   demolish: 'rgba(242, 155, 143, 0.35)',
 } as const;
 
+/**
+ * Moving a building: one soft chalk tint per belt line that follows it, so each line can be
+ * told apart. Muted on purpose, and away from the green / orange / red of the ghosts.
+ * RGB only: the layer sets the opacity (rerouted belts stronger than the belts that stay).
+ */
+export const LINE_TINTS: readonly (readonly [number, number, number])[] = [
+  [140, 170, 235], // periwinkle
+  [245, 195, 110], // amber
+  [205, 150, 215], // mauve
+  [110, 205, 215], // cyan
+  [235, 230, 215], // chalk white
+];
+
 /** Zone selection rectangles (PLAN §8.2): a dashed chalk line around a light wash. */
 export const AREA_COLORS = {
   demolish: { fill: 'rgba(242, 155, 143, 0.14)', stroke: 'rgba(242, 155, 143, 0.95)' },

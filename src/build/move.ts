@@ -59,6 +59,11 @@ export interface MovePlan {
   removed: { x: number; y: number }[];
   /** Ends of lines that could not follow: left as they are, drawn in red. */
   broken: { x: number; y: number; dir: Dir }[];
+  /**
+   * The belts each line keeps where they are, by line number (as in `belts[].line`): drawn
+   * in the line's tint, so each line can be followed while the building moves.
+   */
+  lines: { line: number; tiles: { x: number; y: number }[] }[];
 }
 
 /** Buildings that can be moved: not the hub, not an extractor (tied to its deposit). */
@@ -86,6 +91,8 @@ interface Link {
   /** True when the line feeds the port, false when the port feeds the line. */
   input: boolean;
   chain: Belt[];
+  /** Line number, in port order: stable while the building is dragged (its tint). */
+  index: number;
 }
 
 /** Lanes pushing into tile `(x, y)`: plain belts (`belt`) or bridge lanes (`belt` null). */
@@ -138,7 +145,7 @@ function findLinks(world: World, b: Building): Link[] {
         seen.add(key(up.x, up.y));
         cur = up.belt;
       }
-      links.push({ port, input: true, chain });
+      links.push({ port, input: true, chain, index: links.length });
     } else {
       // A line starting at the port: nothing else feeds its first belt.
       if (!gives || feeders(world, nx, ny).length > 0) continue;
@@ -153,7 +160,7 @@ function findLinks(world: World, b: Building): Link[] {
         seen.add(key(x, y));
         cur = next;
       }
-      links.push({ port, input: false, chain });
+      links.push({ port, input: false, chain, index: links.length });
     }
   }
   return links;
@@ -221,6 +228,7 @@ export function planMove(
     belts: [],
     removed: [],
     broken: [],
+    lines: [],
   };
   if (!ok || (x === b.x && y === b.y && r === b.rot)) return plan;
 
@@ -260,6 +268,7 @@ export function planMove(
   plan.belts = best.belts;
   plan.removed = best.removed;
   plan.broken = best.broken;
+  plan.lines = best.lines;
   return plan;
 }
 
@@ -267,11 +276,18 @@ interface Routed {
   belts: PlannedBelt[];
   removed: { x: number; y: number }[];
   broken: { x: number; y: number; dir: Dir }[];
+  lines: MovePlan['lines'];
 }
 
 /** Route the lines in this order, each one around the ones before it. */
 function routeLinks(ctx: Routing, links: Link[], ports: LocalPortFace[]): Routed {
-  const out: Routed = { belts: [], removed: [], broken: [] };
+  const out: Routed = { belts: [], removed: [], broken: [], lines: [] };
+  /** Belts of the line from `from` on that stay where they are. */
+  const kept = (link: Link, from: number): { x: number; y: number }[] =>
+    link.chain
+      .slice(from)
+      .filter((b) => !ctx.newFoot.has(key(b.x, b.y)))
+      .map((b) => ({ x: b.x, y: b.y }));
   for (const l of links) for (const belt of l.chain) ctx.linked.add(key(belt.x, belt.y));
   const used = new Set<LocalPortFace>();
   for (const link of links) {
@@ -283,8 +299,10 @@ function routeLinks(ctx: Routing, links: Link[], ports: LocalPortFace[]): Routed
         const dir = singleDir(first) ?? opposite(link.port.face);
         out.broken.push({ x: first.x, y: first.y, dir });
       }
+      out.lines.push({ line: link.index, tiles: kept(link, 1) });
       continue;
     }
+    out.lines.push({ line: link.index, tiles: kept(link, best.anchor + 1) });
     used.add(best.target);
     for (let i = 0; i < best.anchor; i++) {
       const belt = link.chain[i];
@@ -303,6 +321,7 @@ function routeLinks(ctx: Routing, links: Link[], ports: LocalPortFace[]): Routed
       const crossed = ctx.reserved.get(k);
       if (crossed && belt.status === 'bridge') crossed.status = 'bridge';
       ctx.reserved.set(k, belt);
+      belt.line = link.index;
       out.belts.push(belt);
     }
   }

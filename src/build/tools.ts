@@ -79,6 +79,8 @@ export interface Ghost {
   area: { rect: Rect; kind: AreaTool } | null;
   /** Tiles drawn faded: a building being moved, at its old place, and belts it drops. */
   fade?: Rect[];
+  /** Belts that stay while a building moves, tinted by line (see `PlannedBelt.line`). */
+  tints?: { x: number; y: number; line: number }[];
 }
 
 /** A building being dragged to a new place (no tool). */
@@ -796,6 +798,7 @@ function moveGhost(world: World, plan: MovePlan | null): Ghost {
     ghost.fade?.push({ x0: b.x, y0: b.y, x1: b.x + w - 1, y1: b.y + h - 1 });
   }
   for (const t of plan.removed) ghost.fade?.push({ x0: t.x, y0: t.y, x1: t.x, y1: t.y });
+  ghost.tints = plan.lines.flatMap((l) => l.tiles.map((t) => ({ ...t, line: l.line })));
   return ghost;
 }
 

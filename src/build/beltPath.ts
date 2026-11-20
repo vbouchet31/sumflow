@@ -115,6 +115,8 @@ export type PlanStatus = 'new' | 'replace' | 'addOutput' | 'bridge' | 'blocked';
 
 export interface PlannedBelt extends PathTile {
   status: PlanStatus;
+  /** Moving a building: the belt line it belongs to (each line has its own tint). */
+  line?: number;
   /** Resulting output mask (meaningless when blocked). */
   outputs: number;
 }

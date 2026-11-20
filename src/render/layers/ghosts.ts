@@ -1,4 +1,4 @@
-import { AREA_COLORS, COLORS, GHOST_COLORS } from '../../config/colors';
+import { AREA_COLORS, COLORS, GHOST_COLORS, LINE_TINTS } from '../../config/colors';
 import { DX, DY } from '../../core/grid';
 import type { Ghost } from '../../build/tools';
 import { buildingSize, isOperator } from '../../sim/entities';
@@ -19,16 +19,24 @@ export function drawGhosts(ctx: CanvasRenderingContext2D, cam: Camera, ghost: Gh
     }
     ctx.restore();
   }
+  // Moving a building: the belts each line keeps, faintly in the line's tint.
+  for (const t of ghost.tints ?? []) {
+    const p = cam.worldToScreen(t.x, t.y);
+    ctx.fillStyle = lineTint(t.line, 0.3);
+    ctx.fillRect(p.x + 1, p.y + 1, s - 2, s - 2);
+  }
   for (const t of ghost.belts) {
     const p = cam.worldToScreen(t.x, t.y);
     ctx.fillStyle =
-      t.status === 'blocked'
-        ? GHOST_COLORS.blocked
-        : t.status === 'new'
-          ? GHOST_COLORS.new
-          : t.status === 'bridge'
-            ? GHOST_COLORS.bridge
-            : GHOST_COLORS.replace;
+      t.line !== undefined && t.status !== 'blocked'
+        ? lineTint(t.line, 0.55)
+        : t.status === 'blocked'
+          ? GHOST_COLORS.blocked
+          : t.status === 'new'
+            ? GHOST_COLORS.new
+            : t.status === 'bridge'
+              ? GHOST_COLORS.bridge
+              : GHOST_COLORS.replace;
     ctx.fillRect(p.x + 1, p.y + 1, s - 2, s - 2);
     if (t.status === 'blocked') continue;
     // Arrow toward the output.
@@ -95,4 +103,10 @@ export function drawGhosts(ctx: CanvasRenderingContext2D, cam: Camera, ghost: Gh
     ctx.fillStyle = GHOST_COLORS.demolish;
     ctx.fillRect(p.x, p.y, s, s);
   }
+}
+
+/** Tint of belt line `line` at opacity `alpha`. */
+function lineTint(line: number, alpha: number): string {
+  const [r, g, b] = LINE_TINTS[line % LINE_TINTS.length] ?? [175, 175, 175];
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
