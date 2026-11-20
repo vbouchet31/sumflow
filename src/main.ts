@@ -2,6 +2,7 @@ import './ui/styles.css';
 import { Sfx } from './audio/sfx';
 import { ToolController } from './build/tools';
 import { CATCH_UP } from './config/balance';
+import { FONT_NUM } from './config/colors';
 import { CAMERA } from './config/keymap';
 import { toSeed } from './core/rng';
 import { installDebugApi, isDebugEnabled } from './debug/debugApi';
@@ -125,6 +126,9 @@ async function bootstrap(): Promise<void> {
     camera.zoom = Math.min(CAMERA.maxZoom, Math.max(CAMERA.minZoom, loaded.camera.zoom));
   }
   const renderer = new Renderer(canvas, camera);
+  // The map is written with the handwriting font: once it has loaded, redraw what was cached
+  // with the fallback font (numbers on deposits and items).
+  void document.fonts.load(`16px ${FONT_NUM}`).then(() => renderer.refreshText());
   const sfx = new Sfx();
   const saves = new SaveManager(world, camera);
   let markerEditor: MarkerEditor | null = null;

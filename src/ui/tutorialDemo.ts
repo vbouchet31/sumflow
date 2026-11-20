@@ -1,3 +1,4 @@
+import { COLORS } from '../config/colors';
 import { TILE_PX } from '../config/keymap';
 import { t } from '../i18n';
 import { Camera } from '../render/camera';
@@ -144,7 +145,7 @@ export class TutorialDemo {
           : 1 - this.age / FADE_MS;
       if (fade > 0) {
         ctx.globalAlpha = Math.min(1, fade);
-        ctx.fillStyle = '#26332b';
+        ctx.fillStyle = COLORS.background;
         ctx.fillRect(0, 0, this.camera.viewW, this.camera.viewH);
       }
       ctx.restore();
@@ -192,7 +193,7 @@ export class TutorialDemo {
     ctx.fillStyle = '#ffffff';
     ctx.fill();
     ctx.lineWidth = 1.5;
-    ctx.strokeStyle = '#26332b';
+    ctx.strokeStyle = COLORS.background;
     ctx.stroke();
   }
 

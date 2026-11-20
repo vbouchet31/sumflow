@@ -1,10 +1,11 @@
-import { BELT_COLORS, BELT_SHAPE, COLORS } from '../../config/colors';
+import { BELT_COLORS, BELT_SHAPE, CHALK, COLORS } from '../../config/colors';
 import { DIRS, type Dir, DX, DY, opposite } from '../../core/grid';
 import { axisOf, type Belt, hasOutput } from '../../sim/entities';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
-import { chalkLine, hash01, tileSeed } from '../chalk';
-import { type BuildingLinks, NO_BUILDING_LINKS } from '../beltLinks';
+import { chalkCurve, chalkLine, hash01, tileSeed } from '../chalk';
+import { beltChains, type RailNode, railNodes } from '../beltChains';
+import { type BeltLinks, NO_BELT_LINKS } from '../beltLinks';
 
 /**
  * Sides a belt receives from, as a direction mask (bit d = something on side d pushes into
@@ -121,212 +122,92 @@ function chevron(
   ctx.quadraticCurveTo((bx + tipX) / 2 - fx * bend, (by + tipY) / 2 - fy * bend, bx, by);
 }
 
-type Pt = { x: number; y: number };
-/** A rail node: a point the stroke passes through, or a corner rounded with radius `r`. */
-type Node = Pt & { r?: number };
-
 /**
- * Draft "tableau noir": belts as continuous hand-drawn chalk rails. Belts are joined into
- * chains (each belt followed by the belt it feeds, if that one has no other feeder or is fed
- * straight on, and straight on through splitters), and each rail of a chain is one stroke
- * over its whole length. Corners keep the tight radius of BELT_SHAPE (outer rail
- * `turnRadius + band`, inner rail almost square). A chain merging into another belt stops
- * against its rail, a branch leaving a splitter starts from it, and the rail is rubbed out
- * where they join. Where a belt meets a building, a chalk threshold closes the rails and a
- * yellow arrow tells whether it goes in or out. Every wobble comes from world positions, so
- * cached regions drawn separately meet without a seam.
+ * Belt rails in chalk (DECISIONS: "Tableau noir"): each chain of belts (see beltChains.ts)
+ * gets two rails, each one continuous stroke in two passes. Where a belt joins another from
+ * the side, that piece of rail is rubbed out; against a building, a chalk threshold closes
+ * the rails; a loose end is closed by a rounded stroke (BELT_SHAPE.cap). Every wobble is
+ * derived from world positions, so cached regions drawn separately meet without a seam.
  */
 function drawRails(
   ctx: CanvasRenderingContext2D,
   cam: Camera,
-  list: Belt[],
+  list: readonly Belt[],
   inputsOf: InputsOf,
-  links: BuildingLinks,
+  links: BeltLinks,
 ): void {
   const s = cam.scale;
   const K = BELT_SHAPE.band;
-  const rTurn = turnRadius();
-  const key = (x: number, y: number): number => x * 1_000_003 + y;
-  const byPos = new Map<number, Belt>();
-  for (const b of list) byPos.set(key(b.x, b.y), b);
-  const outs = (b: Belt): Dir[] => DIRS.filter((d) => hasOutput(b, d));
-  const target = (b: Belt, d: Dir): Belt | undefined => byPos.get(key(b.x + DX[d], b.y + DY[d]));
-  const dirTo = (a: Belt, b: Belt): Dir | undefined =>
-    DIRS.find((d) => DX[d] === b.x - a.x && DY[d] === b.y - a.y);
-  const feeders = new Map<Belt, Belt[]>();
-  for (const b of list) {
-    for (const d of outs(b)) {
-      const t = target(b, d);
-      if (t) feeders.set(t, [...(feeders.get(t) ?? []), b]);
-    }
-  }
-  const next = new Map<Belt, Belt>();
-  const linked = new Set<Belt>();
-  const link = (b: Belt, t: Belt): void => {
-    next.set(b, t);
-    linked.add(t);
-  };
-  for (const b of list) {
-    const o = outs(b);
-    const d = o[0];
-    if (o.length !== 1 || d === undefined) continue;
-    const t = target(b, d);
-    if (!t) continue;
-    const straightOn = outs(t).length === 1 && outs(t)[0] === d;
-    if ((feeders.get(t) ?? []).length === 1 || straightOn) link(b, t);
-  }
-  // Splitters: the chain goes straight on; side branches start from its rail.
-  for (const b of list) {
-    if (outs(b).length < 2) continue;
-    const f = (feeders.get(b) ?? []).find((x) => next.get(x) === b);
-    const d = f && dirTo(f, b);
-    if (d === undefined || !hasOutput(b, d)) continue;
-    const t = target(b, d);
-    if (t && !linked.has(t)) link(b, t);
-  }
-
-  const seen = new Set<Belt>();
-  const chains: Belt[][] = [];
-  const walk = (start: Belt): void => {
-    const chain: Belt[] = [];
-    for (let b: Belt | undefined = start; b && !seen.has(b); b = next.get(b)) {
-      seen.add(b);
-      chain.push(b);
-    }
-    if (chain.length) chains.push(chain);
-  };
-  for (const b of list) if (!linked.has(b)) walk(b);
-  for (const b of list) if (!seen.has(b)) walk(b); // loops
-
-  const centre = (b: Belt): Pt => ({ x: b.x + 0.5, y: b.y + 0.5 });
-  const doors: { x: number; y: number; d: Dir; out: boolean }[] = [];
+  const radius = turnRadius();
+  const { chains, gaps } = beltChains(list, inputsOf, links);
   ctx.save();
   ctx.strokeStyle = BELT_COLORS.line;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   for (const chain of chains) {
-    const head = chain[0] as Belt;
-    const tail = chain[chain.length - 1] as Belt;
-    const pts: Pt[] = chain.map(centre);
-    // Start: from the rail of a feeding splitter or junction, else the side it is fed from.
-    const feeder = feeders.get(head)?.find((f) => next.get(f) !== head);
-    const fd = feeder && dirTo(feeder, head);
-    const h = centre(head);
-    if (feeder && fd !== undefined) {
-      const c = centre(feeder);
-      pts.unshift({ x: c.x + DX[fd] * K, y: c.y + DY[fd] * K });
-    } else {
-      const fromMask = inputsOf(head);
-      const side = DIRS.find((d) => fromMask & (1 << d)) ?? opposite(outs(head)[0] ?? 0);
-      pts.unshift({ x: h.x + DX[side] * 0.5, y: h.y + DY[side] * 0.5 });
-      if (links.from(head) & (1 << side))
-        doors.push({
-          x: h.x + DX[side] * 0.5,
-          y: h.y + DY[side] * 0.5,
-          d: opposite(side),
-          out: true,
-        });
-    }
-    // End: against the rail of the belt it merges into, else at the tile edge.
-    const to = outs(tail);
-    const td = to[0];
-    const c = centre(tail);
-    if (to.length === 1 && td !== undefined) {
-      const t = target(tail, td);
-      if (t && next.get(tail) !== t)
-        pts.push({ x: c.x + DX[td] * (1 - K), y: c.y + DY[td] * (1 - K) });
-      else if (!t) {
-        pts.push({ x: c.x + DX[td] * 0.5, y: c.y + DY[td] * 0.5 });
-        if (links.into(tail) & (1 << td))
-          doors.push({ x: c.x + DX[td] * 0.5, y: c.y + DY[td] * 0.5, d: td, out: false });
-      }
-    }
-    for (const sideSign of [1, -1]) {
+    for (const side of [1, -1] as const) {
       for (let pass = 0; pass < 2; pass++) {
-        const nodes: Node[] = [];
-        for (let i = 0; i < pts.length; i++) {
-          const p = pts[i] as Pt;
-          const a = pts[i - 1];
-          const n = pts[i + 1];
-          const unit = (u: Pt, v: Pt): Pt => {
-            const l = Math.hypot(v.x - u.x, v.y - u.y) || 1;
-            return { x: (v.x - u.x) / l, y: (v.y - u.y) / l };
-          };
-          const tin = a ? unit(a, p) : n ? unit(p, n) : { x: 1, y: 0 };
-          const tout = n ? unit(p, n) : tin;
-          const w =
-            (hash01(Math.round(p.x * 8) + sideSign * 7 + pass * 3, Math.round(p.y * 8) - pass * 5) -
+        const nodes = railNodes(
+          chain.points,
+          side,
+          radius,
+          (p) =>
+            (hash01(Math.round(p.x * 8) + side * 7 + pass * 3, Math.round(p.y * 8) - pass * 5) -
               0.5) *
-            (pass ? 0.1 : 0.06);
-          const turn = Math.abs(tin.x * tout.y - tin.y * tout.x) > 0.5;
-          if (turn) {
-            // Mitre point at distance K from both legs; outer rail rounder than inner.
-            const ox = (-tin.y - tout.y) * K * sideSign;
-            const oy = (tin.x + tout.x) * K * sideSign;
-            const outer = ox * tout.x + oy * tout.y < 0;
-            nodes.push({
-              x: p.x + ox,
-              y: p.y + oy,
-              r: outer ? rTurn + K : Math.max(0.04, rTurn - K + 0.06),
-            });
-          } else {
-            const off = K * sideSign + w;
-            nodes.push({ x: p.x - tin.y * off, y: p.y + tin.x * off });
-          }
-        }
-        const sp = nodes.map((q) => ({ ...cam.worldToScreen(q.x, q.y), r: q.r }));
+            (pass ? 0.1 : 0.06),
+        );
         ctx.lineWidth = Math.max(1, (pass ? 0.03 : 0.055) * s);
         ctx.globalAlpha = pass ? 0.45 : 0.9;
         ctx.beginPath();
-        const first = sp[0] as Node;
+        const first = cam.worldToScreen((nodes[0] as RailNode).x, (nodes[0] as RailNode).y);
         ctx.moveTo(first.x, first.y);
-        for (let i = 1; i < sp.length - 1; i++) {
-          const p = sp[i] as Node;
-          const q = sp[i + 1] as Node;
-          if (p.r !== undefined) ctx.arcTo(p.x, p.y, q.x, q.y, p.r * s);
-          else if (q.r !== undefined) ctx.lineTo(p.x, p.y);
+        for (let i = 1; i < nodes.length - 1; i++) {
+          const n = nodes[i] as RailNode;
+          const m = nodes[i + 1] as RailNode;
+          const p = cam.worldToScreen(n.x, n.y);
+          const q = cam.worldToScreen(m.x, m.y);
+          // A corner keeps its radius; elsewhere the stroke flows through the midpoints.
+          if (n.r !== undefined) ctx.arcTo(p.x, p.y, q.x, q.y, n.r * s);
+          else if (m.r !== undefined) ctx.lineTo(p.x, p.y);
           else ctx.quadraticCurveTo(p.x, p.y, (p.x + q.x) / 2, (p.y + q.y) / 2);
         }
-        const last = sp[sp.length - 1] as Node;
-        ctx.lineTo(last.x, last.y);
+        const last = nodes[nodes.length - 1] as RailNode;
+        const l = cam.worldToScreen(last.x, last.y);
+        ctx.lineTo(l.x, l.y);
         ctx.stroke();
       }
     }
   }
 
-  // Where a belt joins or leaves from the side, rub out that piece of the rail.
+  // Rub out the rail where a belt joins from the side or a branch leaves.
   ctx.globalAlpha = 1;
   ctx.fillStyle = COLORS.background;
-  const gap = (b: Belt, d: Dir): void => {
-    const cx = b.x + 0.5 + DX[d] * K;
-    const cy = b.y + 0.5 + DY[d] * K;
-    const along = K * 0.8;
-    const across = 0.1;
-    const p = cam.worldToScreen(cx - (DY[d] ? along : across), cy - (DX[d] ? along : across));
-    ctx.fillRect(p.x, p.y, 2 * (DY[d] ? along : across) * s, 2 * (DX[d] ? along : across) * s);
-  };
-  for (const b of list) {
-    for (const f of feeders.get(b) ?? []) {
-      if (next.get(f) === b) continue;
-      const d = dirTo(b, f);
-      if (d !== undefined && !(outs(b).length === 1 && outs(b)[0] === d)) gap(b, d);
-    }
-    if (outs(b).length > 1) {
-      for (const d of outs(b)) {
-        const t = target(b, d);
-        if (t && next.get(b) !== t) gap(b, d);
-      }
-    }
+  for (const g of gaps) {
+    const cx = g.x + 0.5 + DX[g.d] * K;
+    const cy = g.y + 0.5 + DY[g.d] * K;
+    const hw = DY[g.d] ? K * 0.8 : 0.1;
+    const hh = DX[g.d] ? K * 0.8 : 0.1;
+    const p = cam.worldToScreen(cx - hw, cy - hh);
+    ctx.fillRect(p.x, p.y, 2 * hw * s, 2 * hh * s);
   }
 
-  // Doorways: a chalk threshold across the rails, against the building.
-  for (const door of doors) {
-    const px = -DY[door.d];
-    const py = DX[door.d];
-    const a = cam.worldToScreen(door.x + px * K, door.y + py * K);
-    const b = cam.worldToScreen(door.x - px * K, door.y - py * K);
-    const seed = tileSeed(Math.round(door.x * 4), Math.round(door.y * 4));
-    chalkLine(ctx, a.x, a.y, b.x, b.y, seed, 'rgba(242, 239, 230, 0.85)', Math.max(1, 0.06 * s));
+  // Ends against a building (threshold) or against nothing (rounded cap).
+  for (const chain of chains) {
+    for (const end of [chain.start, chain.end]) {
+      if (end.kind !== 'door' && end.kind !== 'loose') continue;
+      const px = -DY[end.d];
+      const py = DX[end.d];
+      const a = cam.worldToScreen(end.x + px * K, end.y + py * K);
+      const b = cam.worldToScreen(end.x - px * K, end.y - py * K);
+      const seed = tileSeed(Math.round(end.x * 4), Math.round(end.y * 4));
+      if (end.kind === 'door') {
+        chalkLine(ctx, a.x, a.y, b.x, b.y, seed, CHALK.threshold, Math.max(1, 0.06 * s));
+      } else {
+        const bulge = 2 * K * BELT_SHAPE.cap;
+        const c = cam.worldToScreen(end.x + DX[end.d] * bulge, end.y + DY[end.d] * bulge);
+        chalkCurve(ctx, a.x, a.y, c.x, c.y, b.x, b.y, seed, CHALK.rail, Math.max(1, 0.055 * s));
+      }
+    }
   }
   ctx.restore();
 }
@@ -337,11 +218,12 @@ function joints(b: Belt, inputs: number): number {
 }
 
 /**
- * Belts layer (PLAN §10.2 layer 3): a continuous band joining each belt to what feeds it
- * and to where it leads, rounded in turns, with chevrons animated along the flow (they
+ * Belts layer (PLAN §10.2 layer 3): two chalk rails joining each belt to what feeds it and
+ * to where it leads, with tight turns, and chalk chevrons animated along the flow (they
  * follow the curve in a turn). `phase` ∈ [0, 1) scrolls with time × belt speed. `part`
- * draws only the static band or only the chevrons (below zoom 0.3 belts are plain lines and
- * count as base). `inputsOf` tells which sides feed each belt.
+ * draws only the static rails or only the chevrons (below zoom 0.3 belts are plain lines
+ * and count as base). `inputsOf` tells which sides feed each belt, `links` where belts meet
+ * buildings.
  */
 export function drawBelts(
   ctx: CanvasRenderingContext2D,
@@ -350,7 +232,7 @@ export function drawBelts(
   phase: number,
   part: 'all' | 'base' | 'chevrons' = 'all',
   inputsOf: InputsOf = straightInputs,
-  links: BuildingLinks = NO_BUILDING_LINKS,
+  links: BeltLinks = NO_BELT_LINKS,
 ): void {
   const s = cam.scale;
   const list = Array.isArray(belts) ? (belts as Belt[]) : [...belts];

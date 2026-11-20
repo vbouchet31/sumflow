@@ -1,4 +1,4 @@
-import { BELT_COLORS, COLORS } from '../../config/colors';
+import { BELT_COLORS, CHALK, COLORS } from '../../config/colors';
 import { chalkLine, tileSeed } from '../chalk';
 import type { Belt, Bridge } from '../../sim/entities';
 import type { Camera } from '../camera';
@@ -8,8 +8,8 @@ import { drawItems } from './items';
 
 /**
  * Bridges (PLAN §10.2 layer 3): the vertical lane runs underneath (with its items), the
- * horizontal lane on a raised deck with light rails, its items drawn on top. Lanes reuse
- * the belt chevrons and item drawing.
+ * horizontal lane on a light chalk footbridge (two beams, a few planks), its items drawn
+ * on top. Lanes reuse the belt rails, chevrons and item drawing.
  */
 export function drawBridges(
   ctx: CanvasRenderingContext2D,
@@ -24,26 +24,16 @@ export function drawBridges(
   drawBelts(ctx, cam, vertical, phase);
   drawItems(ctx, cam, vertical, itemValuesAlways);
   if (cam.zoom >= LOD.buildingText) {
-    // Draft tableau noir: a plank footbridge drawn in chalk over the lower lane.
     const lw = Math.max(1, 0.06 * s);
     for (const b of bridges) {
       const p = cam.worldToScreen(b.x, b.y);
       const seed = tileSeed(b.x, b.y);
       ctx.fillStyle = COLORS.background;
       ctx.fillRect(p.x, p.y + 0.12 * s, s, 0.76 * s);
-      // A light footbridge: two chalk beams along the deck, a few faint planks across.
+      // The deck hides the lower lane; two chalk beams along it, a few faint planks across.
       for (let i = 0; i < 3; i++) {
         const x = p.x + (0.22 + i * 0.28) * s;
-        chalkLine(
-          ctx,
-          x,
-          p.y + 0.2 * s,
-          x,
-          p.y + 0.8 * s,
-          seed + i,
-          'rgba(242, 239, 230, 0.16)',
-          lw * 0.6,
-        );
+        chalkLine(ctx, x, p.y + 0.2 * s, x, p.y + 0.8 * s, seed + i, CHALK.plank, lw * 0.6);
       }
       for (const y of [0.13, 0.87]) {
         chalkLine(
@@ -53,7 +43,7 @@ export function drawBridges(
           p.x + 1.05 * s,
           p.y + y * s,
           seed + y * 100,
-          'rgba(242, 239, 230, 0.6)',
+          CHALK.beam,
           lw,
         );
       }

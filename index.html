@@ -17,8 +17,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Sumflow" />
     <title>Sumflow</title>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Fredericka+the+Great&display=swap" />
+    <!-- The handwriting font draws the numbers on the map too: fetch it early. -->
+    <link
+      rel="preload"
+      href="./fonts/patrick-hand-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
   </head>
   <body>
     <canvas id="world" aria-hidden="true"></canvas>

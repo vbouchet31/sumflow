@@ -84,7 +84,7 @@ describe('belt curves', () => {
   });
 
   it('the belt shape settings stay in range', () => {
-    expect(BELT_SHAPE.surface).toBeLessThan(BELT_SHAPE.band);
+    expect(BELT_SHAPE.band).toBeGreaterThan(0);
     expect(BELT_SHAPE.band).toBeLessThan(0.5);
     expect(BELT_SHAPE.corner).toBeGreaterThanOrEqual(0);
     expect(BELT_SHAPE.corner).toBeLessThanOrEqual(0.5 + BELT_SHAPE.band);

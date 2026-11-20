@@ -1,14 +1,47 @@
-/** Visual palette (PLAN §10.1). Rendering only, no gameplay values here. */
+/**
+ * Visual palette (PLAN §10.1): a green slate written on in chalk ("Tableau noir", see
+ * DECISIONS). Rendering only, no gameplay values here. The interface uses the same colours
+ * as CSS custom properties (src/ui/styles.css).
+ */
 export const COLORS = {
   background: '#26332b',
   gridLine: 'rgba(242, 239, 230, 0.045)',
+  /** A faint wash of chalk dust under each deposit. */
   deposit: 'rgba(242, 239, 230, 0.05)',
-  hub: 'rgba(0, 0, 0, 0.18)',
   text: '#f2efe6',
   depositLocked: '#5f7166',
 } as const;
 
-/** Building colours (PLAN §6.3). Operators are also told apart by symbol and shape (§9.5). */
+/** Chalk on the board: lines and marks shared by several layers. */
+export const CHALK = {
+  white: '#f2efe6',
+  yellow: '#f3e08a',
+  pink: '#f29bb8',
+  green: '#9fd39a',
+  red: '#f29b8f',
+  /** Belt rails and loose ends. */
+  rail: 'rgba(242, 239, 230, 0.38)',
+  /** Outline of a deposit. */
+  outline: 'rgba(242, 239, 230, 0.45)',
+  /** Line across a belt where it meets a building. */
+  threshold: 'rgba(242, 239, 230, 0.85)',
+  /** Bridge: beams along the deck, planks across it. */
+  beam: 'rgba(242, 239, 230, 0.6)',
+  plank: 'rgba(242, 239, 230, 0.16)',
+  /** Smudge around an item, and the slate under its number. */
+  smudge: 'rgba(242, 239, 230, 0.07)',
+  itemBack: '#2a382f',
+  /** Marks on a building: output notches, input notches, the disc under the symbol. */
+  mark: 'rgba(242, 239, 230, 0.75)',
+  notchIn: 'rgba(0, 0, 0, 0.55)',
+  markFaint: 'rgba(242, 239, 230, 0.35)',
+  shadow: 'rgba(0, 0, 0, 0.28)',
+} as const;
+
+/**
+ * Building chalk colours (PLAN §6.3), as #rrggbb (lighter shades are derived from them).
+ * Operators are also told apart by symbol and shape (§9.5).
+ */
 export const BUILDING_COLORS = {
   extractor: '#3f6f7a',
   adder: '#4f7f4a',
@@ -16,61 +49,64 @@ export const BUILDING_COLORS = {
   subtractor: '#a84a4a',
   divider: '#6f5a95',
   exponent: '#9a832a',
-  storage: '#5f665f',
+  storage: '#8a8f86',
   bridge: '#4f6f8f',
 } as const;
 
+/** The hub is the teacher's frame: clean ruled lines, not a sketch. */
 export const HUB_COLORS = {
+  /** A darker wash inside the frame, as if the board had been wiped there. */
   fill: 'rgba(0, 0, 0, 0.18)',
+  frame: '#f2efe6',
+  innerFrame: '#f3e08a',
   barTrack: '#1f2a24',
   barFill: '#f3e08a',
   textMuted: '#d8dccf',
+  /** Behind the reward icons. */
+  rewardExtraction: '#5f7166',
+  rewardFeature: '#3a8f8a',
 } as const;
 
 export const FONT_NUM = '"Patrick Hand", cursive';
 export const FONT_UI = '"Patrick Hand", "Comic Sans MS", cursive';
 
 export const BELT_COLORS = {
-  bridgeBase: '#223029',
-  bridgeDeck: '#4a5c50',
   priority: '#9fd39a',
-  base: 'rgba(242, 239, 230, 0.05)',
-  rail: 'rgba(242, 239, 230, 0.05)',
   chevron: 'rgba(242, 239, 230, 0.6)',
+  /** Rails, and the single line a belt becomes when zoomed out. */
   line: 'rgba(242, 239, 230, 0.38)',
 } as const;
 
 /**
- * Shape of the belt band, in tiles (one tile = 1).
- * - `band`: half width of the band, rails included; `surface`: half width of its lighter
- *   running surface (the rails are the difference).
- * - `corner`: radius of the outer edge of a quarter turn, from 0 (square corner) to
- *   0.5 + band (a quarter circle centred on the tile corner, inner edge rounded too).
- *   Items and chevrons follow a centre line of radius `corner - band` (0 to 0.5).
- * - `cap`: rounding of a loose end, from 0 (square) to 1 (half disc).
+ * Shape of a belt, in tiles (one tile = 1).
+ * - `band`: distance from the centre line to each chalk rail.
+ * - `corner`: radius of the outer rail in a quarter turn, from 0 (square corner) to
+ *   0.5 + band (a quarter circle centred on the tile corner). Items and chevrons follow a
+ *   centre line of radius `corner - band` (0 to 0.5).
+ * - `cap`: how round the chalk stroke closing a loose end is, from 0 (straight across) to
+ *   1 (a half circle).
  */
 export const BELT_SHAPE = {
   band: 0.38,
-  surface: 0.31,
   corner: 0.45,
   cap: 0.6,
 } as const;
 
-/** Ghost fills: new, replace, bridge, impossible (PLAN §6.5). */
+/** Ghost fills: new, replace, bridge, impossible (PLAN §6.5), in coloured chalk. */
 export const GHOST_COLORS = {
-  new: 'rgba(72, 199, 116, 0.45)',
-  replace: 'rgba(237, 150, 54, 0.5)',
-  bridge: 'rgba(80, 150, 240, 0.5)',
-  blocked: 'rgba(230, 70, 70, 0.45)',
-  demolish: 'rgba(230, 70, 70, 0.35)',
+  new: 'rgba(159, 211, 154, 0.45)',
+  replace: 'rgba(240, 180, 110, 0.5)',
+  bridge: 'rgba(140, 190, 230, 0.5)',
+  blocked: 'rgba(242, 155, 143, 0.5)',
+  demolish: 'rgba(242, 155, 143, 0.35)',
 } as const;
 
-/** Zone selection rectangles (PLAN §8.2). */
+/** Zone selection rectangles (PLAN §8.2): a dashed chalk line around a light wash. */
 export const AREA_COLORS = {
-  demolish: { fill: 'rgba(230, 70, 70, 0.18)', stroke: 'rgba(240, 100, 100, 0.9)' },
-  clear: { fill: 'rgba(240, 190, 60, 0.15)', stroke: 'rgba(245, 205, 90, 0.9)' },
-  copy: { fill: 'rgba(80, 150, 240, 0.15)', stroke: 'rgba(120, 180, 255, 0.9)' },
-  cut: { fill: 'rgba(237, 150, 54, 0.18)', stroke: 'rgba(245, 170, 80, 0.9)' },
+  demolish: { fill: 'rgba(242, 155, 143, 0.14)', stroke: 'rgba(242, 155, 143, 0.95)' },
+  clear: { fill: 'rgba(243, 224, 138, 0.12)', stroke: 'rgba(243, 224, 138, 0.95)' },
+  copy: { fill: 'rgba(140, 190, 230, 0.12)', stroke: 'rgba(160, 205, 240, 0.95)' },
+  cut: { fill: 'rgba(240, 180, 110, 0.14)', stroke: 'rgba(240, 180, 110, 0.95)' },
 } as const;
 
 /** Text markers (PLAN §10.2 layer 8). */
