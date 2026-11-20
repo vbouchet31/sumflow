@@ -33,6 +33,7 @@ export interface ChainEnd extends Pt {
 }
 
 export interface BeltChain {
+  /** The belts along the chain; none for the short branch of a splitter into a building. */
   belts: Belt[];
   /** Centre line, world tiles: the start point, every belt centre, the end point. */
   points: Pt[];
@@ -102,11 +103,22 @@ export function beltChains(
       linked.add(t);
     }
   }
+  /**
+   * Direction of travel into a splitter: from the belt linked into it, else (fed by a
+   * building or a bridge lane, nothing on this list) from the one side that feeds it.
+   */
+  const entry = (b: Belt): Dir | undefined => {
+    const f = (feeders.get(b) ?? []).find((x) => next.get(x) === b);
+    if (f) return dirBetween(f, b);
+    if ((feeders.get(b) ?? []).length > 0) return undefined;
+    const fed = inputsOf(b);
+    const sides = DIRS.filter((d) => fed & (1 << d));
+    return sides.length === 1 ? opposite(sides[0] as Dir) : undefined;
+  };
   // Splitters: the chain carries on straight ahead.
   for (const b of list) {
     if (outOf(b).length < 2) continue;
-    const f = (feeders.get(b) ?? []).find((x) => next.get(x) === b);
-    const d = f && dirBetween(f, b);
+    const d = entry(b);
     if (d === undefined || !hasOutput(b, d)) continue;
     const t = target(b, d);
     if (t && !linked.has(t)) {
@@ -181,7 +193,14 @@ export function beltChains(
     const c = centre(tail);
     const to = outOf(tail);
     const prev = run.length > 1 ? run[run.length - 2] : startFeeder.get(tail);
-    const ahead = prev && dirBetween(prev, tail);
+    const ahead =
+      prev !== undefined
+        ? dirBetween(prev, tail)
+        : start.kind === 'wall'
+          ? opposite(start.d)
+          : to.length > 1
+            ? entry(tail)
+            : undefined;
     const straight =
       to.length === 1 ? to[0] : ahead !== undefined && to.includes(ahead) ? ahead : undefined;
     let end: ChainEnd;
@@ -227,6 +246,37 @@ export function beltChains(
     });
   }
 
+  /*
+   * A splitter output with no belt after it (into a building, a bridge lane, or nothing)
+   * that is not where its line goes on: a short branch from its rail to the tile edge,
+   * closed like any chain end.
+   */
+  const carriedOn = new Map<Belt, Dir>();
+  for (const c of chains) {
+    const t = c.belts[c.belts.length - 1] as Belt;
+    if (c.end.kind !== 'wall' && outOf(t).length > 1) carriedOn.set(t, c.end.d);
+  }
+  const stubs = new Set<string>();
+  for (const b of list) {
+    if (outOf(b).length < 2) continue;
+    const n = next.get(b);
+    const on = n ? dirBetween(b, n) : carriedOn.get(b);
+    const c = centre(b);
+    for (const d of outOf(b)) {
+      if (d === on || target(b, d)) continue;
+      const kind = links.into(b) & (1 << d) ? 'door' : links.leads(b) & (1 << d) ? 'open' : 'loose';
+      const from = { x: c.x + DX[d] * K, y: c.y + DY[d] * K };
+      const to = { x: c.x + DX[d] * 0.5, y: c.y + DY[d] * 0.5 };
+      chains.push({
+        belts: [],
+        points: [from, to],
+        start: { ...from, d: opposite(d), kind: 'rail' },
+        end: { ...to, d, kind },
+      });
+      stubs.add(`${b.x},${b.y},${d}`);
+    }
+  }
+
   // Rub out the rail where a belt joins from the side or a branch leaves.
   const gaps: RailGap[] = [];
   for (const b of list) {
@@ -240,7 +290,9 @@ export function beltChains(
     if (outOf(b).length > 1) {
       for (const d of outOf(b)) {
         const t = target(b, d);
-        if (t && next.get(b) !== t) gaps.push({ x: b.x, y: b.y, d });
+        if ((t && next.get(b) !== t) || stubs.has(`${b.x},${b.y},${d}`)) {
+          gaps.push({ x: b.x, y: b.y, d });
+        }
       }
     }
   }

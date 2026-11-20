@@ -183,6 +183,45 @@ describe('belt chains (chalk rails)', () => {
     expect(gaps).toEqual([{ x: 1, y: 0, d: N }]);
   });
 
+  it('a splitter fed by a building carries the line on, and opens into a building below', () => {
+    // An extractor feeds (0,0) from the west; (0,0) goes on east and down into a building
+    // input; (1,0) turns down into another input.
+    const list = [belt(0, 0, E, S), belt(1, 0, S)];
+    const links: BeltLinks = {
+      from: (b) => (b.x === 0 ? 1 << W : 0),
+      into: () => 1 << S,
+      leads: () => 1 << S,
+    };
+    const { chains, gaps } = beltChains(list, inputsFrom(list, { '0,0': 1 << W }), links);
+    const main = chains.find((c) => c.belts.length === 2);
+    expect(main?.start).toMatchObject({ kind: 'door', d: W });
+    expect(main?.end).toMatchObject({ kind: 'door', x: 1.5, y: 1, d: S });
+    const stub = chains.find((c) => c.belts.length === 0);
+    expect(stub?.start).toMatchObject({ kind: 'rail', x: 0.5, d: N });
+    expect(stub?.start.y).toBeCloseTo(0.5 + K);
+    expect(stub?.end).toMatchObject({ kind: 'door', x: 0.5, y: 1, d: S });
+    expect(gaps).toEqual([{ x: 0, y: 0, d: S }]);
+  });
+
+  it('a splitter fed by a bridge lane goes on straight, its branch starts from the rail', () => {
+    // A lane feeds (0,0) from the north; it goes on south into a building, branches west.
+    const list = [belt(0, 0, S, W), belt(-1, 0, W)];
+    const links: BeltLinks = {
+      from: () => 0,
+      into: (b) => (b.x === 0 ? 1 << S : 0),
+      leads: (b) => (b.x === 0 ? 1 << S : 0),
+    };
+    const { chains, gaps } = beltChains(list, inputsFrom(list, { '0,0': 1 << N }), links);
+    const main = chains.find((c) => c.belts.some((b) => b.x === 0));
+    expect(main?.belts).toHaveLength(1);
+    expect(main?.start).toMatchObject({ kind: 'open', d: N });
+    expect(main?.end).toMatchObject({ kind: 'door', x: 0.5, y: 1, d: S });
+    const branch = chains.find((c) => c.belts.some((b) => b.x === -1));
+    expect(branch?.start).toMatchObject({ kind: 'rail', d: E });
+    expect(branch?.end.kind).toBe('loose');
+    expect(gaps).toEqual([{ x: 0, y: 0, d: W }]);
+  });
+
   it('a closed loop is drawn once, without hanging', () => {
     const list = [belt(0, 0, E), belt(1, 0, S), belt(1, 1, W), belt(0, 1, N)];
     const { chains } = beltChains(list, inputsFrom(list), ALONE);
