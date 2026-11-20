@@ -123,7 +123,8 @@ function chevron(
  * Belt rails in chalk (DECISIONS: "Tableau noir"): each chain of belts (see beltChains.ts)
  * gets two rails, each one continuous stroke in two passes. Where a belt joins another from
  * the side, that piece of rail is rubbed out; against a building, a chalk threshold closes
- * the rails; a loose end is closed by a rounded stroke (BELT_SHAPE.cap). Every wobble is
+ * the rails; the back of a T junction is closed by a straight stroke; a loose end by a
+ * rounded one (BELT_SHAPE.cap). Every wobble is
  * derived from world positions, so cached regions drawn separately meet without a seam.
  */
 function drawRails(
@@ -188,10 +189,11 @@ function drawRails(
     ctx.fillRect(p.x, p.y, 2 * hw * s, 2 * hh * s);
   }
 
-  // Ends against a building (threshold) or against nothing (rounded cap).
+  // Ends against a building (threshold), the back of a T junction (straight stroke) or
+  // nothing (rounded cap).
   for (const chain of chains) {
     for (const end of [chain.start, chain.end]) {
-      if (end.kind !== 'door' && end.kind !== 'loose') continue;
+      if (end.kind === 'rail' || end.kind === 'open') continue;
       const px = -DY[end.d];
       const py = DX[end.d];
       const a = cam.worldToScreen(end.x + px * K, end.y + py * K);
@@ -199,6 +201,8 @@ function drawRails(
       const seed = tileSeed(Math.round(end.x * 4), Math.round(end.y * 4));
       if (end.kind === 'door') {
         chalkLine(ctx, a.x, a.y, b.x, b.y, seed, CHALK.threshold, Math.max(1, 0.06 * s));
+      } else if (end.kind === 'wall') {
+        chalkLine(ctx, a.x, a.y, b.x, b.y, seed, CHALK.rail, Math.max(1, 0.055 * s));
       } else {
         const bulge = 2 * K * BELT_SHAPE.cap;
         const c = cam.worldToScreen(end.x + DX[end.d] * bulge, end.y + DY[end.d] * bulge);

@@ -24,10 +24,11 @@ export interface Pt {
  * - `rail`: against the rail of another belt (merge, or branch of a splitter);
  * - `door`: against a building that feeds it or that it feeds (a chalk threshold);
  * - `loose`: nothing there (the rails are closed by a rounded stroke);
+ * - `wall`: the back of a T junction, where no belt goes on (a straight stroke across);
  * - `open`: something drawn elsewhere carries on (a bridge lane, or a belt off this list).
  */
 export interface ChainEnd extends Pt {
-  kind: 'rail' | 'door' | 'loose' | 'open';
+  kind: 'rail' | 'door' | 'loose' | 'wall' | 'open';
   d: Dir;
 }
 
@@ -93,7 +94,10 @@ export function beltChains(
     const t = target(b, d);
     if (!t) continue;
     const straightOn = outOf(t).length === 1 && outOf(t)[0] === d;
-    if ((feeders.get(t) ?? []).length === 1 || straightOn) {
+    // A turn only if nothing else (a building, a bridge lane) feeds `t` from behind.
+    const tOut = outOf(t);
+    const fedBehind = tOut.length === 1 && (inputsOf(t) & (1 << opposite(tOut[0] ?? 0))) !== 0;
+    if (straightOn || ((feeders.get(t) ?? []).length === 1 && !fedBehind)) {
       next.set(b, t);
       linked.add(t);
     }
@@ -128,55 +132,96 @@ export function beltChains(
   const chains: BeltChain[] = [];
   /** The belt a chain starts from, when it starts from another belt's rail. */
   const startFeeder = new Map<Belt, Belt>();
+  /**
+   * Junctions closed by a wall (T split with no way straight on, or merge fed only from the
+   * sides). The line stops at the edge of the junction instead of crossing it, so the side
+   * belts meet clean corners and no piece of rail is left to rub out.
+   */
+  const walled = new Set<Belt>();
   for (const run of runs) {
     const head = run[0] as Belt;
     const tail = run[run.length - 1] as Belt;
     const points = run.map(centre);
     const h = centre(head);
 
-    // Start: from the rail of a feeding splitter or junction, else the side it is fed from.
+    // Start: from the rail of a splitter it branches off; at the back wall of a junction
+    // fed only from the sides; else from the side it is fed from.
     let start: ChainEnd;
-    const feeder = feeders.get(head)?.find((f) => next.get(f) !== head);
-    const fd = feeder && dirBetween(feeder, head);
-    if (feeder && fd !== undefined) {
-      startFeeder.set(head, feeder);
-      const c = centre(feeder);
+    const sideFeeders = (feeders.get(head) ?? []).filter((f) => next.get(f) !== head);
+    const splitter = sideFeeders.find((f) => outOf(f).length > 1);
+    const fd = splitter && dirBetween(splitter, head);
+    const out0 = outOf(head)[0];
+    if (splitter && fd !== undefined) {
+      startFeeder.set(head, splitter);
+      const c = centre(splitter);
       start = { x: c.x + DX[fd] * K, y: c.y + DY[fd] * K, d: opposite(fd), kind: 'rail' };
+    } else if (
+      sideFeeders.length > 0 &&
+      out0 !== undefined &&
+      !(inputsOf(head) & (1 << opposite(out0)))
+    ) {
+      // Belts merging in from the sides stop against its rails, nothing feeds it from
+      // behind: close the back.
+      const back = opposite(out0);
+      start = { x: h.x + DX[back] * K, y: h.y + DY[back] * K, d: back, kind: 'wall' };
+      walled.add(head);
     } else {
       const fed = inputsOf(head);
-      const side = DIRS.find((d) => fed & (1 << d)) ?? opposite(outOf(head)[0] ?? 0);
+      const behind = out0 !== undefined ? opposite(out0) : undefined;
+      const side =
+        behind !== undefined && fed & (1 << behind)
+          ? behind
+          : (DIRS.find((d) => fed & (1 << d)) ?? opposite(out0 ?? 0));
       const kind = links.from(head) & (1 << side) ? 'door' : fed ? 'open' : 'loose';
       start = { x: h.x + DX[side] * 0.5, y: h.y + DY[side] * 0.5, d: side, kind };
     }
 
-    // End: against the rail of the belt it merges into, else at the tile edge.
+    // End: against the rail of the belt it merges into, else at the tile edge. A splitter
+    // carries the line straight on when it has that output; its other outputs are branches.
     const c = centre(tail);
     const to = outOf(tail);
-    const td = to[0];
+    const prev = run.length > 1 ? run[run.length - 2] : startFeeder.get(tail);
+    const ahead = prev && dirBetween(prev, tail);
+    const straight =
+      to.length === 1 ? to[0] : ahead !== undefined && to.includes(ahead) ? ahead : undefined;
     let end: ChainEnd;
-    if (to.length === 1 && td !== undefined) {
-      const t = target(tail, td);
+    if (straight !== undefined) {
+      const t = target(tail, straight);
       if (t && next.get(tail) !== t) {
-        end = { x: c.x + DX[td] * (1 - K), y: c.y + DY[td] * (1 - K), d: td, kind: 'rail' };
+        end = {
+          x: c.x + DX[straight] * (1 - K),
+          y: c.y + DY[straight] * (1 - K),
+          d: straight,
+          kind: 'rail',
+        };
       } else {
         // Into a building, on into something drawn elsewhere (a closed loop, a bridge
         // lane), or nowhere.
         const kind =
-          links.into(tail) & (1 << td)
+          links.into(tail) & (1 << straight)
             ? 'door'
-            : t !== undefined || links.leads(tail) & (1 << td)
+            : t !== undefined || links.leads(tail) & (1 << straight)
               ? 'open'
               : 'loose';
-        end = { x: c.x + DX[td] * 0.5, y: c.y + DY[td] * 0.5, d: td, kind };
+        end = { x: c.x + DX[straight] * 0.5, y: c.y + DY[straight] * 0.5, d: straight, kind };
       }
+    } else if (to.length > 1 && ahead !== undefined) {
+      // A T junction: the branches leave to the sides, nothing goes on ahead.
+      end = { x: c.x + DX[ahead] * K, y: c.y + DY[ahead] * K, d: ahead, kind: 'wall' };
+      walled.add(tail);
     } else {
-      // A splitter with no straight continuation, or a dead end with no output: the rails
-      // stop at the centre and the branches start from there.
-      end = { ...c, d: td ?? 0, kind: 'open' };
+      // No output at all, or nothing known about where it comes from: stop in the middle.
+      end = { ...c, d: to[0] ?? 0, kind: 'open' };
     }
+    // At a walled junction the line starts (or stops) on the far (or near) side of it.
+    const first: Pt =
+      start.kind === 'wall' ? { x: 2 * h.x - start.x, y: 2 * h.y - start.y } : start;
+    const last: Pt = end.kind === 'wall' ? { x: 2 * c.x - end.x, y: 2 * c.y - end.y } : end;
+    const inner = points.slice(start.kind === 'wall' ? 1 : 0);
+    if (end.kind === 'wall') inner.pop();
     chains.push({
       belts: run,
-      points: [{ x: start.x, y: start.y }, ...points, { x: end.x, y: end.y }],
+      points: [{ x: first.x, y: first.y }, ...inner, { x: last.x, y: last.y }],
       start,
       end,
     });
@@ -185,6 +230,7 @@ export function beltChains(
   // Rub out the rail where a belt joins from the side or a branch leaves.
   const gaps: RailGap[] = [];
   for (const b of list) {
+    if (walled.has(b)) continue;
     for (const f of feeders.get(b) ?? []) {
       if (next.get(f) === b || startFeeder.get(b) === f) continue;
       const d = dirBetween(b, f);
