@@ -53,6 +53,35 @@ export const BUILDING_COLORS = {
   bridge: '#4f6f8f',
 } as const;
 
+/**
+ * Item chalks (PLAN §5): one stick per value 1..9, index 0 is value 1. An extractor is
+ * coloured with the chalk of its value, so its items leave in the same colour. Hand-picked
+ * to sit with the other chalks above (red, green, yellow and pink are the same sticks).
+ */
+export const ITEM_CHALKS = [
+  '#8ec5ec', // 1 sky blue
+  '#f29b8f', // 2 red
+  '#9fd39a', // 3 green
+  '#f3e08a', // 4 yellow
+  '#c9a6ea', // 5 lilac
+  '#86d8cc', // 6 turquoise
+  '#f5b07a', // 7 orange
+  '#f29bb8', // 8 pink
+  '#d4e48a', // 9 anise
+] as const;
+
+/**
+ * Chalk tone of the other values, in OKLCH (perceptual lightness 0..1, chroma): odd values
+ * lighter, even values darker, so two neighbours differ in lightness as well as in hue. The
+ * hue turns one golden angle per value from `hueOffset` (degrees). Every hue of both tones
+ * fits in sRGB.
+ */
+export const ITEM_CHALK_TONE = {
+  odd: { lightness: 0.85, chroma: 0.07 },
+  even: { lightness: 0.74, chroma: 0.09 },
+  hueOffset: 30,
+} as const;
+
 /** The hub is the teacher's frame: clean ruled lines, not a sketch. */
 export const HUB_COLORS = {
   /** A darker wash inside the frame, as if the board had been wiped there. */

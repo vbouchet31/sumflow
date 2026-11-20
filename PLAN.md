@@ -147,7 +147,7 @@ Angle aléatoire (RNG seedé). Si collision, retenter jusqu'à 30 fois en décal
 | `pow(a, b)` | `b = 0` ⇒ 1 (y compris `0^0`). `b < 0` ⇒ `a = 1` : 1 ; `a = -1` : ±1 selon parité ; sinon 0. `b > 0` ⇒ exponentiation rapide avec saturation à chaque étape (dès que `|r| > INT_MAX`, retourner la borne de bon signe) |
 
 - **Affichage** sur les items : jusqu'à 4 chiffres en entier (`9999`, `-999`) ; au-delà abrégé avec 3 chiffres significatifs : `12.3k`, `456k`, `7.89M`, `2.15G`. Info-bulle et panneaux : valeur complète avec séparateur de milliers selon la langue.
-- **Couleur** d'un item : teinte dérivée d'un hash de la valeur (`hue = (hash(v) % 360)`), saturation 65 %, luminosité 55 %. Les valeurs 1 à 9 ont des teintes fixes et bien distinctes, définies dans `balance.ts`.
+- **Couleur** d'un item : une craie fixe pour chaque valeur de 1 à 9 (`ITEM_CHALKS` dans `colors.ts` : 1 bleu ciel, 2 rouge, 3 vert, 4 jaune, 5 lilas, 6 turquoise, 7 orange, 8 rose, 9 anis). Les autres valeurs ont une teinte répartie régulièrement sur le cercle (`hue = 30° + v × 137,5° mod 360`, l'angle d'or), calculée en OKLCH (espace perceptif) : impairs clairs (L 0,85, C 0,07), pairs plus foncés (L 0,74, C 0,09). Un extracteur prend la couleur de sa valeur.
 
 ---
 
@@ -539,6 +539,7 @@ Reprendre, Nouvelle partie (seed aléatoire ou saisi), Sauvegarder, Exporter (.j
 Une ardoise verte sur laquelle on écrit à la craie. Ce que le joueur construit est **dessiné à main levée** ; ce que le jeu fournit (le Hub, « donné par le prof ») est **tracé à la règle**. Palette dans `src/config/colors.ts` (canvas) et en variables CSS dans `src/ui/styles.css` (interface).
 - Fond ardoise `#26332b`, grille à peine visible (craie à 4,5 %), poussière de craie et traces d'éponge par-dessus, cadre en bois autour de l'écran.
 - Gisements : léger voile de craie, contour à la craie, valeur blanche manuscrite.
+- Extracteurs : coloriés à la craie de leur valeur (la couleur de leurs items, 5.), valeur en blanc pour rester lisible sur les hachures.
 - Bâtiments : coloriés à la craie (hachures en diagonale, 3 motifs en cache vus sous 8 orientations), contour tremblé qui dépasse aux coins, symbole blanc au centre (`+ × − ÷ ^`), lettres `A`/`B`/`Q`/`R` sur les tuiles de port, tuiles d'entrée plus sombres, tuiles de sortie plus claires.
 - Hub : cadre blanc net doublé d'un cadre jaune, intérieur légèrement assombri, texte blanc.
 - Tapis : deux rails à la craie, chacun d'un seul trait sur toute la chaîne de tapis (virages serrés, `BELT_SHAPE`), flèches à la craie de travers. Contre un bâtiment, un trait ferme les rails ; un bout libre est fermé par un trait arrondi ; une jonction efface le morceau de rail traversé. Ponts : passerelle légère (deux poutres, quelques planches).
