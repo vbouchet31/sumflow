@@ -126,6 +126,64 @@ describe('belt chains (chalk rails)', () => {
     expect(gaps).toHaveLength(2);
   });
 
+  it('a splitter whose straight output leads nowhere carries the line on and closes it', () => {
+    // The case of the screenshot: down, then west, then a junction west + south.
+    const list = [belt(1, -1, S), belt(1, 0, W), belt(0, 0, W, S), belt(0, 1, S)];
+    const { chains, gaps } = beltChains(list, inputsFrom(list), ALONE);
+    const main = chains.find((c) => c.belts.length === 3);
+    expect(main?.belts.map((b) => [b.x, b.y])).toEqual([
+      [1, -1],
+      [1, 0],
+      [0, 0],
+    ]);
+    expect(main?.end).toMatchObject({ kind: 'loose', x: 0, y: 0.5, d: W });
+    const branch = chains.find((c) => c.belts.length === 1);
+    expect(branch?.start).toMatchObject({ kind: 'rail', x: 0.5, d: N });
+    expect(gaps).toEqual([{ x: 0, y: 0, d: S }]);
+  });
+
+  it('a T junction with no way straight on is closed at the back', () => {
+    // Fed from the west, splits north and south.
+    const list = [belt(0, 0, E), belt(1, 0, N, S), belt(1, -1, N), belt(1, 1, S)];
+    const { chains, gaps } = beltChains(list, inputsFrom(list), ALONE);
+    const main = chains.find((c) => c.belts.some((b) => b.x === 0));
+    expect(main?.belts).toHaveLength(2);
+    expect(main?.end).toMatchObject({ kind: 'wall', y: 0.5, d: E });
+    expect(main?.end.x).toBeCloseTo(1.5 + K);
+    expect(chains.filter((c) => c.start.kind === 'rail')).toHaveLength(2);
+    expect(gaps).toHaveLength(2);
+  });
+
+  it('a junction fed only from both sides is closed at the back', () => {
+    // Fed from the north and the south, leaves east.
+    const list = [belt(1, -1, S), belt(1, 1, N), belt(1, 0, E), belt(2, 0, E)];
+    const { chains, gaps } = beltChains(list, inputsFrom(list), ALONE);
+    const main = chains.find((c) => c.belts.length === 2);
+    expect(main?.start).toMatchObject({ kind: 'wall', y: 0.5, d: W });
+    expect(main?.start.x).toBeCloseTo(1.5 - K);
+    expect(chains.filter((c) => c.end.kind === 'rail')).toHaveLength(2);
+    expect(gaps).toEqual(
+      expect.arrayContaining([
+        { x: 1, y: 0, d: N },
+        { x: 1, y: 0, d: S },
+      ]),
+    );
+  });
+
+  it('a junction fed from behind by a building keeps its doorway', () => {
+    const list = [belt(1, -1, S), belt(1, 0, E), belt(2, 0, E)];
+    const { chains } = beltChains(list, inputsFrom(list, { '1,0': 1 << W }), {
+      ...ALONE,
+      from: (b) => (b.x === 1 && b.y === 0 ? 1 << W : 0),
+    });
+    const { gaps } = beltChains(list, inputsFrom(list, { '1,0': 1 << W }), ALONE);
+    const main = chains.find((c) => c.belts.length === 2);
+    expect(main?.start).toMatchObject({ kind: 'door', x: 1, y: 0.5, d: W });
+    // The belt from the north merges in from the side instead of turning.
+    expect(chains.find((c) => c.belts.length === 1)?.end.kind).toBe('rail');
+    expect(gaps).toEqual([{ x: 1, y: 0, d: N }]);
+  });
+
   it('a closed loop is drawn once, without hanging', () => {
     const list = [belt(0, 0, E), belt(1, 0, S), belt(1, 1, W), belt(0, 1, N)];
     const { chains } = beltChains(list, inputsFrom(list), ALONE);
