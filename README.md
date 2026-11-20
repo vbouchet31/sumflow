@@ -102,6 +102,8 @@ Sumflow est un projet de fan, inspiré par [Beltmatic](https://store.steampowere
 
 Aucune dépendance à l'exécution : TypeScript, Canvas 2D et WebAudio, outillés avec Vite, Vitest et Playwright.
 
+Polices embarquées dans `public/fonts`, sous licence [SIL Open Font License 1.1](https://openfontlicense.org) (textes de licence à côté des fichiers) : [Patrick Hand](https://fonts.google.com/specimen/Patrick+Hand) de Patrick Wagesreiter et [Fredericka the Great](https://fonts.google.com/specimen/Fredericka+the+Great) de Tart Workshop.
+
 ## Licence
 
-MIT, voir [`LICENSE`](LICENSE).
+MIT, voir [`LICENSE`](LICENSE). Les polices de `public/fonts` restent sous leur propre licence (SIL OFL 1.1).
