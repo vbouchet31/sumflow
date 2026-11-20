@@ -193,7 +193,7 @@ test('the action bar replaces the keys: rotate, elbow, clipboard, quit', async (
   await expect(bar).toBeHidden();
 });
 
-test('a long press picks the object under the finger', async ({ page }) => {
+test('a long press selects the object; with a tool it picks it', async ({ page }) => {
   await page.goto('./?debug=1&seed=42&tutorial=0');
   const touch = await touchDriver(page);
   await page.evaluate(() => {
@@ -201,8 +201,25 @@ test('a long press picks the object under the finger', async ({ page }) => {
     if (!api) throw new Error('debug API missing');
     api.unlockAll();
     api.place('adder', 5, -3, 0);
+    api.place('belt', 9, -3, 0);
   });
 
+  // Without a tool: the adder is selected, no tool is taken.
+  await touch.start(tileCentre(page, 5, -3));
+  await expect
+    .poll(async () => (await state(page)).selection)
+    .toEqual({
+      x0: 5,
+      y0: -3,
+      x1: 6,
+      y1: -2,
+    });
+  await touch.end();
+  expect((await state(page)).tool).toBe('none');
+  expect((await state(page)).buildings).toBe(2);
+
+  // With a tool: the pipette, as before.
+  await page.locator('.build-btn[data-tool="belt"]').tap();
   await touch.start(tileCentre(page, 5, -3));
   await expect.poll(async () => (await state(page)).tool).toBe('adder');
   await touch.end();
@@ -214,6 +231,45 @@ test('a long press picks the object under the finger', async ({ page }) => {
   await page.waitForTimeout(600);
   await touch.end();
   expect((await state(page)).buildings).toBe(3);
+});
+
+test('the selection stays until a tap elsewhere and offers its actions', async ({ page }) => {
+  await page.goto('./?debug=1&seed=42&tutorial=0');
+  const touch = await touchDriver(page);
+  await page.evaluate(() => {
+    const api = window.__sumflow;
+    if (!api) throw new Error('debug API missing');
+    api.unlockAll();
+    api.place('adder', 5, -3, 0);
+  });
+  const bar = page.locator('.tool-hint');
+  const action = (id: string) => bar.locator(`[data-action="${id}"]`);
+
+  await touch.tap(tileCentre(page, 5, -3));
+  await expect(bar).toBeVisible();
+  await expect(bar).toContainText(/Additionneur|Adder/);
+  await expect(action('pick')).toBeVisible();
+  await expect(action('delete')).toBeVisible();
+  await expect(action('quit')).toBeHidden();
+  // Moving the map keeps it.
+  await touch.drag(tileCentre(page, 9, 0), tileCentre(page, 8, 0));
+  expect((await state(page)).selection).not.toBeNull();
+  // A tap on empty ground drops it.
+  await touch.tap(tileCentre(page, 9, 1));
+  expect((await state(page)).selection).toBeNull();
+  await expect(bar).toBeHidden();
+
+  // Delete, then undo.
+  await touch.tap(tileCentre(page, 5, -3));
+  await action('delete').tap();
+  expect((await state(page)).buildings).toBe(1);
+  expect((await state(page)).selection).toBeNull();
+
+  // The pipette button takes the tool.
+  await page.evaluate(() => window.__sumflow?.undo());
+  await touch.tap(tileCentre(page, 5, -3));
+  await action('pick').tap();
+  expect((await state(page)).tool).toBe('adder');
 });
 
 test('a tap without a tool pins the tooltip of the object', async ({ page }) => {

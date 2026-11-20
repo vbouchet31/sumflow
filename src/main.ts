@@ -15,7 +15,6 @@ import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
 import { SimLoop } from './sim/loop';
 import { createInitialState } from './sim/state';
-import { buildingSize } from './sim/entities';
 import { World } from './sim/world';
 import { BuildBar } from './ui/buildBar';
 import { CatchUpBar } from './ui/catchUp';
@@ -70,17 +69,6 @@ function initialSeed(search: string): number {
   const param = new URLSearchParams(search).get('seed');
   const parsed = param === null ? NaN : Number(param);
   return Number.isFinite(parsed) ? toSeed(parsed) : toSeed(Math.random() * 2 ** 32);
-}
-
-/** Tiles to outline for the object at `(x, y)`: a whole building, else the tile. */
-function inspectedRect(
-  world: World,
-  x: number,
-  y: number,
-): { x: number; y: number; w: number; h: number } {
-  const b = world.buildingAt(x, y);
-  if (!b) return { x, y, w: 1, h: 1 };
-  return { x: b.x, y: b.y, ...buildingSize(b.type, b.rot) };
 }
 
 type Loaded = { state: GameState; camera: CameraState | null; error: boolean };
@@ -198,11 +186,8 @@ async function bootstrap(): Promise<void> {
   const statusBar = new StatusBar(uiRoot, isDebugEnabled(location.search));
   const toasts = new Toasts(uiRoot);
   const endScreen = new EndScreen(uiRoot);
-  const toolActions = new ToolActions(uiRoot, tools);
-  /** Tile inspected by a tap, on a touch screen (there is no hover to show the tooltip). */
-  let pinned: { x: number; y: number } | null = null;
+  const toolActions = new ToolActions(uiRoot, tools, (x, y) => describeTile(world, x, y)[0] ?? '');
   tools.onChange(() => {
-    pinned = null;
     // Paste mode without a hovering pointer (touch): show the preview at once, in the
     // middle of the screen, ready to be moved and confirmed.
     if (tools.tool === 'paste' && !pointer.hovering && !tools.pastePending) {
@@ -396,6 +381,7 @@ async function bootstrap(): Promise<void> {
         else if (endScreen.isOpen) endScreen.hide();
         else if (open) open.close();
         else if (tools.tool !== 'none') tools.cancel();
+        else if (tools.selection) tools.clearSelection();
         else menu.open();
       },
       onQuickDemolish: () => tools.deletePressed(),
@@ -409,12 +395,11 @@ async function bootstrap(): Promise<void> {
     onUp: (x, y, mods) => tools.pointerUp(x, y, mods),
     onCancel: () => tools.pointerCancel(),
     onLeave: () => tools.clearHover(),
-    // Touch: a tap without a tool inspects the object, a long press picks it (like `E`).
-    onTap: (x, y) => {
-      pinned = tools.tool === 'none' && describeTile(world, x, y).length > 0 ? { x, y } : null;
-    },
+    // Touch: a tap without a tool selects the object (in `pointerUp`, as a click does). A
+    // long press selects it too; with a tool, it picks the object instead (like `E`).
     onLongPress: (x, y) => {
-      if (!tools.pick({ x, y })) return false;
+      const done = tools.tool === 'none' ? tools.select(x, y) !== null : tools.pick({ x, y });
+      if (!done) return false;
       sfx.click();
       navigator.vibrate?.(10);
       return true;
@@ -464,9 +449,11 @@ async function bootstrap(): Promise<void> {
     // leaves no hovered tile behind: the gestures drive the tools themselves.
     if (pointer.hovering) {
       tools.pointerMove(hover.x, hover.y, { ctrl: keyboard.ctrl, shift: false, alt: false });
-      pinned = null;
     }
-    renderer.selection = pinned ? inspectedRect(world, pinned.x, pinned.y) : null;
+    const sel = tools.selectionRect;
+    renderer.selection = sel
+      ? { x: sel.x0, y: sel.y0, w: sel.x1 - sel.x0 + 1, h: sel.y1 - sel.y0 + 1 }
+      : null;
 
     const simStart = performance.now();
     const ticks = loop.advance(dt, () => performance.now() - simStart > CATCH_UP.frameBudgetMs);
@@ -505,7 +492,7 @@ async function bootstrap(): Promise<void> {
       saves.lastSavedAt === null ? null : now - saves.lastSavedAt,
       pointer.inside ? hover : null,
     );
-    const inspected = pointer.inside ? hover : pinned;
+    const inspected = pointer.inside ? hover : tools.selectionTile;
     tooltip.update(inspected ? describeTile(world, inspected.x, inspected.y) : []);
     debugPanel?.update({
       seed: state.seed,

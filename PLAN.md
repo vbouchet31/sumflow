@@ -493,13 +493,21 @@ Le type de pointeur décide (`pointerType`), pas l'appareil : une souris garde l
 | Deux doigts | déplacer et zoomer ; abandonne le tracé en cours sans rien poser |
 | Appui, avec un outil | comme un clic |
 | Glisser à un doigt, avec un outil | construire (tracé, rangée, zone) ; près d'un bord, la carte défile |
-| Appui, sans outil | inspecter l'objet (info-bulle épinglée) ou ouvrir un marqueur |
-| Appui long sur un objet | pipette |
+| Appui, sans outil | sélectionner l'objet (voir 8.4) ou ouvrir un marqueur |
+| Appui long sur un objet, sans outil | sélectionner l'objet |
+| Appui long sur un objet, avec un outil | pipette |
 | Coller | l'aperçu se pose, se déplace au doigt, puis bouton « Poser » |
 
 - Seuil de 10 px entre appui et glisser ; appui long à 450 ms.
 - Tout raccourci a un bouton : barre d'actions au-dessus de la barre de construction (Pivoter, Miroir, Inverser le coude, historique du presse-papiers, Retirer, Poser, Quitter) et bouton Pause en haut à droite.
 - Liste des gestes dans Options > Commandes.
+
+### 8.4 Sélection
+Sans outil, un clic (ou un appui) sur un objet le **sélectionne** : un cadre l'entoure, l'info-bulle reste affichée et la barre d'actions propose ce qu'on peut en faire.
+
+- **Durée** : la sélection reste jusqu'à un clic dans le vide ou sur un autre objet, `Échap`, le choix d'un outil, ou la disparition de l'objet (démoli, annulé).
+- **Actions** : Pipette (le même outil, la même orientation), Supprimer (`Suppr`, une étape d'annulation), Désélectionner. Le Hub se sélectionne pour ses infos, mais ne se supprime pas.
+- **`Suppr`** vise la sélection quand il y en a une, sinon l'objet survolé.
 
 ---
 

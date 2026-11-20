@@ -3,7 +3,17 @@ import { type MessageKey, t } from '../i18n';
 import { el } from './dom';
 
 type ActionId =
-  'rotate' | 'mirror' | 'elbow' | 'prevClip' | 'nextClip' | 'removeClip' | 'place' | 'quit';
+  | 'rotate'
+  | 'mirror'
+  | 'elbow'
+  | 'prevClip'
+  | 'nextClip'
+  | 'removeClip'
+  | 'place'
+  | 'quit'
+  | 'pick'
+  | 'delete'
+  | 'deselect';
 
 interface ActionDef {
   id: ActionId;
@@ -72,14 +82,37 @@ const ACTIONS: readonly ActionDef[] = [
     label: 'act.quit',
     icon: null,
     run: (tools) => tools.setTool('none'),
-    shown: () => true,
+    shown: (tools) => tools.tool !== 'none',
+  },
+  // Without a tool: what can be done to the selected object.
+  {
+    id: 'pick',
+    label: 'act.pick',
+    icon: null,
+    run: (tools) => tools.pickSelection(),
+    shown: (tools) => tools.tool === 'none' && tools.canPickSelection,
+  },
+  {
+    id: 'delete',
+    label: 'act.delete',
+    icon: '⌫',
+    run: (tools) => tools.deleteSelection(),
+    shown: (tools) => tools.tool === 'none' && tools.canDeleteSelection,
+  },
+  {
+    id: 'deselect',
+    label: 'act.deselect',
+    icon: '✕',
+    run: (tools) => tools.clearSelection(),
+    shown: (tools) => tools.tool === 'none',
   },
 ];
 
 /**
  * Contextual action bar above the build bar (PLAN-tactile §4.1): the name or hint of the
  * active tool, and a button for everything that otherwise needs a key (rotate, mirror,
- * elbow, clipboard history, quit). Shown for every kind of pointer.
+ * elbow, clipboard history, quit). Without a tool, it shows the selected object and what
+ * can be done to it. Shown for every kind of pointer.
  */
 export class ToolActions {
   private readonly box = el('div', 'tool-hint');
@@ -90,6 +123,8 @@ export class ToolActions {
   constructor(
     root: HTMLElement,
     private readonly tools: ToolController,
+    /** Name of the object on a tile (the tooltip title). */
+    private readonly describe: (x: number, y: number) => string = () => '',
   ) {
     this.box.setAttribute('role', 'toolbar');
     this.box.setAttribute('aria-label', t('act.label'));
@@ -113,13 +148,23 @@ export class ToolActions {
     }
     this.box.hidden = true;
     root.append(this.box);
+    // Its height, for what has to stay clear of it on a small screen (the tooltip).
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(() => {
+        if (this.box.offsetHeight > 0) {
+          root.style.setProperty('--hint-h', `${this.box.offsetHeight}px`);
+        }
+      }).observe(this.box);
+    }
   }
 
   private text(): string {
     const { tools } = this;
     switch (tools.tool) {
-      case 'none':
-        return '';
+      case 'none': {
+        const at = tools.selectionTile;
+        return at ? this.describe(at.x, at.y) : '';
+      }
       case 'paste':
         return t('hint.paste', { i: tools.clipIndex + 1, n: tools.clipboardSize });
       case 'demolish':
@@ -140,7 +185,7 @@ export class ToolActions {
   update(): void {
     const { tools } = this;
     const text = this.text();
-    const active = tools.tool !== 'none';
+    const active = tools.tool !== 'none' || tools.selection !== null;
     const shown = ACTIONS.map((def) => active && def.shown(tools));
     const pressed = ACTIONS.map((def) => def.pressed?.(tools) ?? false);
     const key = `${text}|${shown.join()}|${pressed.join()}`;

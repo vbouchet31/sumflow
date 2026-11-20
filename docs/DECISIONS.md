@@ -163,6 +163,7 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Pas de minuteur dans les gestes** : `Gestures.update(now)` est appelé à chaque image, avec l'horloge des événements. Tout est testable sans DOM.
 - **Outils sans glisser (extracteur, pont, priorité, marqueur)** : un doigt qui glisse déplace le fantôme, l'objet est posé là où le doigt se lève. Cela permet d'ajuster la position avant de lâcher.
 - **Barre d'actions pour tout le monde** : pas de détection d'appareil. Le texte de la barre ne cite plus de touches (elles sont dans les infobulles des boutons).
+- **Appui long sans outil = sélection** (voir « Sélection et déplacement ») : la pipette au doigt ressemblait trop à « en poser un autre ». Avec un outil, l'appui long reste la pipette.
 - **Appui long sur rien** : le geste continue comme si de rien n'était. Garder le doigt immobile pour viser, puis lâcher, pose bien l'objet. L'appui long ne prend la main que s'il y a un objet à prendre à la pipette.
 - **Info-bulle épinglée** : seulement sans outil. Elle tombe dès qu'un outil est choisi ou qu'une souris bouge (le survol reprend la main).
 - **Coude** : le bouton est un état qui reste jusqu'à ce qu'on le rebascule ; `Ctrl` l'inverse pendant qu'il est tenu.
@@ -180,6 +181,13 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **`storage.persist()` au niveau 2** et non au chargement : Firefox pose la question au joueur, autant attendre qu'il ait quelque chose à perdre.
 - **`display: fullscreen`** dans le manifeste, avec repli `standalone` (iOS). Orientation libre : la tablette debout est prise en charge.
 - **Pas de réduction du ratio de pixels pendant le pincement** : la mesure disponible ne la justifie pas. À revoir après un essai sur un téléphone Android milieu de gamme.
+
+## Sélection et déplacement
+
+- **Sélection persistante** : sans outil, un clic ou un appui sélectionne l'objet. Elle remplace l'info-bulle épinglée au doigt, et vaut aussi pour la souris. Un bâtiment est retenu par son identifiant, pour suivre ses déplacements ; un tapis, un pont ou un gisement, par sa tuile.
+- **Fin de la sélection** : clic dans le vide ou sur un autre objet, `Échap` (avant le menu), choix d'un outil, objet disparu. Déplacer la carte la garde.
+- **Barre d'actions réutilisée** : la même barre qu'avec un outil, avec le nom de l'objet et ses actions. Pas de bouton flottant près de l'objet : il gênerait le glisser et sortirait de l'écran au bord de la carte.
+- **Petit écran** : l'info-bulle monte au-dessus de la barre d'actions quand les deux sont visibles (elles se chevauchaient sur téléphone debout).
 
 ## Audit de `balance.ts` (après M11)
 

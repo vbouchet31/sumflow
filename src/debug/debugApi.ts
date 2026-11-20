@@ -49,6 +49,8 @@ export interface DebugSnapshot {
   tool: string;
   /** Tile the tools consider hovered (null on a touch screen once the finger is up). */
   hover: { x: number; y: number } | null;
+  /** Outline of the selected object (no tool), or null. */
+  selection: { x0: number; y0: number; x1: number; y1: number } | null;
   totalDelivered: number;
   paused: boolean;
   camera: { x: number; y: number; zoom: number };
@@ -145,6 +147,7 @@ export function installDebugApi(ctx: DebugContext): void {
         redo: history.canRedo,
         tool: tools.tool,
         hover: tools.hovered ? { ...tools.hovered } : null,
+        selection: tools.selectionRect,
         totalDelivered: s.totalDelivered,
         paused: loop.paused,
         camera: { x: camera.x, y: camera.y, zoom: camera.zoom },

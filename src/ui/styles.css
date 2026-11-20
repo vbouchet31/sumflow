@@ -1494,6 +1494,11 @@ body::after {
   font-size: 12px;
 }
 
+/* No room beside the action bar: the tooltip goes above it (a selection shows both). */
+.ui-compact :has(> .tool-hint:not([hidden])) > .tooltip {
+  bottom: calc(var(--above-bar) + var(--hint-h, 52px) + 6px);
+}
+
 /* Panels become sheets above everything but the dialogs. */
 .ui-compact .panel {
   top: var(--edge-t);
