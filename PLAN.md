@@ -147,7 +147,7 @@ Angle aléatoire (RNG seedé). Si collision, retenter jusqu'à 30 fois en décal
 | `pow(a, b)` | `b = 0` ⇒ 1 (y compris `0^0`). `b < 0` ⇒ `a = 1` : 1 ; `a = -1` : ±1 selon parité ; sinon 0. `b > 0` ⇒ exponentiation rapide avec saturation à chaque étape (dès que `|r| > INT_MAX`, retourner la borne de bon signe) |
 
 - **Affichage** sur les items : jusqu'à 4 chiffres en entier (`9999`, `-999`) ; au-delà abrégé avec 3 chiffres significatifs : `12.3k`, `456k`, `7.89M`, `2.15G`. Info-bulle et panneaux : valeur complète avec séparateur de milliers selon la langue.
-- **Couleur** d'un item : une craie fixe pour chaque valeur de 1 à 9 (`ITEM_CHALKS` dans `colors.ts` : 1 bleu ciel, 2 rouge, 3 vert, 4 jaune, 5 lilas, 6 turquoise, 7 orange, 8 rose, 9 anis). Les autres valeurs ont une teinte répartie régulièrement sur le cercle (`hue = v × 137,5° mod 360`, l'angle d'or), saturation 65 %, luminosité 74 % (ton craie). Un extracteur prend la couleur de sa valeur.
+- **Couleur** d'un item : une craie fixe pour chaque valeur de 1 à 9 (`ITEM_CHALKS` dans `colors.ts` : 1 bleu ciel, 2 rouge, 3 vert, 4 jaune, 5 lilas, 6 turquoise, 7 orange, 8 rose, 9 anis). Les autres valeurs ont une teinte répartie régulièrement sur le cercle (`hue = 30° + v × 137,5° mod 360`, l'angle d'or), calculée en OKLCH (espace perceptif) : impairs clairs (L 0,85, C 0,07), pairs plus foncés (L 0,74, C 0,09). Un extracteur prend la couleur de sa valeur.
 
 ---
 

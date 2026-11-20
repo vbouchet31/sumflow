@@ -70,8 +70,17 @@ export const ITEM_CHALKS = [
   '#d4e48a', // 9 anise
 ] as const;
 
-/** Chalk tone of the other values: a hue hashed from the value, at this saturation and lightness (%). */
-export const ITEM_CHALK_TONE = { saturation: 65, lightness: 74 } as const;
+/**
+ * Chalk tone of the other values, in OKLCH (perceptual lightness 0..1, chroma): odd values
+ * lighter, even values darker, so two neighbours differ in lightness as well as in hue. The
+ * hue turns one golden angle per value from `hueOffset` (degrees). Every hue of both tones
+ * fits in sRGB.
+ */
+export const ITEM_CHALK_TONE = {
+  odd: { lightness: 0.85, chroma: 0.07 },
+  even: { lightness: 0.74, chroma: 0.09 },
+  hueOffset: 30,
+} as const;
 
 /** The hub is the teacher's frame: clean ruled lines, not a sketch. */
 export const HUB_COLORS = {
