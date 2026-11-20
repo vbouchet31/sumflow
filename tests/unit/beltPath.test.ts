@@ -56,10 +56,22 @@ describe('belt placement', () => {
   it('starting on an existing belt adds an output (split)', () => {
     const world = makeWorld();
     world.setBelt(20, 0, dirMask(E));
+    world.setBelt(21, 0, dirMask(E));
     const plan = planBeltPath(world, computeLPath(20, 0, 20, 3, false));
     expect(plan[0]?.status).toBe('addOutput');
     applyBeltPlan(world, plan);
     expect(world.beltAt(20, 0)?.outputs).toBe(dirMask(E) | dirMask(S));
+  });
+
+  it('starting on the dead end of a belt turns it instead of splitting', () => {
+    const world = makeWorld();
+    world.setBelt(19, 0, dirMask(E));
+    world.setBelt(20, 0, dirMask(E));
+    const plan = planBeltPath(world, computeLPath(20, 0, 20, 3, false));
+    expect(plan[0]?.status).toBe('replace');
+    applyBeltPlan(world, plan);
+    expect(world.beltAt(20, 0)?.outputs).toBe(dirMask(S));
+    expect(world.beltAt(19, 0)?.outputs).toBe(dirMask(E));
   });
 
   it('crossing an existing belt replaces it (no bridge before M6)', () => {

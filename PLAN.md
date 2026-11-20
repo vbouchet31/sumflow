@@ -276,6 +276,7 @@ Voir 6.5.
 - Le tracé est un **chemin en L** : d'abord l'axe du plus grand écart, puis l'autre. **Maintenir Ctrl** pendant le glisser inverse l'ordre du coude.
 - Chaque tuile du chemin sort vers la suivante. La dernière sort dans la direction du dernier segment.
 - **Départ sur un tapis existant** : on **ajoute** une sortie à cette tuile (crée une division) au lieu de la remplacer.
+  - Exception : si ce tapis est un **cul-de-sac** (sa seule sortie pointe vers une tuile vide, sans tapis, pont ni bâtiment), on le **remplace** : le tracé prolonge la ligne (virage) au lieu de créer un T. Indispensable sur mobile, où l'on trace souvent en plusieurs gestes.
 - **Arrivée contre un tapis existant** : si la dernière tuile pointe dans un tapis, c'est une fusion (rien de spécial à faire, l'entrée implicite suffit).
 - **Passage sur un tapis existant** :
   - Pont non débloqué : la tuile existante est remplacée (fantôme orange = remplacement).

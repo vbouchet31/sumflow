@@ -84,8 +84,22 @@ export function isStraightBelt(world: World, b: Belt): Dir | null {
 }
 
 /**
+ * The belt ends in the void: its only output points at a tile with nothing on it (no belt,
+ * no bridge, no building). Drawing from it continues the line rather than splitting it.
+ */
+export function isDeadEnd(world: World, b: Belt): boolean {
+  const d = singleOutput(b);
+  if (d === null) return false;
+  const x = b.x + DX[d];
+  const y = b.y + DY[d];
+  const k = key(x, y);
+  return !world.state.belts.has(k) && !world.state.bridges.has(k) && !world.occupancy.has(k);
+}
+
+/**
  * Decide what each tile of a path does (PLAN §6.5). The first tile adds an output to an
- * existing belt (split) instead of replacing it. Buildings and the hub are skipped. Once
+ * existing belt (split) instead of replacing it, unless that belt is a dead end: then the
+ * line just goes on (a turn, not a T). Buildings and the hub are skipped. Once
  * bridges are unlocked, crossing a straight perpendicular belt (or a bridge) straight on
  * makes a bridge.
  */
@@ -110,7 +124,7 @@ export function planBeltPath(world: World, path: readonly PathTile[]): PlannedBe
       }
     }
     if (!existing) return { ...t, status: 'new', outputs: dirMask(t.dir) };
-    if (i === 0 && path.length > 1) {
+    if (i === 0 && path.length > 1 && !isDeadEnd(world, existing)) {
       return { ...t, status: 'addOutput', outputs: existing.outputs | dirMask(t.dir) };
     }
     return { ...t, status: 'replace', outputs: dirMask(t.dir) };
