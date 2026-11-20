@@ -7,7 +7,6 @@ import type { GameState } from '../../sim/state';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
 import { roundRect } from '../shapes';
-import { chalkStroke } from '../chalk';
 
 const OPERATOR_SYMBOLS: Partial<Record<string, string>> = {
   adder: '+',
@@ -44,9 +43,13 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
   ctx.fillStyle = HUB_COLORS.fill;
   roundRect(ctx, x, y, w, w, Math.max(2, 0.4 * s));
   ctx.fill();
-  chalkStroke(ctx, '#f2efe6', Math.max(2, 0.12 * s));
+  ctx.strokeStyle = '#f2efe6';
+  ctx.lineWidth = Math.max(2, 0.12 * s);
+  ctx.stroke();
   roundRect(ctx, x + 0.22 * s, y + 0.22 * s, w - 0.44 * s, w - 0.44 * s, Math.max(2, 0.3 * s));
-  chalkStroke(ctx, '#f3e08a', Math.max(1, 0.05 * s));
+  ctx.strokeStyle = '#f3e08a';
+  ctx.lineWidth = Math.max(1, 0.05 * s);
+  ctx.stroke();
 
   if (cam.zoom < LOD.buildingText) return;
 

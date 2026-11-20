@@ -4,7 +4,7 @@ import type { GameState } from '../../sim/state';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
 import { roundRect } from '../shapes';
-import { chalkStroke } from '../chalk';
+import { sketchRect, tileSeed } from '../chalk';
 import { drawHub } from './hub';
 import { drawOperator } from './operators';
 import { drawStorage } from './storage';
@@ -23,7 +23,8 @@ function drawExtractor(ctx: CanvasRenderingContext2D, cam: Camera, b: Building, 
   ctx.globalAlpha = alpha * 0.35;
   ctx.fill();
   ctx.globalAlpha = alpha;
-  chalkStroke(ctx, '#bfe3ea', Math.max(1.5, 0.09 * s));
+  const size = 3 * s - 2 * inset;
+  sketchRect(ctx, p.x + inset, p.y + inset, size, size, tileSeed(b.x, b.y), '#bfe3ea', Math.max(1.5, 0.09 * s));
   if (cam.zoom >= LOD.buildingText) {
     // Output notches: small light bars on each outer face.
     ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';

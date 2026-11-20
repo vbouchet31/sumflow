@@ -1,5 +1,5 @@
 import { FONT_NUM } from '../../config/colors';
-import { chalkStroke } from '../chalk';
+import { sketchCircle } from '../chalk';
 import { type Dir, DX, DY, opposite } from '../../core/grid';
 import { formatCompact } from '../../core/format';
 import { type Belt, hasOutput } from '../../sim/entities';
@@ -74,7 +74,7 @@ function paintItem(ctx: CanvasRenderingContext2D, value: number, s: number, size
   ctx.beginPath();
   ctx.arc(c, c, r * 0.94, 0, Math.PI * 2);
   ctx.fill();
-  chalkStroke(ctx, itemColor(value), 0.08 * s);
+  sketchCircle(ctx, c, c, r * 0.92, value, itemColor(value), 0.08 * s);
   const text = formatCompact(value);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

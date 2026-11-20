@@ -1,4 +1,4 @@
-import { chalkStroke } from '../chalk';
+import { sketchRect, tileSeed } from '../chalk';
 import { BUILDINGS } from '../../config/buildings';
 import { BUILDING_COLORS, COLORS, FONT_NUM } from '../../config/colors';
 import { DX, DY, type Rot, transformLocal } from '../../core/grid';
@@ -87,7 +87,10 @@ export function drawOperator(
     ctx.globalAlpha = (opts.alpha ?? 1) * (opts.tint ? 1 : 0.4);
     ctx.fill();
     ctx.globalAlpha = opts.alpha ?? 1;
-    if (!opts.tint) chalkStroke(ctx, shade(base, 0.5), Math.max(1.5, 0.08 * s));
+    if (!opts.tint) {
+      const size = s - 2 * inset;
+      sketchRect(ctx, sp.x + inset, sp.y + inset, size, size, tileSeed(ox + p.x, oy + p.y), shade(base, 0.5), Math.max(1.5, 0.08 * s));
+    }
   }
 
   if (cam.zoom >= LOD.buildingText && !opts.tint) {
