@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   applyBeltPlan,
   computeLPath,
+  extendTrail,
+  type Cell,
   planBeltPath,
   planSingleBelt,
+  trailToPath,
 } from '../../src/build/beltPath';
 import { demolishAt, planExtractor, applyBuildingPlan } from '../../src/build/placement';
 import { ToolController } from '../../src/build/tools';
@@ -43,6 +46,82 @@ describe('computeLPath', () => {
   });
 });
 
+describe('freehand trail', () => {
+  const cells = (t: Cell[]): number[][] => t.map((c) => [c.x, c.y]);
+
+  it('fills the tiles skipped by a fast move, larger gap first', () => {
+    const trail: Cell[] = [{ x: 0, y: 0 }];
+    extendTrail(trail, 3, 1);
+    expect(cells(trail)).toEqual([
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [3, 1],
+    ]);
+  });
+
+  it('keeps its heading on an exact diagonal', () => {
+    const trail: Cell[] = [
+      { x: 0, y: 0 },
+      { x: 0, y: 1 },
+    ];
+    extendTrail(trail, 1, 2);
+    expect(cells(trail)).toEqual([
+      [0, 0],
+      [0, 1],
+      [0, 2],
+      [1, 2],
+    ]);
+  });
+
+  it('going back erases, and jitter on a border leaves nothing behind', () => {
+    const trail: Cell[] = [{ x: 0, y: 0 }];
+    extendTrail(trail, 3, 0);
+    extendTrail(trail, 1, 0);
+    expect(cells(trail)).toEqual([
+      [0, 0],
+      [1, 0],
+    ]);
+    extendTrail(trail, 1, 1);
+    extendTrail(trail, 2, 1);
+    extendTrail(trail, 1, 1);
+    extendTrail(trail, 2, 1);
+    expect(cells(trail)).toEqual([
+      [0, 0],
+      [1, 0],
+      [1, 1],
+      [2, 1],
+    ]);
+  });
+
+  it('a loop back onto the trail cuts it there', () => {
+    const trail: Cell[] = [{ x: 0, y: 0 }];
+    for (const [x, y] of [
+      [2, 0],
+      [2, 2],
+      [1, 2],
+      [1, 0],
+    ] as const)
+      extendTrail(trail, x, y);
+    expect(cells(trail)).toEqual([
+      [0, 0],
+      [1, 0],
+    ]);
+  });
+
+  it('each tile of the path outputs toward the next one', () => {
+    const path = trailToPath([
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 1, y: 1 },
+      { x: 0, y: 1 },
+    ]);
+    expect(path.map((t) => t.dir)).toEqual([E, S, W, W]);
+    expect(trailToPath([{ x: 0, y: 0 }])).toEqual([]);
+  });
+});
+
 describe('belt placement', () => {
   it('skips tiles under buildings and the hub', () => {
     const world = makeWorld();
@@ -56,10 +135,22 @@ describe('belt placement', () => {
   it('starting on an existing belt adds an output (split)', () => {
     const world = makeWorld();
     world.setBelt(20, 0, dirMask(E));
+    world.setBelt(21, 0, dirMask(E));
     const plan = planBeltPath(world, computeLPath(20, 0, 20, 3, false));
     expect(plan[0]?.status).toBe('addOutput');
     applyBeltPlan(world, plan);
     expect(world.beltAt(20, 0)?.outputs).toBe(dirMask(E) | dirMask(S));
+  });
+
+  it('starting on the dead end of a belt turns it instead of splitting', () => {
+    const world = makeWorld();
+    world.setBelt(19, 0, dirMask(E));
+    world.setBelt(20, 0, dirMask(E));
+    const plan = planBeltPath(world, computeLPath(20, 0, 20, 3, false));
+    expect(plan[0]?.status).toBe('replace');
+    applyBeltPlan(world, plan);
+    expect(world.beltAt(20, 0)?.outputs).toBe(dirMask(S));
+    expect(world.beltAt(19, 0)?.outputs).toBe(dirMask(E));
   });
 
   it('crossing an existing belt replaces it (no bridge before M6)', () => {
@@ -108,6 +199,33 @@ describe('ToolController', () => {
     expect(tools.ghost().belts).toHaveLength(7);
     tools.pointerUp(14, 12, NO_MODS);
     expect(world.state.belts.size).toBe(7);
+  });
+
+  it('in freehand mode, follows the pointer through several turns', () => {
+    const world = makeWorld();
+    const tools = new ToolController(world);
+    tools.beltMode = 'free';
+    tools.setTool('belt');
+    tools.pointerDown(10, 10, NO_MODS);
+    tools.pointerMove(12, 10, NO_MODS);
+    tools.pointerMove(12, 12, NO_MODS);
+    tools.pointerMove(14, 12, NO_MODS);
+    expect(tools.ghost().belts).toHaveLength(7);
+    tools.pointerUp(14, 12, NO_MODS);
+    expect(world.state.belts.size).toBe(7);
+    expect(world.beltAt(12, 10)?.outputs).toBe(dirMask(S));
+    expect(world.beltAt(12, 12)?.outputs).toBe(dirMask(E));
+    expect(world.beltAt(14, 12)?.outputs).toBe(dirMask(E));
+  });
+
+  it('in freehand mode, a click still places one belt', () => {
+    const world = makeWorld();
+    const tools = new ToolController(world);
+    tools.beltMode = 'free';
+    tools.setTool('belt');
+    tools.pointerDown(10, 10, NO_MODS);
+    tools.pointerUp(10, 10, NO_MODS);
+    expect(world.beltAt(10, 10)?.outputs).toBe(dirMask(E));
   });
 
   it('a click places one belt facing the rotation', () => {

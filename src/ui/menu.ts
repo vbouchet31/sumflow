@@ -319,6 +319,17 @@ export class GameMenu {
           'opt-values',
         ),
         row(
+          'opt.beltDraw',
+          select(
+            ['l', 'free'] as const,
+            s.beltDraw,
+            (v) => t(`opt.beltDraw.${v}`),
+            (beltDraw) => change({ beltDraw }),
+          ),
+          'opt-beltdraw',
+        ),
+        el('p', 'menu-note', t('opt.beltDrawNote')),
+        row(
           'opt.autosave',
           select<AutosaveSeconds>(
             AUTOSAVE_CHOICES,

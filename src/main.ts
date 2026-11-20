@@ -152,6 +152,7 @@ async function bootstrap(): Promise<void> {
     renderer.itemValuesAlways = settings.itemValues === 'always';
     sfx.volume = settings.volume / 100;
     saves.setInterval(settings.autosave);
+    tools.beltMode = settings.beltDraw;
   };
   applySettings();
 

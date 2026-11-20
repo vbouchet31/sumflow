@@ -59,6 +59,57 @@ export function computeLPath(
   return tiles;
 }
 
+/** A tile of a freehand trail. */
+export interface Cell {
+  x: number;
+  y: number;
+}
+
+/**
+ * Freehand drawing (option "follows the pointer"): extend `trail` to the tile `(x, y)` one
+ * neighbouring tile at a time, so a fast move skipping tiles still gives a continuous line.
+ * On a diagonal jump, the larger gap goes first (ties keep the current heading). Coming back
+ * onto a tile of the trail cuts the trail back to it: retracing erases, and the jitter of a
+ * finger on a tile border never leaves zigzags behind.
+ */
+export function extendTrail(trail: Cell[], x: number, y: number): void {
+  const tail = trail[trail.length - 1];
+  if (!tail) {
+    trail.push({ x, y });
+    return;
+  }
+  let last: Cell = tail;
+  while (last.x !== x || last.y !== y) {
+    const dx = x - last.x;
+    const dy = y - last.y;
+    let horizontal: boolean;
+    if (Math.abs(dx) !== Math.abs(dy)) horizontal = Math.abs(dx) > Math.abs(dy);
+    else {
+      const prev = trail[trail.length - 2];
+      horizontal = prev ? prev.y === last.y : true;
+    }
+    const next: Cell = horizontal
+      ? { x: last.x + Math.sign(dx), y: last.y }
+      : { x: last.x, y: last.y + Math.sign(dy) };
+    const seen = trail.findIndex((c) => c.x === next.x && c.y === next.y);
+    if (seen >= 0) trail.length = seen + 1;
+    else trail.push(next);
+    last = next;
+  }
+}
+
+/** Belt path along a trail: each tile outputs toward the next one. Empty under 2 tiles. */
+export function trailToPath(trail: readonly Cell[]): PathTile[] {
+  if (trail.length < 2) return [];
+  const step = (a: Cell, b: Cell): Dir => (b.x > a.x ? E : b.x < a.x ? W : b.y > a.y ? S : N);
+  let dir: Dir = E;
+  return trail.map((c, i) => {
+    const next = trail[i + 1];
+    if (next) dir = step(c, next);
+    return { x: c.x, y: c.y, dir };
+  });
+}
+
 /** Ghost colours: new = green, replace = orange, bridge = blue, blocked = red. */
 export type PlanStatus = 'new' | 'replace' | 'addOutput' | 'bridge' | 'blocked';
 
@@ -84,8 +135,22 @@ export function isStraightBelt(world: World, b: Belt): Dir | null {
 }
 
 /**
+ * The belt ends in the void: its only output points at a tile with nothing on it (no belt,
+ * no bridge, no building). Drawing from it continues the line rather than splitting it.
+ */
+export function isDeadEnd(world: World, b: Belt): boolean {
+  const d = singleOutput(b);
+  if (d === null) return false;
+  const x = b.x + DX[d];
+  const y = b.y + DY[d];
+  const k = key(x, y);
+  return !world.state.belts.has(k) && !world.state.bridges.has(k) && !world.occupancy.has(k);
+}
+
+/**
  * Decide what each tile of a path does (PLAN §6.5). The first tile adds an output to an
- * existing belt (split) instead of replacing it. Buildings and the hub are skipped. Once
+ * existing belt (split) instead of replacing it, unless that belt is a dead end: then the
+ * line just goes on (a turn, not a T). Buildings and the hub are skipped. Once
  * bridges are unlocked, crossing a straight perpendicular belt (or a bridge) straight on
  * makes a bridge.
  */
@@ -110,7 +175,7 @@ export function planBeltPath(world: World, path: readonly PathTile[]): PlannedBe
       }
     }
     if (!existing) return { ...t, status: 'new', outputs: dirMask(t.dir) };
-    if (i === 0 && path.length > 1) {
+    if (i === 0 && path.length > 1 && !isDeadEnd(world, existing)) {
       return { ...t, status: 'addOutput', outputs: existing.outputs | dirMask(t.dir) };
     }
     return { ...t, status: 'replace', outputs: dirMask(t.dir) };

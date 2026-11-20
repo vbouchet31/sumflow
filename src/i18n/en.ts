@@ -196,6 +196,11 @@ export const en: Record<MessageKey, string> = {
   'opt.itemValues': 'Numbers on items',
   'opt.itemValues.always': 'Always',
   'opt.itemValues.zoom': 'Depending on zoom',
+  'opt.beltDraw': 'Belt drawing',
+  'opt.beltDraw.l': 'Automatic L',
+  'opt.beltDraw.free': 'Follows the finger or mouse',
+  'opt.beltDrawNote':
+    'L: the belt goes from start to end with a single turn. Follow: it goes through the tiles you cross, going back erases.',
   'opt.autosave': 'Autosave',
   'opt.autosave.30': 'Every 30 s',
   'opt.autosave.60': 'Every 60 s',

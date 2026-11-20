@@ -210,6 +210,7 @@ describe('settings and export', () => {
         showGrid: false,
         autosave: 45,
         itemValues: 'always',
+        beltDraw: 'free',
       }),
       d,
     );
@@ -219,7 +220,9 @@ describe('settings and export', () => {
       showGrid: false,
       autosave: 60,
       itemValues: 'always',
+      beltDraw: 'free',
     });
+    expect(parseSettings('{"beltDraw":"zigzag"}', d).beltDraw).toBe('l');
   });
 
   it('names export files sumflow-AAAAMMJJ-HHMM.json', () => {

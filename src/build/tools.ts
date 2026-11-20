@@ -7,9 +7,12 @@ import { singleOutput, type World } from '../sim/world';
 import { clearArea, demolishArea, type Rect, rectSize, selectionRect } from './area';
 import {
   applyBeltPlan,
+  type Cell,
   computeLPath,
+  extendTrail,
   type PlannedBelt,
   planBeltPath,
+  trailToPath,
   planManualBridge,
   planSingleBelt,
 } from './beltPath';
@@ -30,6 +33,14 @@ import {
   planExtractor,
   planOperatorRow,
 } from './placement';
+
+/** A press being dragged: start tile, and the tiles crossed for a freehand belt. */
+interface Drag {
+  x: number;
+  y: number;
+  moved: boolean;
+  trail?: Cell[];
+}
 
 /** Zone tools: drag a rectangle (PLAN §8.2). */
 export type AreaTool = 'demolish' | 'clear' | 'copy' | 'cut';
@@ -94,6 +105,8 @@ export class ToolController {
    * inverts it for the time of the drag.
    */
   elbowSwap = false;
+  /** Belt drag: L-shaped path (`l`) or along the tiles the pointer went through (`free`). */
+  beltMode: 'l' | 'free' = 'l';
   private hover: { x: number; y: number } | null = null;
   /**
    * Touch: tile where the paste preview was put down. It stays there once the finger is
@@ -103,7 +116,7 @@ export class ToolController {
   private pendingBefore: { x: number; y: number } | null = null;
   /** A finger is moving the paste preview. */
   private touchPaste = false;
-  private drag: { x: number; y: number; moved: boolean } | null = null;
+  private drag: Drag | null = null;
   private ctrl = false;
   private listeners = new Set<() => void>();
   private clipCache: { src: Clip; rot: Rot; mirror: boolean; clip: Clip } | null = null;
@@ -289,6 +302,7 @@ export class ToolController {
       this.pending = null;
     }
     if (this.drag && (x !== this.drag.x || y !== this.drag.y)) this.drag.moved = true;
+    if (this.drag?.trail) extendTrail(this.drag.trail, x, y);
   }
 
   /** The gesture was interrupted (system, second finger): drop the drag, build nothing. */
@@ -320,6 +334,7 @@ export class ToolController {
     const t = this.tool;
     if (t === 'belt' || t === 'paste' || isAreaTool(t) || isFreeBuilding(t)) {
       this.drag = { x, y, moved: false };
+      if (t === 'belt' && this.beltMode === 'free') this.drag.trail = [{ x, y }];
     }
   }
 
@@ -329,6 +344,7 @@ export class ToolController {
     const tool = this.tool;
     const drag = this.drag;
     this.drag = null;
+    if (drag?.trail) extendTrail(drag.trail, x, y);
     if (tool === 'paste' && mods.touch) {
       // The finger only puts the preview down: `confirmPaste` builds.
       if (this.touchPaste) this.pending = { x, y };
@@ -396,7 +412,7 @@ export class ToolController {
     }
   }
 
-  private applyArea(tool: AreaTool, drag: { x: number; y: number; moved: boolean } | null): void {
+  private applyArea(tool: AreaTool, drag: Drag | null): void {
     if (!this.hover) return;
     const rect = selectionRect(drag ?? this.hover, this.hover);
     if (tool === 'demolish') {
@@ -480,8 +496,9 @@ export class ToolController {
     return rectSize(selectionRect(this.drag, this.hover));
   }
 
-  private beltPlan(drag: { x: number; y: number; moved: boolean } | null): PlannedBelt[] {
+  private beltPlan(drag: Drag | null): PlannedBelt[] {
     if (!this.hover) return [];
+    if (drag?.moved && drag.trail) return planBeltPath(this.world, trailToPath(drag.trail));
     if (drag?.moved) {
       return planBeltPath(
         this.world,
@@ -492,17 +509,14 @@ export class ToolController {
     return planSingleBelt(this.world, at.x, at.y, this.beltDir);
   }
 
-  private operatorPlans(
-    type: FreeBuildingType,
-    drag: { x: number; y: number; moved: boolean } | null,
-  ): BuildingPlan[] {
+  private operatorPlans(type: FreeBuildingType, drag: Drag | null): BuildingPlan[] {
     if (!this.hover) return [];
     const from = drag ?? this.hover;
     const to = drag?.moved ? this.hover : from;
     return planOperatorRow(this.world, type, from, to, this.rot);
   }
 
-  private pastePlans(drag: { x: number; y: number; moved: boolean } | null): PastePlan[] {
+  private pastePlans(drag: Drag | null): PastePlan[] {
     const clip = this.currentClip();
     if (!clip) return [];
     // A preview put down by a finger is a single copy, where it was put.
