@@ -87,7 +87,9 @@ export function curvePoint(
 
 /**
  * Draw a chalk chevron pointing along `(fx, fy)` (unit vector), centred at `(cx, cy)`.
- * `seed` gives each one its own hand: unequal arms, slightly bent, tilted, tip a little off.
+ * `seed` gives each one its own hand: unequal arms, a tilt, the tip a little off, and the
+ * second arm not quite starting where the first one ended. Thousands are drawn every frame:
+ * straight segments, and all the randomness from one hash.
  */
 function chevron(
   ctx: CanvasRenderingContext2D,
@@ -98,10 +100,11 @@ function chevron(
   size: number,
   seed = 0,
 ): void {
-  const r1 = hash01(seed, 11);
-  const r2 = hash01(seed, 23);
-  const r3 = hash01(seed, 37);
-  const r4 = hash01(seed, 41);
+  const h = tileSeed(seed, 11);
+  const r1 = (h & 255) / 255;
+  const r2 = ((h >>> 8) & 255) / 255;
+  const r3 = ((h >>> 16) & 255) / 255;
+  const r4 = (h >>> 24) / 255;
   const tilt = (r1 - 0.5) * 0.45;
   const px = -fy + fx * tilt;
   const py = fx + fy * tilt;
@@ -110,16 +113,10 @@ function chevron(
   const tipY = cy + fy * back * 0.6 + py * (r3 - 0.5) * size * 0.2;
   const armA = size * (0.8 + r4 * 0.35);
   const armB = size * (0.8 + r2 * 0.35);
-  const ax = cx - fx * back + px * armA;
-  const ay = cy - fy * back + py * armA;
-  const bx = cx - fx * back * (0.85 + r1 * 0.3) - px * armB;
-  const by = cy - fy * back * (0.85 + r1 * 0.3) - py * armB;
-  const bend = (r3 - 0.5) * size * 0.35;
-  ctx.moveTo(ax, ay);
-  ctx.quadraticCurveTo((ax + tipX) / 2 + fx * bend, (ay + tipY) / 2 + fy * bend, tipX, tipY);
-  // The pen does not quite start the second arm where the first one ended.
-  ctx.moveTo(tipX - fx * size * 0.06, tipY - fy * size * 0.06);
-  ctx.quadraticCurveTo((bx + tipX) / 2 - fx * bend, (by + tipY) / 2 - fy * bend, bx, by);
+  const backB = back * (0.85 + r1 * 0.3);
+  ctx.moveTo(cx - fx * back + px * armA, cy - fy * back + py * armA);
+  ctx.lineTo(tipX, tipY);
+  ctx.lineTo(cx - fx * backB - px * armB, cy - fy * backB - py * armB);
 }
 
 /**
@@ -277,7 +274,7 @@ export function drawBelts(
 
   const animated = cam.zoom >= LOD.full;
   ctx.strokeStyle = BELT_COLORS.chevron;
-  ctx.lineWidth = Math.max(1, 0.11 * s);
+  ctx.lineWidth = Math.max(1, 0.1 * s);
   // Round ends cost a lot on thousands of live chevrons and do not show on thin lines:
   // keep them where chevrons are cached (static) or large (zoom ≥ 1).
   const round = !animated || cam.zoom >= 1;

@@ -155,7 +155,6 @@ export function sketchRect(
   for (let pass = 0; pass < 2; pass++) {
     ctx.lineWidth = pass ? lw * 0.6 : lw;
     ctx.globalAlpha = alpha * (pass ? 0.55 : 0.9);
-    ctx.setLineDash(pass ? [lw * 9, lw * 1.2] : [lw * 14, lw * 0.7]);
     ctx.beginPath();
     for (let i = 0; i < 4; i++) {
       const a = CORNERS[i] as readonly [number, number];
@@ -179,7 +178,6 @@ export function sketchRect(
     }
     ctx.stroke();
   }
-  ctx.setLineDash([]);
   ctx.globalAlpha = alpha;
 }
 
@@ -265,8 +263,12 @@ export function hatchRect(
 
 /** Hatch variants per colour and size: few, and reused under 8 orientations. */
 export const HATCH_VARIANTS = 3;
-const HATCH_SPRITE_LIMIT = 256;
+/** Largest side of a hatch picture: beyond, it is scaled up (hatching stays hatching). */
+const HATCH_MAX_PX = 512;
+/** Memory budget of the hatch pictures, in pixels (4 bytes each): 32 MB. */
+const HATCH_PIXEL_BUDGET = 8_000_000;
 const hatchSprites = new Map<string, HTMLCanvasElement>();
+let hatchPixels = 0;
 
 /**
  * Chalk colouring of a `size` square, from a cache: only HATCH_VARIANTS hatchings per colour
@@ -283,18 +285,28 @@ export function drawHatch(
   lw: number,
 ): void {
   const dpr = ctx.getTransform().a;
-  const px = Math.max(4, Math.round(size * dpr));
+  // Sizes in steps of a quarter octave: while zooming, a few pictures are scaled instead
+  // of a new one being drawn every frame.
+  const px = Math.min(
+    HATCH_MAX_PX,
+    Math.max(8, Math.round(2 ** (Math.ceil(Math.log2(size * dpr) * 4) / 4))),
+  );
   const h = seed >>> 0;
   const variant = h % HATCH_VARIANTS;
   const key = `${color}|${px}|${variant}`;
   let sprite = hatchSprites.get(key);
   if (!sprite) {
-    if (hatchSprites.size >= HATCH_SPRITE_LIMIT) hatchSprites.clear();
+    if (hatchPixels + px * px > HATCH_PIXEL_BUDGET) {
+      for (const c of hatchSprites.values()) c.width = 0; // release the bitmaps now
+      hatchSprites.clear();
+      hatchPixels = 0;
+    }
+    hatchPixels += px * px;
     sprite = document.createElement('canvas');
     sprite.width = px;
     sprite.height = px;
     const g = sprite.getContext('2d');
-    if (g) hatchRect(g, 0, 0, px, px, variant * 7919 + 13, color, lw * dpr);
+    if (g) hatchRect(g, 0, 0, px, px, variant * 7919 + 13, color, (lw * px) / size);
     hatchSprites.set(key, sprite);
   }
   const t = (h >>> 3) % 8;
