@@ -196,6 +196,7 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Obstacles** : bâtiments, autres tapis (sauf pont, comme l'outil Tapis), cases devant une sortie (le tapis volerait les nombres, et faisait boucler un opérateur sur lui-même lors des essais). Deux lignes réacheminées peuvent se croiser par un pont.
 - **Ordre des lignes** : elles sont tracées l'une après l'autre. Si l'une reste débranchée, on réessaie en mettant chaque ligne en premier, et on garde le résultat avec le moins de lignes débranchées.
 - **Ligne bloquée** : elle reste telle quelle, débranchée, en rouge sur le fantôme (choix validé : autoriser plutôt que refuser, Annuler sert de filet). Au-delà de 160 cases de tracé, la ligne est aussi laissée en place.
+- **Une teinte par ligne pendant le glisser** : avec plusieurs lignes et des ponts, on ne savait plus quel tapis allait où. Chaque ligne a sa teinte douce (pervenche, ambre, mauve, cyan, blanc craie), forte sur les tapis réacheminés, légère sur ceux qui restent. Pas de jaune (kaki sur l'ardoise, proche du vert « nouveau ») ni de corail (proche du rouge « bloqué »). Numérotées dans l'ordre des ports, elles ne changent pas pendant le glisser.
 
 ## Audit de `balance.ts` (après M11)
 
