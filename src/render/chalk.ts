@@ -136,7 +136,7 @@ const CORNERS = [
  * Hand-drawn rectangle: each side is a slightly bent line that overshoots the corners, drawn
  * twice with a different wobble, like a player sketching with chalk.
  */
-export function sketchRect(
+function sketchRect(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -218,7 +218,7 @@ export function sketchCircle(
  * Colour a rectangle in with chalk: slightly bent, unevenly spaced diagonal strokes clipped
  * to it, with ragged ends that leave a few gaps, like a child colouring a shape.
  */
-export function hatchRect(
+function hatchRect(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -262,7 +262,7 @@ export function hatchRect(
 }
 
 /** Hatch variants per colour and size: few, and reused under 8 orientations. */
-export const HATCH_VARIANTS = 3;
+const HATCH_VARIANTS = 3;
 /** Largest side of a hatch picture: beyond, it is scaled up (hatching stays hatching). */
 const HATCH_MAX_PX = 512;
 /** Memory budget of the hatch pictures, in pixels (4 bytes each): 32 MB. */
@@ -275,7 +275,7 @@ let hatchPixels = 0;
  * and size, each shown under one of 8 orientations (4 quarter turns, with or without a
  * mirror) picked from `seed`, so neighbouring tiles still look different.
  */
-export function drawHatch(
+function drawHatch(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
