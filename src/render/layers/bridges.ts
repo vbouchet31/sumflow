@@ -31,54 +31,29 @@ export function drawBridges(
       const seed = tileSeed(b.x, b.y);
       ctx.fillStyle = COLORS.background;
       ctx.fillRect(p.x, p.y + 0.12 * s, s, 0.76 * s);
-      ctx.fillStyle = 'rgba(242, 239, 230, 0.06)';
-      ctx.fillRect(p.x, p.y + 0.12 * s, s, 0.76 * s);
-      // Planks across the deck.
-      for (let i = 0; i < 4; i++) {
-        const x = p.x + (0.14 + i * 0.24) * s;
+      // A light footbridge: two chalk beams along the deck, a few faint planks across.
+      for (let i = 0; i < 3; i++) {
+        const x = p.x + (0.22 + i * 0.28) * s;
         chalkLine(
           ctx,
           x,
-          p.y + 0.16 * s,
+          p.y + 0.2 * s,
           x,
-          p.y + 0.84 * s,
+          p.y + 0.8 * s,
           seed + i,
-          'rgba(232, 201, 154, 0.55)',
-          lw * 0.7,
+          'rgba(242, 239, 230, 0.16)',
+          lw * 0.6,
         );
       }
-      // Side beams, a little longer than the tile, and the posts at each end.
-      for (const y of [0.12, 0.88]) {
+      for (const y of [0.13, 0.87]) {
         chalkLine(
           ctx,
-          p.x - 0.14 * s,
+          p.x - 0.05 * s,
           p.y + y * s,
-          p.x + 1.14 * s,
+          p.x + 1.05 * s,
           p.y + y * s,
           seed + y * 100,
-          '#e8c99a',
-          lw * 1.8,
-        );
-      }
-      for (const x of [0.02, 0.98]) {
-        chalkLine(
-          ctx,
-          p.x + x * s,
-          p.y + 0.02 * s,
-          p.x + x * s,
-          p.y + 0.22 * s,
-          seed + x * 50,
-          '#e8c99a',
-          lw,
-        );
-        chalkLine(
-          ctx,
-          p.x + x * s,
-          p.y + 0.78 * s,
-          p.x + x * s,
-          p.y + 0.98 * s,
-          seed + x * 70,
-          '#e8c99a',
+          'rgba(242, 239, 230, 0.6)',
           lw,
         );
       }

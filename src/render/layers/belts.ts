@@ -319,7 +319,7 @@ function drawRails(
     }
   }
 
-  // Doorways: a threshold across the rails and a yellow arrow, in or out of the building.
+  // Doorways: a chalk threshold across the rails, against the building.
   for (const door of doors) {
     const px = -DY[door.d];
     const py = DX[door.d];
@@ -327,20 +327,6 @@ function drawRails(
     const b = cam.worldToScreen(door.x - px * K, door.y - py * K);
     const seed = tileSeed(Math.round(door.x * 4), Math.round(door.y * 4));
     chalkLine(ctx, a.x, a.y, b.x, b.y, seed, 'rgba(242, 239, 230, 0.85)', Math.max(1, 0.06 * s));
-    const at = door.out ? 0.22 : -0.2;
-    const c = cam.worldToScreen(door.x + DX[door.d] * at, door.y + DY[door.d] * at);
-    ctx.strokeStyle = '#f3e08a';
-    ctx.lineWidth = Math.max(1.5, 0.09 * s);
-    ctx.globalAlpha = 0.95;
-    ctx.beginPath();
-    chevron(ctx, c.x, c.y, DX[door.d], DY[door.d], 0.24 * s, seed);
-    const tail = cam.worldToScreen(
-      door.x + DX[door.d] * (at - 0.3),
-      door.y + DY[door.d] * (at - 0.3),
-    );
-    ctx.moveTo(tail.x, tail.y);
-    ctx.lineTo(c.x + DX[door.d] * 0.08 * s, c.y + DY[door.d] * 0.08 * s);
-    ctx.stroke();
   }
   ctx.restore();
 }
