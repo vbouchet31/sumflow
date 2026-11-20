@@ -272,6 +272,42 @@ test('the selection stays until a tap elsewhere and offers its actions', async (
   expect((await state(page)).tool).toBe('adder');
 });
 
+test('a long press lifts a building and the finger moves it, with its belts', async ({ page }) => {
+  await page.goto('./?debug=1&seed=42&tutorial=0');
+  const touch = await touchDriver(page);
+  await page.evaluate(() => {
+    const api = window.__sumflow;
+    if (!api) throw new Error('debug API missing');
+    api.unlockAll();
+    api.place('adder', 5, -3, 0);
+    api.beltPath(3, -3, 4, -3); // → A, from the West
+  });
+  const building = () => page.evaluate(() => window.__sumflow?.buildingAt(5, -3) ?? null);
+  const moved = () => page.evaluate(() => window.__sumflow?.buildingAt(8, -3) ?? null);
+
+  // Long press, then drag without lifting the finger.
+  await touch.start(tileCentre(page, 5, -3));
+  await expect.poll(async () => (await state(page)).selection).not.toBeNull();
+  for (let i = 1; i <= 6; i++) {
+    const [x, y] = tileCentre(page, 5, -3);
+    await touch.move([x + (96 * i) / 6, y]);
+  }
+  await touch.end();
+  expect(await building()).toBeNull();
+  expect(await moved()).toEqual({ type: 'adder', x: 8, y: -3, rot: 0 });
+  expect((await state(page)).camera.x).toBe(0); // the map did not move
+  // The belt followed the adder.
+  expect(await page.evaluate(() => window.__sumflow?.beltAt(7, -3))).toBe(2);
+
+  // Once selected, a plain drag from the building moves it too; elsewhere it pans.
+  await touch.drag(tileCentre(page, 8, -3), tileCentre(page, 8, -1));
+  expect((await page.evaluate(() => window.__sumflow?.buildingAt(8, -1)))?.y).toBe(-1);
+  // The rotate button turns the selection.
+  await page.locator('.tool-hint [data-action="rotate"]').tap();
+  expect((await page.evaluate(() => window.__sumflow?.buildingAt(8, -1)))?.rot).toBe(1);
+  expect((await state(page)).undo).toBe(5);
+});
+
 test('a tap without a tool pins the tooltip of the object', async ({ page }) => {
   await page.goto('./?debug=1&seed=42&tutorial=0');
   const touch = await touchDriver(page);

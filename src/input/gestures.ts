@@ -5,8 +5,11 @@ import { TOUCH } from '../config/keymap';
  * `down` / `move` / `up` mirror a mouse press, drag and release on the map.
  */
 export interface GestureSink {
-  /** True when a one-finger drag builds with the current tool; false when it pans. */
-  buildsOnDrag: () => boolean;
+  /**
+   * True when a one-finger drag from `(x, y)` builds with the current tool (or moves the
+   * selected building); false when it pans.
+   */
+  buildsOnDrag: (x: number, y: number) => boolean;
   down: (x: number, y: number) => void;
   move: (x: number, y: number) => void;
   up: (x: number, y: number) => void;
@@ -19,9 +22,11 @@ export interface GestureSink {
   /**
    * The finger stayed still for `TOUCH.longPressMs`. Return true when the long press did
    * something: the press is then abandoned. Otherwise the gesture goes on as if nothing
-   * happened (holding the finger still to aim must not lose the build).
+   * happened (holding the finger still to aim must not lose the build). `'grab'`: the
+   * press goes on as a drag that builds (it lifts a building to move it), even if it
+   * started as a pan.
    */
-  longPress: (x: number, y: number) => boolean;
+  longPress: (x: number, y: number) => boolean | 'grab';
   pan: (dx: number, dy: number) => void;
   /**
    * Two fingers: their midpoint went from `(px, py)` to `(cx, cy)` and their distance was
@@ -91,7 +96,7 @@ export class Gestures {
       this.startT = t;
       this.longTried = false;
       this.state = 'pending';
-      this.armed = this.sink.buildsOnDrag();
+      this.armed = this.sink.buildsOnDrag(x, y);
       // The ghost shows under the finger at once; nothing is built before the release.
       if (this.armed) this.sink.down(x, y);
       return;
@@ -196,7 +201,17 @@ export class Gestures {
     if (this.state !== 'pending' || this.longTried) return;
     if (now - this.startT < this.config.longPressMs) return;
     this.longTried = true;
-    if (!this.sink.longPress(this.startX, this.startY)) return;
+    const result = this.sink.longPress(this.startX, this.startY);
+    if (!result) return;
+    if (result === 'grab') {
+      if (!this.armed) this.sink.down(this.startX, this.startY);
+      this.armed = true;
+      this.state = 'build';
+      // The finger may have moved a little within the slop.
+      const f = this.fingers.get(this.primary);
+      if (f) this.sink.move(f.x, f.y);
+      return;
+    }
     this.disarm();
     this.state = 'spent';
   }

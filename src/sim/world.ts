@@ -12,6 +12,7 @@ import {
   buildingSize,
   footprintTiles,
   isOperator,
+  localPortFaces,
   type PortFace,
   portFaces,
   portKey,
@@ -265,15 +266,19 @@ export class World {
       b.y === s.y &&
       b.rot === s.rot &&
       (b.mirror === true) === s.mirror;
+    // A building that only moved (same type and mirror) is moved back, with its contents.
+    const moved = (b: Building, s: BuildingSnap): boolean =>
+      b.type === s.type && (b.mirror === true) === s.mirror && !same(b, s);
     for (const [id, c] of change.buildings) {
       const target = c[side];
       const cur = this.state.buildings.get(id);
-      if (cur && (!target || !same(cur, target))) this.removeBuilding(id);
+      if (cur && (!target || (!same(cur, target) && !moved(cur, target)))) this.removeBuilding(id);
     }
     for (const [id, c] of change.buildings) {
       const target = c[side];
       if (!target) continue;
       const cur = this.state.buildings.get(id);
+      if (cur && moved(cur, target)) this.moveBuilding(id, target.x, target.y, target.rot);
       if (cur) {
         cur.priority = target.priority;
         if (target.extractValue !== null) cur.extractValue = target.extractValue;
@@ -511,16 +516,59 @@ export class World {
     if (!b || b.type === 'hub') return null;
     this.noteBuilding(id);
     this.state.buildings.delete(id);
-    for (const t of footprintTiles(b.type, b.x, b.y, b.rot, b.mirror))
-      this.occupancy.delete(key(t.x, t.y));
-    for (const p of this.buildingPorts.get(id) ?? [])
-      this.ports.delete(portKey(key(p.x, p.y), p.face));
-    this.buildingPorts.delete(id);
-    const { cx, cy } = chunkOf(b.x, b.y);
-    this.buildingChunks.get(chunkId(cx, cy))?.delete(id);
+    this.unindexBuilding(b);
     this.emitFootprint(b);
     this.invalidate();
     return b;
+  }
+
+  /**
+   * Move a building to another origin and rotation, keeping it (id, buffers, stored items).
+   * Belts and bridges under the new footprint are removed; the prioritised output stays on
+   * the same port. The caller is responsible for validity (free footprint). Not the hub.
+   */
+  moveBuilding(id: number, x: number, y: number, rot: Rot): Building | null {
+    const b = this.state.buildings.get(id);
+    if (!b || b.type === 'hub') return null;
+    this.noteBuilding(id);
+    const mirror = b.mirror === true;
+    const newRot: Rot = BUILDINGS[b.type].rotatable ? rot : 0;
+    let priority: number | null = null;
+    if (b.priority !== null) {
+      const from = localPortFaces(b.type, b.x, b.y, b.rot, mirror).find(
+        (p) => portKey(key(p.x, p.y), p.face) === b.priority,
+      );
+      const to = from
+        ? localPortFaces(b.type, x, y, newRot, mirror).find(
+            (p) => p.tile === from.tile && p.local === from.local,
+          )
+        : undefined;
+      priority = to ? portKey(key(to.x, to.y), to.face) : null;
+    }
+    this.unindexBuilding(b);
+    this.emitFootprint(b);
+    b.x = x;
+    b.y = y;
+    b.rot = newRot;
+    b.priority = priority;
+    for (const t of footprintTiles(b.type, x, y, newRot, mirror)) {
+      this.removeBelt(t.x, t.y);
+      this.removeBridge(t.x, t.y);
+    }
+    this.indexBuilding(b);
+    this.emitFootprint(b);
+    this.invalidate();
+    return b;
+  }
+
+  private unindexBuilding(b: Building): void {
+    for (const t of footprintTiles(b.type, b.x, b.y, b.rot, b.mirror))
+      this.occupancy.delete(key(t.x, t.y));
+    for (const p of this.buildingPorts.get(b.id) ?? [])
+      this.ports.delete(portKey(key(p.x, p.y), p.face));
+    this.buildingPorts.delete(b.id);
+    const { cx, cy } = chunkOf(b.x, b.y);
+    this.buildingChunks.get(chunkId(cx, cy))?.delete(b.id);
   }
 
   private emitFootprint(b: Building): void {

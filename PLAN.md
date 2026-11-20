@@ -462,7 +462,8 @@ Une fiche modale, une à la fois, à la première ouverture d'une partie neuve p
 | Stockage | `8` |
 | Pont (pose manuelle) | `9` |
 | Priorité | `P` (ou `Alt+clic` en mode tapis) |
-| Pivoter | `R` / `Shift+R` |
+| Pivoter | `R` / `Shift+R` (sans outil : le bâtiment sélectionné, sur place) |
+| Déplacer un bâtiment | sans outil, le glisser au clic gauche (voir 8.4) |
 | Démolir (zone) | `X` puis glisser ; clic simple = un objet |
 | Démolir rapide | `Suppr` sur l'objet survolé |
 | Vider les nombres (zone) | `C` puis glisser (enlève items et tampons, stockages compris, garde les bâtiments) |
@@ -494,7 +495,8 @@ Le type de pointeur décide (`pointerType`), pas l'appareil : une souris garde l
 | Appui, avec un outil | comme un clic |
 | Glisser à un doigt, avec un outil | construire (tracé, rangée, zone) ; près d'un bord, la carte défile |
 | Appui, sans outil | sélectionner l'objet (voir 8.4) ou ouvrir un marqueur |
-| Appui long sur un objet, sans outil | sélectionner l'objet |
+| Appui long sur un objet, sans outil | sélectionner l'objet ; sur un bâtiment, le soulever pour le déplacer |
+| Glisser le bâtiment sélectionné | le déplacer (voir 8.4) |
 | Appui long sur un objet, avec un outil | pipette |
 | Coller | l'aperçu se pose, se déplace au doigt, puis bouton « Poser » |
 
@@ -506,8 +508,21 @@ Le type de pointeur décide (`pointerType`), pas l'appareil : une souris garde l
 Sans outil, un clic (ou un appui) sur un objet le **sélectionne** : un cadre l'entoure, l'info-bulle reste affichée et la barre d'actions propose ce qu'on peut en faire.
 
 - **Durée** : la sélection reste jusqu'à un clic dans le vide ou sur un autre objet, `Échap`, le choix d'un outil, ou la disparition de l'objet (démoli, annulé).
-- **Actions** : Pipette (le même outil, la même orientation), Supprimer (`Suppr`, une étape d'annulation), Désélectionner. Le Hub se sélectionne pour ses infos, mais ne se supprime pas.
+- **Actions** : Pivoter (`R`), Pipette (le même outil, la même orientation), Supprimer (`Suppr`), Désélectionner. Le Hub se sélectionne pour ses infos, mais ne se supprime pas.
 - **`Suppr`** vise la sélection quand il y en a une, sinon l'objet survolé.
+
+**Déplacer un bâtiment** (opérateurs et stockage ; ni le Hub, ni un extracteur, lié à son gisement)
+- Souris : glisser le bâtiment, sans outil. Doigt : appui long pour le soulever puis glisser sans lever, ou glisser le bâtiment déjà sélectionné (ailleurs, le doigt déplace la carte).
+- Un fantôme montre le bâtiment à sa nouvelle place et ses tapis réacheminés ; l'original est estompé. `R` pivote le fantôme. Rien ne bouge avant le relâchement ; un deuxième doigt ou `Échap` annule.
+- Refusé (fantôme rouge) si un autre bâtiment occupe la place. Les tapis sous la nouvelle place sont retirés, comme à la pose.
+- Le bâtiment garde son contenu (tampons, stock) et sa priorité de sortie. Le déplacement est **une seule étape d'annulation**, et Annuler le ramène avec son contenu.
+- **Pivoter** sur place (bouton ou `R`) : un quart de tour autour de la case du milieu, avec les mêmes règles pour les tapis.
+
+**Les tapis suivent (élastique)**
+- Une ligne qui **alimente** un port (son dernier tapis pointe dedans) ou qui **part** d'un port (rien d'autre ne l'alimente) suit le bâtiment. Un tapis qui ne fait que longer le bâtiment ne suit pas.
+- La ligne est rallongée par un tracé en L jusqu'à une face du **même port** (A reste A, B reste B, une sortie reste une sortie), la moins coûteuse en tapis. Elle peut aussi être raccourcie : les tapis devenus inutiles sont retirés.
+- Le tracé ne passe pas sur un autre tapis (sauf en pont, tout droit et perpendiculaire, une fois les ponts débloqués), ni devant la sortie d'un bâtiment (il en capterait les nombres).
+- Une ligne qui ne peut pas suivre **reste en place, débranchée**, signalée en rouge sur le fantôme. Le déplacement est fait quand même.
 
 ---
 

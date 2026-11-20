@@ -396,16 +396,18 @@ async function bootstrap(): Promise<void> {
     onCancel: () => tools.pointerCancel(),
     onLeave: () => tools.clearHover(),
     // Touch: a tap without a tool selects the object (in `pointerUp`, as a click does). A
-    // long press selects it too; with a tool, it picks the object instead (like `E`).
+    // long press selects it too and lifts a building to move it; with a tool, it picks the
+    // object instead (like `E`).
     onLongPress: (x, y) => {
       const done = tools.tool === 'none' ? tools.select(x, y) !== null : tools.pick({ x, y });
       if (!done) return false;
       sfx.click();
       navigator.vibrate?.(10);
-      return true;
+      return tools.grabsAt(x, y, true) ? 'grab' : true;
     },
-    // Touch: with a tool one finger builds, without one it moves the map.
-    buildsOnDrag: () => tools.tool !== 'none',
+    // Touch: with a tool one finger builds, without one it moves the map, unless it starts
+    // on the selected building: then it moves the building.
+    buildsOnDrag: (x, y) => tools.tool !== 'none' || tools.grabsAt(x, y, true),
     onWheel: (delta, mods) => {
       if (!mods.shift || tools.tool !== 'paste') return false;
       // Accumulate so a trackpad does not skip through the history.
@@ -450,7 +452,8 @@ async function bootstrap(): Promise<void> {
     if (pointer.hovering) {
       tools.pointerMove(hover.x, hover.y, { ctrl: keyboard.ctrl, shift: false, alt: false });
     }
-    const sel = tools.selectionRect;
+    // While a building is dragged, its ghost shows where it goes.
+    const sel = tools.isMoving ? null : tools.selectionRect;
     renderer.selection = sel
       ? { x: sel.x0, y: sel.y0, w: sel.x1 - sel.x0 + 1, h: sel.y1 - sel.y0 + 1 }
       : null;
