@@ -59,6 +59,57 @@ export function computeLPath(
   return tiles;
 }
 
+/** A tile of a freehand trail. */
+export interface Cell {
+  x: number;
+  y: number;
+}
+
+/**
+ * Freehand drawing (option "follows the pointer"): extend `trail` to the tile `(x, y)` one
+ * neighbouring tile at a time, so a fast move skipping tiles still gives a continuous line.
+ * On a diagonal jump, the larger gap goes first (ties keep the current heading). Coming back
+ * onto a tile of the trail cuts the trail back to it: retracing erases, and the jitter of a
+ * finger on a tile border never leaves zigzags behind.
+ */
+export function extendTrail(trail: Cell[], x: number, y: number): void {
+  const tail = trail[trail.length - 1];
+  if (!tail) {
+    trail.push({ x, y });
+    return;
+  }
+  let last: Cell = tail;
+  while (last.x !== x || last.y !== y) {
+    const dx = x - last.x;
+    const dy = y - last.y;
+    let horizontal: boolean;
+    if (Math.abs(dx) !== Math.abs(dy)) horizontal = Math.abs(dx) > Math.abs(dy);
+    else {
+      const prev = trail[trail.length - 2];
+      horizontal = prev ? prev.y === last.y : true;
+    }
+    const next: Cell = horizontal
+      ? { x: last.x + Math.sign(dx), y: last.y }
+      : { x: last.x, y: last.y + Math.sign(dy) };
+    const seen = trail.findIndex((c) => c.x === next.x && c.y === next.y);
+    if (seen >= 0) trail.length = seen + 1;
+    else trail.push(next);
+    last = next;
+  }
+}
+
+/** Belt path along a trail: each tile outputs toward the next one. Empty under 2 tiles. */
+export function trailToPath(trail: readonly Cell[]): PathTile[] {
+  if (trail.length < 2) return [];
+  const step = (a: Cell, b: Cell): Dir => (b.x > a.x ? E : b.x < a.x ? W : b.y > a.y ? S : N);
+  let dir: Dir = E;
+  return trail.map((c, i) => {
+    const next = trail[i + 1];
+    if (next) dir = step(c, next);
+    return { x: c.x, y: c.y, dir };
+  });
+}
+
 /** Ghost colours: new = green, replace = orange, bridge = blue, blocked = red. */
 export type PlanStatus = 'new' | 'replace' | 'addOutput' | 'bridge' | 'blocked';
 

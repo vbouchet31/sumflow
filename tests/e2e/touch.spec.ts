@@ -86,6 +86,33 @@ test('with a tool one finger draws, and the map stays still', async ({ page }) =
   expect(drawn.hover).toBeNull();
 });
 
+test('with "follows the finger", one stroke draws several turns', async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem('sumflow.settings', JSON.stringify({ beltDraw: 'free' })),
+  );
+  await page.goto('./?debug=1&seed=42&tutorial=0');
+  const touch = await touchDriver(page);
+  await page.locator('.build-btn[data-tool="belt"]').tap();
+  // No elbow to swap in this mode.
+  await expect(page.locator('.hint-btn[data-action="elbow"]')).toBeHidden();
+
+  // A U: right, down, back left. An L between the ends would be 3 belts.
+  await touch.start(tileCentre(page, 5, -2));
+  for (const [x, y] of [
+    [6, -2],
+    [7, -2],
+    [8, -2],
+    [8, -1],
+    [8, 0],
+    [7, 0],
+    [6, 0],
+    [5, 0],
+  ] as const)
+    await touch.move(tileCentre(page, x, y));
+  await touch.end();
+  expect((await state(page)).belts).toBe(9);
+});
+
 test('a second finger abandons the drawing and takes the map', async ({ page }) => {
   await page.goto('./?debug=1&seed=42&tutorial=0');
   const touch = await touchDriver(page);

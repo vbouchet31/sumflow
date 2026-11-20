@@ -36,7 +36,7 @@ const ACTIONS: readonly ActionDef[] = [
     label: 'act.elbow',
     icon: '↳',
     run: (tools) => tools.toggleElbow(),
-    shown: (tools) => tools.tool === 'belt',
+    shown: (tools) => tools.tool === 'belt' && tools.beltMode === 'l',
     pressed: (tools) => tools.elbowSwap,
   },
   {

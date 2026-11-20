@@ -274,6 +274,10 @@ Voir 6.5.
 ### 6.5 Tracé des tapis (UX)
 - Outil Tapis (touche `1`). **Clic gauche + glisser** depuis une tuile de départ.
 - Le tracé est un **chemin en L** : d'abord l'axe du plus grand écart, puis l'autre. **Maintenir Ctrl** pendant le glisser inverse l'ordre du coude.
+- **Option « Tracé des tapis »** (menu Options) : « En L automatique » (par défaut, ci-dessus) ou « Suit le doigt ou la souris ». Dans ce second mode, le tapis passe par les tuiles parcourues, dans l'ordre :
+  - les tuiles sautées par un mouvement rapide sont comblées (d'abord l'axe du plus grand écart, à égalité on garde le cap) ;
+  - revenir sur une tuile déjà tracée coupe le tracé à cette tuile (revenir en arrière efface, et le tremblement du doigt sur une frontière ne laisse pas de zigzag) ;
+  - pas de coude à inverser : le bouton disparaît et Ctrl est sans effet.
 - Chaque tuile du chemin sort vers la suivante. La dernière sort dans la direction du dernier segment.
 - **Départ sur un tapis existant** : on **ajoute** une sortie à cette tuile (crée une division) au lieu de la remplacer.
   - Exception : si ce tapis est un **cul-de-sac** (sa seule sortie pointe vers une tuile vide, sans tapis, pont ni bâtiment), on le **remplace** : le tracé prolonge la ligne (virage) au lieu de créer un T. Indispensable sur mobile, où l'on trace souvent en plusieurs gestes.

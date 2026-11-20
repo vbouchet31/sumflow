@@ -15,6 +15,8 @@ export interface Settings {
   itemValues: 'always' | 'zoom';
   autosave: AutosaveSeconds;
   reduceMotion: boolean;
+  /** Belt drag: automatic L (`l`) or along the pointer's path (`free`). */
+  beltDraw: 'l' | 'free';
 }
 
 export function defaultSettings(locale: Locale, reduceMotion: boolean): Settings {
@@ -25,6 +27,7 @@ export function defaultSettings(locale: Locale, reduceMotion: boolean): Settings
     itemValues: 'zoom',
     autosave: 60,
     reduceMotion,
+    beltDraw: 'l',
   };
 }
 
@@ -50,6 +53,7 @@ export function parseSettings(text: string | null, defaults: Settings): Settings
     out.autosave = o['autosave'] as AutosaveSeconds;
   }
   if (typeof o['reduceMotion'] === 'boolean') out.reduceMotion = o['reduceMotion'];
+  if (o['beltDraw'] === 'l' || o['beltDraw'] === 'free') out.beltDraw = o['beltDraw'];
   return out;
 }
 

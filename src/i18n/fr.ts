@@ -194,6 +194,11 @@ export const fr = {
   'opt.itemValues': 'Valeurs sur les items',
   'opt.itemValues.always': 'Toujours',
   'opt.itemValues.zoom': 'Selon le zoom',
+  'opt.beltDraw': 'Tracé des tapis',
+  'opt.beltDraw.l': 'En L automatique',
+  'opt.beltDraw.free': 'Suit le doigt ou la souris',
+  'opt.beltDrawNote':
+    'En L : le tapis va du départ à l’arrivée avec un seul virage. Suivre : il passe par les cases parcourues, revenir en arrière efface.',
   'opt.autosave': 'Sauvegarde automatique',
   'opt.autosave.30': 'Toutes les 30 s',
   'opt.autosave.60': 'Toutes les 60 s',
