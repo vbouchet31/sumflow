@@ -122,3 +122,55 @@ export function sketchCircle(
   }
   ctx.restore();
 }
+
+/** Stable pseudo-random value in [0, 1) for a pair of integers. */
+export function hash01(x: number, y: number): number {
+  return rng(tileSeed(x, y))();
+}
+
+/**
+ * Coloured-in with chalk: slightly bent, unevenly spaced diagonal strokes clipped to the
+ * rectangle, with ragged ends that leave a few gaps, like a child colouring a shape.
+ */
+export function hatchRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  seed: number,
+  color: string,
+  lw: number,
+): void {
+  const r = rng(seed ^ 0x5bd1e995);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'round';
+  const ang = -Math.PI / 4 + (r() - 0.5) * 0.35;
+  const ux = Math.cos(ang);
+  const uy = Math.sin(ang);
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const half = Math.hypot(w, h) / 2;
+  const gap = lw * 2.2;
+  ctx.beginPath();
+  for (let t = -half; t <= half; t += gap * (0.75 + r() * 0.5)) {
+    const ox = cx - uy * t;
+    const oy = cy + ux * t;
+    const l1 = half * (0.6 + r() * 0.5);
+    const l2 = half * (0.6 + r() * 0.5);
+    const sx = ox - ux * l1;
+    const sy = oy - uy * l1;
+    const ex = ox + ux * l2;
+    const ey = oy + uy * l2;
+    const bend = (r() - 0.5) * gap * 1.5;
+    ctx.moveTo(sx, sy);
+    ctx.quadraticCurveTo((sx + ex) / 2 - uy * bend, (sy + ey) / 2 + ux * bend, ex, ey);
+  }
+  ctx.stroke();
+  ctx.restore();
+}

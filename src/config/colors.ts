@@ -36,7 +36,7 @@ export const BELT_COLORS = {
   priority: '#9fd39a',
   base: 'rgba(242, 239, 230, 0.05)',
   chevron: 'rgba(242, 239, 230, 0.6)',
-  line: '#3a4b40',
+  line: 'rgba(242, 239, 230, 0.38)',
 } as const;
 
 /** Ghost fills: new, replace, bridge, impossible (PLAN §6.5). */

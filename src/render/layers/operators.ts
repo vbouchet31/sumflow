@@ -1,4 +1,4 @@
-import { sketchRect, tileSeed } from '../chalk';
+import { hatchRect, sketchRect, tileSeed } from '../chalk';
 import { BUILDINGS } from '../../config/buildings';
 import { BUILDING_COLORS, COLORS, FONT_NUM } from '../../config/colors';
 import { DX, DY, type Rot, transformLocal } from '../../core/grid';
@@ -84,11 +84,15 @@ export function drawOperator(
       opts.tint ?? (isIn ? shade(base, -0.3) : t.role === 'body' ? base : shade(base, 0.12));
     ctx.beginPath();
     ctx.roundRect(sp.x + inset, sp.y + inset, s - 2 * inset, s - 2 * inset, 0.18 * s);
-    ctx.globalAlpha = (opts.alpha ?? 1) * (opts.tint ? 1 : 0.4);
+    ctx.globalAlpha = (opts.alpha ?? 1) * (opts.tint ? 1 : 0.12);
     ctx.fill();
     ctx.globalAlpha = opts.alpha ?? 1;
     if (!opts.tint) {
       const size = s - 2 * inset;
+      const seed = tileSeed(ox + p.x, oy + p.y);
+      ctx.globalAlpha = (opts.alpha ?? 1) * 0.75;
+      hatchRect(ctx, sp.x + inset * 1.5, sp.y + inset * 1.5, size - inset, size - inset, seed, shade(base, isIn ? 0 : 0.25), Math.max(1, 0.07 * s));
+      ctx.globalAlpha = opts.alpha ?? 1;
       sketchRect(ctx, sp.x + inset, sp.y + inset, size, size, tileSeed(ox + p.x, oy + p.y), shade(base, 0.5), Math.max(1.5, 0.08 * s));
     }
   }
