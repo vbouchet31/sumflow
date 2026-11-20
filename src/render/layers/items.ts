@@ -65,9 +65,9 @@ function textFit(text: string): number {
 function paintItem(ctx: CanvasRenderingContext2D, value: number, s: number, sizePx: number): void {
   const c = sizePx / 2;
   const r = 0.36 * s;
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+  ctx.fillStyle = 'rgba(242, 239, 230, 0.18)';
   ctx.beginPath();
-  ctx.arc(c + 0.04 * s, c + 0.06 * s, r, 0, Math.PI * 2);
+  ctx.arc(c + 0 * s, c + 0 * s, r * 1.13, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = itemColor(value);
   ctx.beginPath();
@@ -77,7 +77,7 @@ function paintItem(ctx: CanvasRenderingContext2D, value: number, s: number, size
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = `700 ${textFit(text) * s}px ${FONT_NUM}`;
-  ctx.fillStyle = COLORS.text;
+  ctx.fillStyle = COLORS.text === '#f2efe6' ? '#1f2a24' : COLORS.text;
   ctx.fillText(text, c, c + 0.02 * s);
 }
 

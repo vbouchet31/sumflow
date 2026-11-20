@@ -43,6 +43,7 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
   ctx.fillStyle = HUB_COLORS.fill;
   roundRect(ctx, x, y, w, w, Math.max(2, 0.4 * s));
   ctx.fill();
+  ctx.lineWidth = Math.max(1.5, 0.05 * s); ctx.strokeStyle = 'rgba(242, 239, 230, 0.8)'; ctx.stroke();
 
   if (cam.zoom < LOD.buildingText) return;
 
