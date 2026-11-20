@@ -132,6 +132,12 @@ export function beltChains(
   const chains: BeltChain[] = [];
   /** The belt a chain starts from, when it starts from another belt's rail. */
   const startFeeder = new Map<Belt, Belt>();
+  /**
+   * Junctions closed by a wall (T split with no way straight on, or merge fed only from the
+   * sides). The line stops at the edge of the junction instead of crossing it, so the side
+   * belts meet clean corners and no piece of rail is left to rub out.
+   */
+  const walled = new Set<Belt>();
   for (const run of runs) {
     const head = run[0] as Belt;
     const tail = run[run.length - 1] as Belt;
@@ -158,6 +164,7 @@ export function beltChains(
       // behind: close the back.
       const back = opposite(out0);
       start = { x: h.x + DX[back] * K, y: h.y + DY[back] * K, d: back, kind: 'wall' };
+      walled.add(head);
     } else {
       const fed = inputsOf(head);
       const behind = out0 !== undefined ? opposite(out0) : undefined;
@@ -201,13 +208,20 @@ export function beltChains(
     } else if (to.length > 1 && ahead !== undefined) {
       // A T junction: the branches leave to the sides, nothing goes on ahead.
       end = { x: c.x + DX[ahead] * K, y: c.y + DY[ahead] * K, d: ahead, kind: 'wall' };
+      walled.add(tail);
     } else {
       // No output at all, or nothing known about where it comes from: stop in the middle.
       end = { ...c, d: to[0] ?? 0, kind: 'open' };
     }
+    // At a walled junction the line starts (or stops) on the far (or near) side of it.
+    const first: Pt =
+      start.kind === 'wall' ? { x: 2 * h.x - start.x, y: 2 * h.y - start.y } : start;
+    const last: Pt = end.kind === 'wall' ? { x: 2 * c.x - end.x, y: 2 * c.y - end.y } : end;
+    const inner = points.slice(start.kind === 'wall' ? 1 : 0);
+    if (end.kind === 'wall') inner.pop();
     chains.push({
       belts: run,
-      points: [{ x: start.x, y: start.y }, ...points, { x: end.x, y: end.y }],
+      points: [{ x: first.x, y: first.y }, ...inner, { x: last.x, y: last.y }],
       start,
       end,
     });
@@ -216,6 +230,7 @@ export function beltChains(
   // Rub out the rail where a belt joins from the side or a branch leaves.
   const gaps: RailGap[] = [];
   for (const b of list) {
+    if (walled.has(b)) continue;
     for (const f of feeders.get(b) ?? []) {
       if (next.get(f) === b || startFeeder.get(b) === f) continue;
       const d = dirBetween(b, f);

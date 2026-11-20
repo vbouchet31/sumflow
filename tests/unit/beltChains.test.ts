@@ -150,8 +150,10 @@ describe('belt chains (chalk rails)', () => {
     expect(main?.belts).toHaveLength(2);
     expect(main?.end).toMatchObject({ kind: 'wall', y: 0.5, d: E });
     expect(main?.end.x).toBeCloseTo(1.5 + K);
+    // The line stops on the near side of the junction: nothing crosses it, nothing to rub out.
+    expect(main?.points.at(-1)?.x).toBeCloseTo(1.5 - K);
     expect(chains.filter((c) => c.start.kind === 'rail')).toHaveLength(2);
-    expect(gaps).toHaveLength(2);
+    expect(gaps).toEqual([]);
   });
 
   it('a junction fed only from both sides is closed at the back', () => {
@@ -161,13 +163,10 @@ describe('belt chains (chalk rails)', () => {
     const main = chains.find((c) => c.belts.length === 2);
     expect(main?.start).toMatchObject({ kind: 'wall', y: 0.5, d: W });
     expect(main?.start.x).toBeCloseTo(1.5 - K);
+    // The line starts on the far side of the junction.
+    expect(main?.points[0]?.x).toBeCloseTo(1.5 + K);
     expect(chains.filter((c) => c.end.kind === 'rail')).toHaveLength(2);
-    expect(gaps).toEqual(
-      expect.arrayContaining([
-        { x: 1, y: 0, d: N },
-        { x: 1, y: 0, d: S },
-      ]),
-    );
+    expect(gaps).toEqual([]);
   });
 
   it('a junction fed from behind by a building keeps its doorway', () => {
