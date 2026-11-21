@@ -149,6 +149,7 @@ export const AREA_COLORS = {
   clear: { fill: 'rgba(243, 224, 138, 0.12)', stroke: 'rgba(243, 224, 138, 0.95)' },
   copy: { fill: 'rgba(140, 190, 230, 0.12)', stroke: 'rgba(160, 205, 240, 0.95)' },
   cut: { fill: 'rgba(240, 180, 110, 0.14)', stroke: 'rgba(240, 180, 110, 0.95)' },
+  select: { fill: 'rgba(242, 239, 230, 0.08)', stroke: 'rgba(242, 239, 230, 0.9)' },
 } as const;
 
 /** Text markers (PLAN §10.2 layer 8). */

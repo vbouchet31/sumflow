@@ -48,8 +48,11 @@ interface Drag {
   trail?: Cell[];
 }
 
-/** Zone tools: drag a rectangle (PLAN §8.2). */
-export type AreaTool = 'demolish' | 'clear' | 'copy' | 'cut';
+/**
+ * Zone tools: drag a rectangle (PLAN §8.2). `select` keeps the zone selected, for the
+ * copy and cut actions of the selection tray.
+ */
+export type AreaTool = 'demolish' | 'clear' | 'copy' | 'cut' | 'select';
 
 export type ToolId =
   | 'none'
@@ -111,7 +114,13 @@ export interface ToolEvents {
 export type Selection = { kind: 'building'; id: number } | { kind: 'tile'; x: number; y: number };
 
 function isAreaTool(tool: ToolId): tool is AreaTool {
-  return tool === 'demolish' || tool === 'clear' || tool === 'copy' || tool === 'cut';
+  return (
+    tool === 'demolish' ||
+    tool === 'clear' ||
+    tool === 'copy' ||
+    tool === 'cut' ||
+    tool === 'select'
+  );
 }
 
 /**
@@ -136,6 +145,8 @@ export class ToolController {
   beltMode: 'l' | 'free' = 'l';
   private hover: { x: number; y: number } | null = null;
   private selected: Selection | null = null;
+  /** Zone selected with the `select` tool (kept until a new drag, a click or another tool). */
+  private zone: Rect | null = null;
   private moving: Moving | null = null;
   private moveCache: { at: string; plan: MovePlan | null } | null = null;
   /**
@@ -176,6 +187,7 @@ export class ToolController {
     this.drag = null;
     this.moving = null;
     this.selected = null;
+    this.zone = null;
     this.dropPending();
     this.notify();
   }
@@ -186,6 +198,7 @@ export class ToolController {
     this.drag = null;
     this.moving = null;
     this.selected = null;
+    this.zone = null;
     this.dropPending();
     this.notify();
   }
@@ -209,6 +222,7 @@ export class ToolController {
     if (this.moving) this.moving = null;
     else if (this.drag) this.drag = null;
     else if (this.tool === 'none') this.clearSelection();
+    else if (this.zone) this.clearZone();
     else this.setTool('none');
   }
 
@@ -363,6 +377,39 @@ export class ToolController {
   pickSelection(): boolean {
     const t = this.selectionTile;
     return t !== null && this.pick(t);
+  }
+
+  // ---- zone selection ----------------------------------------------------
+
+  /** The zone selected with the `select` tool, or null. */
+  get selectedZone(): Rect | null {
+    return this.tool === 'select' ? this.zone : null;
+  }
+
+  clearZone(): void {
+    if (!this.zone) return;
+    this.zone = null;
+    this.notify();
+  }
+
+  /**
+   * What copy and cut act on: the selected zone, else the selected building (not the hub).
+   * Null when nothing is selected: the selection tray then hides them.
+   */
+  get copyTarget(): Rect | null {
+    if (this.selectedZone) return this.selectedZone;
+    return this.tool === 'none' && this.canCopySelection ? this.selectionRect : null;
+  }
+
+  /** Copy (or cut) the selected zone or building, then switch to paste mode. */
+  copyTargetRect(cut: boolean): boolean {
+    const rect = this.copyTarget;
+    if (rect && this.copyRect(rect, cut)) {
+      if (cut) this.events.onDemolish?.();
+      return true;
+    }
+    this.events.onError?.();
+    return false;
   }
 
   // ---- clipboard ---------------------------------------------------------
@@ -631,6 +678,12 @@ export class ToolController {
   private applyArea(tool: AreaTool, drag: Drag | null): void {
     if (!this.hover) return;
     const rect = selectionRect(drag ?? this.hover, this.hover);
+    if (tool === 'select') {
+      // A drag selects a zone; a simple click drops it.
+      this.zone = drag?.moved ? rect : null;
+      this.notify();
+      return;
+    }
     if (tool === 'demolish') {
       // A simple click demolishes one object; a drag, the whole zone.
       const n = drag?.moved
@@ -756,6 +809,10 @@ export class ToolController {
     const drag = this.drag;
     if (tool === 'paste') return pasteGhost(this.pastePlans(drag));
     if (tool === 'none') return this.moving?.moved ? moveGhost(this.world, this.movePlan()) : empty;
+    // The selected zone stays drawn once the finger is up.
+    if (tool === 'select' && this.zone && !drag?.moved) {
+      return { ...empty, area: { rect: this.zone, kind: tool } };
+    }
     if (!this.hover) return empty;
     if (tool === 'belt') return { ...empty, belts: this.beltPlan(drag) };
     if (tool === 'extractor') {

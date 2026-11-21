@@ -249,3 +249,13 @@ Choix pris quand `PLAN.md` est muet ou ambigu. Une entrée par décision, la plu
 - **Supprimer** à part (séparateur, craie rouge), pour ne pas le toucher par accident. Pas de confirmation : l'annulation (`Ctrl+Z`, bouton du haut) suffit.
 - **Placement** : au-dessus du bâtiment, flèche vers son centre ; en dessous quand la place manque en haut ; décalée pour rester dans l'écran et au-dessus des barres du bas. Taille fixe quel que soit le zoom. Elle suit la caméra à chaque image et se cache quand le bâtiment sort de l'écran ou pendant un déplacement.
 - **Pas de bulle pour les tapis et les ponts** : leurs actions (pipette, supprimer) restent dans la barre du bas. Pour un bâtiment, cette barre ne garde que son nom, la pipette et Désélectionner.
+
+## Barre de construction : bâtiments dans leur orientation
+
+- **Pourquoi** : au doigt, il n'y a pas de fantôme qui suit le curseur. On ne voyait l'orientation d'un bâtiment qu'une fois posé. La barre dessine maintenant chaque bâtiment tel qu'il sera posé. Maquettes validées avant le code.
+- **Le vrai dessin, en plus lisible** : les cases à la craie viennent du même code que sur la carte. Les lettres (A, B, Q, R) et le symbole sont agrandis pour la taille de la barre, les encoches des ports retirées. Les lettres restent droites quelle que soit la rotation.
+- **Case carrée de taille fixe** : la taille d'une case de bâtiment suit son plus grand côté (3 pour le multiplicateur), donc ne change pas en tournant. Un bouton ne bouge jamais quand on pivote.
+- **Tous les bâtiments tournent ensemble** : le jeu n'a qu'une rotation pour tous les outils de construction. Après avoir tourné le multiplicateur, l'additionneur sera posé tourné lui aussi : la barre le montre. Quart de tour animé (180 ms), coupé si « Réduire les animations ».
+- **Tapis et pont animés** : les chevrons défilent dans le sens du transport, plus parlant qu'une flèche. Sous le pont, la voie croisée défile aussi, en plus pâle.
+- **Surlignage rectangulaire** : l'outil choisi est encadré de craie jaune (plus le cercle d'avant, qui coupait les pièces longues et les libellés).
+- **Outil Sélection, plateau contextuel** : Copier et Couper étaient des outils toujours visibles. Ils n'apparaissent plus que quand une zone (outil Sélection) ou un bâtiment est sélectionné. Coller apparaît dès que le presse-papiers n'est pas vide. Ces boutons sont dans un petit plateau posé sur l'extrémité droite de la barre, pas dans la barre : elle garde sa largeur, rien ne se décale. Sur un téléphone en portrait, la barre d'actions monte au-dessus du plateau. `Ctrl+C` / `Ctrl+X` copient directement la sélection, sinon gardent leur ancien comportement (glisser une zone).

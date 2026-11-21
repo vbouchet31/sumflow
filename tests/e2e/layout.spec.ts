@@ -163,7 +163,7 @@ test('everything unlocked: tools, action bar, tooltip and pause chip all fit', a
   expect(await layoutIssues(page), 'no tool').toEqual([]);
 
   // Every tool of the bar can be brought into view and chosen, down to the last one.
-  for (const tool of ['belt', 'exponent', 'priority', 'cut', 'marker']) {
+  for (const tool of ['belt', 'exponent', 'priority', 'select', 'marker']) {
     await page.locator(`.build-btn[data-tool="${tool}"]`).tap();
     expect(await page.evaluate(() => window.__sumflow?.getState().tool)).toBe(tool);
     expect(await layoutIssues(page), `tool ${tool}`).toEqual([]);

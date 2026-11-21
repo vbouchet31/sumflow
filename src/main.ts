@@ -370,7 +370,10 @@ async function bootstrap(): Promise<void> {
       onTogglePerf: () => perfOverlay.toggle(),
       onTool: (tool) => {
         if (tool === 'paste' && !tools.isAvailable('paste')) sfx.error();
-        else tools.setTool(tool);
+        // Ctrl+C / Ctrl+X on a selected zone or building copy it at once.
+        else if ((tool === 'copy' || tool === 'cut') && tools.copyTarget) {
+          tools.copyTargetRect(tool === 'cut');
+        } else tools.setTool(tool);
       },
       onRotate: (delta) => tools.rotate(delta),
       onMirror: () => tools.mirror(),
@@ -490,6 +493,8 @@ async function bootstrap(): Promise<void> {
     topBar.setEnabled('redo', tools.history.canRedo);
     topBar.setPressed('marker', tools.tool === 'marker');
     topBar.setPaused(loop.paused);
+    buildBar.reducedMotion = settings.reduceMotion;
+    buildBar.update(now);
     toolActions.update();
     selectionBubble.update();
     showPendingTip();

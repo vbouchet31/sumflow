@@ -210,3 +210,55 @@ test('the bubble next to a selected building rotates, copies and deletes it', as
   await expect(bubble).toBeHidden();
   await expect(page.locator('.tool-hint [data-action="delete"]')).toBeVisible();
 });
+
+test('select tool: a zone, then copy with Ctrl+C or cut from the selection tray', async ({
+  page,
+}) => {
+  await page.goto('./?debug=1&seed=42&tutorial=0');
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error('no viewport');
+  const at = (tx: number, ty: number): [number, number] => [
+    viewport.width / 2 + tx * 32 + 16,
+    viewport.height / 2 + ty * 32 + 16,
+  ];
+  const tray = page.locator('.sel-tray');
+  const trayBtn = (a: string) => tray.locator(`.build-btn[data-action="${a}"]`);
+  await page.evaluate(() => window.__sumflow?.beltPath(6, -4, 9, -4));
+
+  // Nothing selected, empty clipboard: no tray, and no copy, cut or paste in the bar.
+  await expect(tray).toBeHidden();
+  await expect(page.locator('.build-bar [data-tool="copy"]')).toHaveCount(0);
+
+  const select = async (): Promise<void> => {
+    await page.locator('.build-btn[data-tool="select"]').click();
+    await page.mouse.move(...at(6, -4));
+    await page.mouse.down();
+    await page.mouse.move(...at(9, -4), { steps: 4 });
+    await page.mouse.up();
+  };
+  await select();
+  await expect(page.locator('.tool-hint')).toContainText('4 × 1');
+  await expect(trayBtn('copy')).toBeVisible();
+  await expect(trayBtn('cut')).toBeVisible();
+  await expect(trayBtn('paste')).toBeHidden();
+
+  // Ctrl+C copies the selected zone at once.
+  await page.keyboard.press('Control+c');
+  let s = await page.evaluate(() => window.__sumflow?.getState());
+  expect(s?.tool).toBe('paste');
+  expect(s?.clipboard).toBe(1);
+  await expect(trayBtn('paste')).toHaveAttribute('aria-pressed', 'true');
+
+  // Cut from the tray: the belts go, a second clipboard entry.
+  await select();
+  await trayBtn('cut').click();
+  s = await page.evaluate(() => window.__sumflow?.getState());
+  expect(s?.belts).toBe(0);
+  expect(s?.clipboard).toBe(2);
+  expect(s?.tool).toBe('paste');
+
+  // Paste stays offered while the clipboard holds something.
+  await page.keyboard.press('Escape');
+  await expect(trayBtn('paste')).toBeVisible();
+  await expect(trayBtn('copy')).toBeHidden();
+});

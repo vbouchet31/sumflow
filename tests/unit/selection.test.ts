@@ -134,3 +134,90 @@ describe('selection without a tool', () => {
     expect(world.state.clipboard).toHaveLength(0);
   });
 });
+
+function drag(tools: ToolController, from: [number, number], to: [number, number]): void {
+  tools.pointerDown(from[0], from[1], NO_MODS);
+  tools.pointerMove(to[0], to[1], NO_MODS);
+  tools.pointerUp(to[0], to[1], NO_MODS);
+}
+
+describe('zone selection (select tool) and the copy target', () => {
+  it('nothing selected: no copy target', () => {
+    const tools = new ToolController(makeWorld());
+    expect(tools.copyTarget).toBeNull();
+    tools.setTool('select');
+    expect(tools.copyTarget).toBeNull();
+    expect(tools.copyTargetRect(false)).toBe(false);
+  });
+
+  it('a drag selects a zone that stays drawn; a click or another tool drops it', () => {
+    const world = makeWorld();
+    world.setBelt(30, 30, dirMask(E));
+    const tools = new ToolController(world);
+    tools.setTool('select');
+    drag(tools, [29, 29], [32, 31]);
+    const zone = { x0: 29, y0: 29, x1: 32, y1: 31 };
+    expect(tools.selectedZone).toEqual(zone);
+    expect(tools.copyTarget).toEqual(zone);
+    expect(tools.tool).toBe('select');
+    // Still drawn once the pointer has left the map (finger lifted).
+    tools.clearHover();
+    expect(tools.ghost().area).toEqual({ rect: zone, kind: 'select' });
+    // A click drops it.
+    click(tools, 40, 40);
+    expect(tools.selectedZone).toBeNull();
+    // As does another tool.
+    drag(tools, [29, 29], [32, 31]);
+    tools.setTool('belt');
+    expect(tools.selectedZone).toBeNull();
+    expect(tools.copyTarget).toBeNull();
+  });
+
+  it('cancel drops the zone first, then the tool', () => {
+    const tools = new ToolController(makeWorld());
+    tools.setTool('select');
+    drag(tools, [1, 1], [3, 3]);
+    tools.cancel();
+    expect(tools.selectedZone).toBeNull();
+    expect(tools.tool).toBe('select');
+    tools.cancel();
+    expect(tools.tool).toBe('none');
+  });
+
+  it('copy and cut act on the selected zone, then switch to paste mode', () => {
+    const world = makeWorld();
+    world.setBelt(30, 30, dirMask(E));
+    world.setBelt(31, 30, dirMask(E));
+    const tools = new ToolController(world);
+    tools.setTool('select');
+    drag(tools, [30, 30], [31, 30]);
+    expect(tools.copyTargetRect(false)).toBe(true);
+    expect(tools.tool).toBe('paste');
+    expect(world.state.clipboard[0]?.belts).toHaveLength(2);
+    expect(world.state.belts.size).toBe(2);
+
+    tools.setTool('select');
+    drag(tools, [30, 30], [31, 30]);
+    expect(tools.copyTargetRect(true)).toBe(true);
+    expect(world.state.clipboard).toHaveLength(2);
+    expect(world.state.belts.size).toBe(0);
+    // The cut is one undoable action.
+    tools.undo();
+    expect(world.state.belts.size).toBe(2);
+  });
+
+  it('without a tool, the selected building is the copy target (not the hub)', () => {
+    const world = makeWorld();
+    world.state.unlockedBuildings.push('adder');
+    world.addBuilding('adder', 20, 20, 0);
+    const tools = new ToolController(world);
+    click(tools, 21, 21);
+    expect(tools.copyTarget).toEqual({ x0: 20, y0: 20, x1: 21, y1: 21 });
+    expect(tools.copyTargetRect(true)).toBe(true);
+    expect(world.buildingAt(20, 20)).toBeNull();
+    expect(tools.tool).toBe('paste');
+    tools.setTool('paste');
+    click(tools, 0, 0); // the hub
+    expect(tools.copyTarget).toBeNull();
+  });
+});

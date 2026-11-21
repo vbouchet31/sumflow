@@ -176,9 +176,10 @@ test('the action bar replaces the keys: rotate, elbow, clipboard, quit', async (
   await action('elbow').tap();
   await expect(action('elbow')).toHaveAttribute('aria-pressed', 'true');
 
-  // Copy the two belts with a drag: paste mode, with its own actions.
-  await page.locator('.build-btn[data-tool="copy"]').tap();
+  // Select the two belts with a drag, copy them from the tray: paste mode, with its actions.
+  await page.locator('.build-btn[data-tool="select"]').tap();
   await touch.drag(tileCentre(page, 5, -3), tileCentre(page, 6, -3));
+  await page.locator('.sel-tray .build-btn[data-action="copy"]').tap();
   await expect(bar).toContainText('1 / 1');
   await expect(action('mirror')).toBeVisible();
   await expect(action('nextClip')).toBeHidden(); // a single entry
@@ -257,8 +258,8 @@ test('the selection stays until a tap elsewhere and offers its actions', async (
   // Moving the map keeps it.
   await touch.drag(tileCentre(page, 9, 0), tileCentre(page, 8, 0));
   expect((await state(page)).selection).not.toBeNull();
-  // A tap on empty ground drops it.
-  await touch.tap(tileCentre(page, 9, 1));
+  // A tap on empty ground drops it (above the selection tray, on a phone held sideways).
+  await touch.tap(tileCentre(page, 9, -1));
   expect((await state(page)).selection).toBeNull();
   await expect(bar).toBeHidden();
   await expect(bubble).toBeHidden();
@@ -353,9 +354,10 @@ test('pasting with a finger: the preview is put down, moved, then confirmed', as
     window.__sumflow?.place('belt', 5, -3, 0);
   });
 
-  // Copy with a drag: paste mode starts with the preview already on the map.
-  await page.locator('.build-btn[data-tool="copy"]').tap();
+  // Select with a drag, then copy: paste mode starts with the preview already on the map.
+  await page.locator('.build-btn[data-tool="select"]').tap();
   await touch.drag(tileCentre(page, 4, -3), tileCentre(page, 5, -3));
+  await page.locator('.sel-tray .build-btn[data-action="copy"]').tap();
   expect((await state(page)).tool).toBe('paste');
   await expect(place).toBeVisible();
 
