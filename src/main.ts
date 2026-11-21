@@ -5,6 +5,7 @@ import { CATCH_UP } from './config/balance';
 import { FONT_NUM } from './config/colors';
 import { CAMERA } from './config/keymap';
 import { toSeed } from './core/rng';
+import { parseSeed } from './core/seed';
 import { installDebugApi, isDebugEnabled } from './debug/debugApi';
 import { PerfMeter } from './debug/perfMeter';
 import { countItems } from './debug/reference';
@@ -65,11 +66,13 @@ const CORRUPT_KEY = 'sumflow.save.v1.corrupt';
 /** Wheel pixels per clipboard step with Shift+wheel in paste mode. */
 const WHEEL_STEP = 50;
 
-/** Seed from `?seed=` when given, otherwise random (outside the simulation, so allowed). */
+/**
+ * Seed from `?seed=` when given (a number or any text, e.g. `?seed=Vincent`), otherwise
+ * random (outside the simulation, so allowed).
+ */
 function initialSeed(search: string): number {
   const param = new URLSearchParams(search).get('seed');
-  const parsed = param === null ? NaN : Number(param);
-  return Number.isFinite(parsed) ? toSeed(parsed) : toSeed(Math.random() * 2 ** 32);
+  return (param === null ? null : parseSeed(param)) ?? toSeed(Math.random() * 2 ** 32);
 }
 
 type Loaded = { state: GameState; camera: CameraState | null; error: boolean };

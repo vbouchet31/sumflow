@@ -102,6 +102,8 @@ Le tactile, d'abord hors périmètre, a été ajouté après la v1 : voir [`PLAN
 ### 4.4 Génération procédurale (déterministe)
 Tout dérive du `seed` de la partie (entier 32 bits). Les gisements **ne sont pas sauvegardés** : ils sont recalculés à partir du seed.
 
+**Graine saisie** (`src/core/seed.ts`) : le joueur peut taper un nombre ou un texte (menu « Nouvelle partie », `?seed=`). Un entier (`42`, `-1`) garde sa valeur numérique. Un texte est normalisé (Unicode NFC, espaces rognés et réduits, minuscules) puis haché (FNV-1a sur l'UTF-8, finaliseur splitmix32) en entier 32 bits. Ce hachage est figé par des tests : le modifier changerait la carte de chaque graine « prénom ».
+
 **RNG** : implémenter `mulberry32(seed)` et `hash2(seed, a, b)` (mélange type splitmix32) pour dériver un sous-seed par chunk.
 
 **Étape A : gisements garantis** (calculés une fois à la création, puis à chaque chargement).

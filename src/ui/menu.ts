@@ -1,4 +1,5 @@
 import { LINKS } from '../config/links';
+import { parseSeed, SEED_MAX_LENGTH } from '../core/seed';
 import { LOCALES, type Locale, type MessageKey, t } from '../i18n';
 import { AUTOSAVE_CHOICES, type AutosaveSeconds, type Settings } from '../save/settings';
 import { el, releaseFocus, trapTab } from './dom';
@@ -182,9 +183,11 @@ export class GameMenu {
   private newGameView(): HTMLElement[] {
     const input = el('input', 'marker-input');
     input.type = 'text';
-    input.inputMode = 'numeric';
     input.id = 'new-seed';
-    input.maxLength = 10;
+    input.maxLength = SEED_MAX_LENGTH;
+    input.placeholder = t('new.seedPlaceholder');
+    input.autocomplete = 'off';
+    input.spellcheck = false;
     const label = el('label', 'menu-label', t('new.seedLabel'));
     label.htmlFor = input.id;
     const form = el(
@@ -199,9 +202,7 @@ export class GameMenu {
     if (start) start.type = 'submit';
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      const text = input.value.trim();
-      const n = Number(text);
-      this.actions.newGame(text !== '' && Number.isInteger(n) ? n : null);
+      this.actions.newGame(parseSeed(input.value));
     });
     return [this.header('menu.newGame', true), form];
   }
