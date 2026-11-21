@@ -131,3 +131,82 @@ test('without a tool, dragging a building moves it with its belts; R rotates it'
   expect((await snapshot())?.selection).toBeNull();
   await expect(page.locator('.menu-card')).toBeHidden();
 });
+
+test('the bubble next to a selected building rotates, copies and deletes it', async ({ page }) => {
+  await page.goto('./?debug=1&seed=42&tutorial=0');
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error('no viewport');
+  const at = (tx: number, ty: number): [number, number] => [
+    viewport.width / 2 + tx * 32 + 16,
+    viewport.height / 2 + ty * 32 + 16,
+  ];
+  const topRow = Math.floor(-viewport.height / 2 / 32);
+  await page.evaluate((top) => {
+    const api = window.__sumflow;
+    if (!api) throw new Error('debug API missing');
+    api.unlockAll();
+    api.place('multiplier', 8, -4, 1); // vertical, (8, -4) to (8, -2)
+    api.place('adder', -1, top + 1, 0); // against the top of the screen
+    api.beltPath(12, 2, 14, 2);
+  }, topRow);
+  const bubble = page.locator('.sel-bubble');
+  const action = (id: string) => bubble.locator(`[data-action="${id}"]`);
+  const state = () => page.evaluate(() => window.__sumflow?.getState());
+  // Every multiplier on screen, once each.
+  const multipliers = () =>
+    page.evaluate(() => {
+      const found = new Map<string, { x: number; y: number; rot: number }>();
+      for (let y = -8; y <= 8; y++) {
+        for (let x = 4; x <= 18; x++) {
+          const b = window.__sumflow?.buildingAt(x, y);
+          if (b?.type === 'multiplier') found.set(`${b.x},${b.y}`, b);
+        }
+      }
+      return [...found.values()];
+    });
+
+  // Select: the bubble sits above the building, with its three actions.
+  await page.mouse.click(...at(8, -3));
+  await expect(bubble).toBeVisible();
+  await expect(action('rotate')).toBeVisible();
+  await expect(action('copy')).toBeVisible();
+  await expect(action('delete')).toBeVisible();
+  const box = await bubble.boundingBox();
+  expect(box && box.y + box.height).toBeLessThanOrEqual(at(8, -4)[1] - 16);
+
+  // Rotate in place, twice: back to vertical (rotation 3).
+  await action('rotate').click();
+  await action('rotate').click();
+  expect((await page.evaluate(() => window.__sumflow?.buildingAt(8, -3)))?.rot).toBe(3);
+
+  // Copy: paste mode with the same orientation, then a click places the copy.
+  await action('copy').click();
+  expect((await state())?.tool).toBe('paste');
+  await expect(bubble).toBeHidden();
+  await page.mouse.move(...at(14, 4));
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.keyboard.press('Escape');
+  const copies = await multipliers();
+  expect(copies).toHaveLength(2);
+  expect(copies.every((b) => b.rot === 3)).toBe(true);
+
+  // Delete.
+  await page.mouse.click(...at(8, -3));
+  await action('delete').click();
+  expect(await page.evaluate(() => window.__sumflow?.buildingAt(8, -3))).toBeNull();
+  await expect(bubble).toBeHidden();
+
+  // Against the top of the screen, the bubble goes below the building.
+  await page.mouse.click(...at(-1, topRow + 1));
+  await expect(bubble).toBeVisible();
+  const below = await bubble.boundingBox();
+  expect(below?.y).toBeGreaterThan(at(-1, topRow + 2)[1]);
+  await expect(action('rotate')).toBeVisible();
+
+  // A belt has no bubble: its actions stay in the bar at the bottom.
+  await page.mouse.click(...at(13, 2));
+  expect((await state())?.selection).not.toBeNull();
+  await expect(bubble).toBeHidden();
+  await expect(page.locator('.tool-hint [data-action="delete"]')).toBeVisible();
+});

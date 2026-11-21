@@ -344,6 +344,21 @@ export class ToolController {
     return this.world.beltAt(t.x, t.y) !== null || this.world.bridgeAt(t.x, t.y) !== null;
   }
 
+  /** The selected object is a building that can be copied (not the hub). */
+  get canCopySelection(): boolean {
+    const b = this.selectedBuilding;
+    return b !== null && b.type !== 'hub';
+  }
+
+  /**
+   * Copy the selected building alone, as a zone holding just it, then switch to paste
+   * mode: the copy keeps its orientation (and mirror, priority).
+   */
+  copySelection(): boolean {
+    const rect = this.canCopySelection ? this.selectionRect : null;
+    return rect !== null && this.copyRect(rect, false);
+  }
+
   /** Pipette on the selected object: its tool and orientation, ready to build another. */
   pickSelection(): boolean {
     const t = this.selectionTile;
