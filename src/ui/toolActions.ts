@@ -32,7 +32,8 @@ const ACTIONS: readonly ActionDef[] = [
     label: 'act.rotate',
     icon: '↻',
     run: (tools) => tools.rotate(1),
-    shown: (tools) => tools.canRotate,
+    // A selected building has its own bubble (selectionBubble.ts).
+    shown: (tools) => tools.tool !== 'none' && tools.canRotate,
   },
   {
     id: 'mirror',
@@ -97,7 +98,8 @@ const ACTIONS: readonly ActionDef[] = [
     label: 'act.delete',
     icon: '⌫',
     run: (tools) => tools.deleteSelection(),
-    shown: (tools) => tools.tool === 'none' && tools.canDeleteSelection,
+    shown: (tools) =>
+      tools.tool === 'none' && tools.canDeleteSelection && tools.selection?.kind === 'tile',
   },
   {
     id: 'deselect',
@@ -112,7 +114,8 @@ const ACTIONS: readonly ActionDef[] = [
  * Contextual action bar above the build bar (PLAN-tactile §4.1): the name or hint of the
  * active tool, and a button for everything that otherwise needs a key (rotate, mirror,
  * elbow, clipboard history, quit). Without a tool, it shows the selected object and what
- * can be done to it. Shown for every kind of pointer.
+ * can be done to it (a building's rotate, copy and delete are in its bubble). Shown for
+ * every kind of pointer.
  */
 export class ToolActions {
   private readonly box = el('div', 'tool-hint');

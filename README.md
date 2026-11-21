@@ -31,6 +31,7 @@ Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGR
 | Démolir / vider                                  | `X` / `C` puis glisser une zone (clic = un objet) ; `Suppr` = démolir l'objet survolé                              |
 | Copier / couper / coller                         | `Ctrl+C` / `Ctrl+X` puis glisser ; `Ctrl+V` : clic ou glisser, `R` pivoter, `F` miroir, `Shift+molette` historique |
 | Marqueur, pipette                                | `B` puis clic ; `E` sur un objet                                                                                   |
+| Bâtiment sélectionné                             | clic sans outil : une bulle à côté propose Pivoter, Copier (même orientation) et Supprimer                         |
 | Annuler / rétablir                               | `Ctrl+Z` / `Ctrl+Y` (ou `Ctrl+Shift+Z`)                                                                            |
 | Panneaux                                         | `U` améliorations, `L` niveaux, `N` nombres livrés                                                                 |
 | Menu (sauvegarde, export, import, options, aide) | `Échap` (sans outil actif)                                                                                         |
@@ -53,6 +54,7 @@ Le jeu se joue au doigt sur tablette et sur téléphone tenu en paysage (en port
 | Pivoter, miroir, coude, quitter | boutons au-dessus de la barre de construction        |
 | Coller                          | toucher pour déplacer l'aperçu, puis « Poser »       |
 | Inspecter un objet              | le toucher sans outil                                |
+| Pivoter, copier, supprimer      | toucher le bâtiment, puis la bulle à côté de lui     |
 | Pipette                         | appui long sur un objet                              |
 | Pause, annuler, panneaux, menu  | boutons en haut à droite                             |
 

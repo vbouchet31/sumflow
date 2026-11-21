@@ -244,12 +244,15 @@ test('the selection stays until a tap elsewhere and offers its actions', async (
   });
   const bar = page.locator('.tool-hint');
   const action = (id: string) => bar.locator(`[data-action="${id}"]`);
+  const bubble = page.locator('.sel-bubble');
 
   await touch.tap(tileCentre(page, 5, -3));
   await expect(bar).toBeVisible();
   await expect(bar).toContainText(/Additionneur|Adder/);
   await expect(action('pick')).toBeVisible();
-  await expect(action('delete')).toBeVisible();
+  // Rotate and delete are in the bubble next to the building.
+  await expect(action('delete')).toBeHidden();
+  await expect(bubble).toBeVisible();
   await expect(action('quit')).toBeHidden();
   // Moving the map keeps it.
   await touch.drag(tileCentre(page, 9, 0), tileCentre(page, 8, 0));
@@ -258,10 +261,11 @@ test('the selection stays until a tap elsewhere and offers its actions', async (
   await touch.tap(tileCentre(page, 9, 1));
   expect((await state(page)).selection).toBeNull();
   await expect(bar).toBeHidden();
+  await expect(bubble).toBeHidden();
 
   // Delete, then undo.
   await touch.tap(tileCentre(page, 5, -3));
-  await action('delete').tap();
+  await bubble.locator('[data-action="delete"]').tap();
   expect((await state(page)).buildings).toBe(1);
   expect((await state(page)).selection).toBeNull();
 
@@ -303,7 +307,7 @@ test('a long press lifts a building and the finger moves it, with its belts', as
   await touch.drag(tileCentre(page, 8, -3), tileCentre(page, 8, -1));
   expect((await page.evaluate(() => window.__sumflow?.buildingAt(8, -1)))?.y).toBe(-1);
   // The rotate button turns the selection.
-  await page.locator('.tool-hint [data-action="rotate"]').tap();
+  await page.locator('.sel-bubble [data-action="rotate"]').tap();
   expect((await page.evaluate(() => window.__sumflow?.buildingAt(8, -1)))?.rot).toBe(1);
   expect((await state(page)).undo).toBe(5);
 });

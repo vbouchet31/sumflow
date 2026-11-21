@@ -923,6 +923,109 @@ body::after {
   color: var(--chalk-yellow);
 }
 
+/* ---- Selection bubble: rotate, copy, delete next to the selected building ---------------- */
+
+.sel-bubble {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--board-raised);
+  border: 2px solid var(--chalk-stroke);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 45%);
+  color: var(--fg);
+}
+
+/* The chalk arrow pointing at the building. */
+.sel-bubble::after {
+  content: '';
+  position: absolute;
+  left: var(--arrow-x, 50%);
+  bottom: -8px;
+  width: 12px;
+  height: 12px;
+  background: var(--board-raised);
+  border: 2px solid var(--chalk-stroke);
+  border-top: 0;
+  border-left: 0;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.sel-bubble-below::after {
+  top: -8px;
+  bottom: auto;
+  border: 2px solid var(--chalk-stroke);
+  border-bottom: 0;
+  border-right: 0;
+}
+
+.sel-bubble-in {
+  animation: sel-bubble-in 0.14s ease-out;
+}
+
+@keyframes sel-bubble-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+.sel-bubble-btn {
+  min-width: 52px;
+  height: 52px;
+  padding: 4px 6px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: 14px/1 var(--font-ui);
+  text-shadow: inherit;
+  cursor: pointer;
+}
+
+.sel-bubble-btn svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sel-bubble-btn:focus-visible {
+  outline: 2px solid var(--chalk-yellow);
+  outline-offset: -2px;
+}
+
+.sel-bubble-danger {
+  color: var(--chalk-red);
+}
+
+/* Delete stands apart, so that it is not pressed by mistake. */
+.sel-bubble-sep {
+  width: 2px;
+  margin: 8px 3px;
+  border-radius: 2px;
+  background: var(--chalk-line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sel-bubble-in {
+    animation: none;
+  }
+}
+
 /* Key labels mean nothing without a keyboard. */
 @media (hover: none) {
   .build-btn kbd {
@@ -1355,6 +1458,7 @@ body::after {
   .build-btn:hover,
   .top-btn:hover,
   .hint-btn:not(.hint-btn-primary):hover,
+  .sel-bubble-btn:hover,
   .menu-btn:hover,
   .secondary-btn:hover {
     background: var(--board-hover);

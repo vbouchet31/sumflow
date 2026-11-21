@@ -97,4 +97,40 @@ describe('selection without a tool', () => {
     expect(tools.rot).toBe(1);
     expect(tools.selection).toBeNull();
   });
+
+  it('copy takes the selected building alone, then pastes it facing the same way', () => {
+    const world = makeWorld();
+    world.state.unlockedBuildings.push('multiplier');
+    world.addBuilding('multiplier', 20, 20, 1); // vertical: (20, 20) to (20, 22)
+    world.setBelt(20, 23, dirMask(S)); // touching it, but not copied
+    const tools = new ToolController(world);
+    click(tools, 20, 21);
+    expect(tools.canCopySelection).toBe(true);
+    expect(tools.copySelection()).toBe(true);
+    expect(tools.tool).toBe('paste');
+    expect(world.state.clipboard).toHaveLength(1);
+    const clip = world.state.clipboard[0];
+    expect(clip?.belts).toEqual([]);
+    expect(clip?.buildings).toEqual([
+      { type: 'multiplier', x: 0, y: 0, rot: 1, mirror: false, priority: null },
+    ]);
+    // The paste builds a second one, in the same orientation.
+    click(tools, 30, 30);
+    const copies = [...world.state.buildings.values()].filter((b) => b.type === 'multiplier');
+    expect(copies).toHaveLength(2);
+    expect(copies.every((b) => b.rot === 1)).toBe(true);
+  });
+
+  it('the hub and belts cannot be copied from the selection', () => {
+    const world = makeWorld();
+    world.setBelt(30, 30, dirMask(E));
+    const tools = new ToolController(world);
+    click(tools, 0, 0); // the hub
+    expect(tools.selection?.kind).toBe('building');
+    expect(tools.canCopySelection).toBe(false);
+    expect(tools.copySelection()).toBe(false);
+    click(tools, 30, 30);
+    expect(tools.canCopySelection).toBe(false);
+    expect(world.state.clipboard).toHaveLength(0);
+  });
 });

@@ -34,6 +34,7 @@ import { isTrackUnlocked, isUpgradeReady } from './sim/upgrades';
 import { StatusBar } from './ui/statusBar';
 import { MarkerEditor } from './ui/markerEditor';
 import { ToolActions } from './ui/toolActions';
+import { SelectionBubble } from './ui/selectionBubble';
 import { describeTile, Tooltip } from './ui/tooltip';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
@@ -187,6 +188,7 @@ async function bootstrap(): Promise<void> {
   const toasts = new Toasts(uiRoot);
   const endScreen = new EndScreen(uiRoot);
   const toolActions = new ToolActions(uiRoot, tools, (x, y) => describeTile(world, x, y)[0] ?? '');
+  const selectionBubble = new SelectionBubble(uiRoot, tools, camera);
   tools.onChange(() => {
     // Paste mode without a hovering pointer (touch): show the preview at once, in the
     // middle of the screen, ready to be moved and confirmed.
@@ -489,6 +491,7 @@ async function bootstrap(): Promise<void> {
     topBar.setPressed('marker', tools.tool === 'marker');
     topBar.setPaused(loop.paused);
     toolActions.update();
+    selectionBubble.update();
     showPendingTip();
     saves.update();
     statusBar.update(
