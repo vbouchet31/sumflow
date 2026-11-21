@@ -532,7 +532,7 @@ Sans outil, un clic (ou un appui) sur un objet le **sélectionne** : un cadre l'
 - **Canvas plein écran** pour le monde. **UI en DOM** par-dessus (`#ui-root`), CSS maison.
 - **Haut gauche** : niveau, cible, barre de progression, prochaine récompense, débit actuel du nombre cible (/s).
 - **Haut droit** : boutons Annuler, Rétablir, Retour au Hub, Marqueur, Nombres livrés, Niveaux, Améliorations (badge), Menu.
-- **Bas centre** : barre de construction (icônes des bâtiments débloqués avec touche, outils d'édition). Bâtiments verrouillés masqués.
+- **Bas centre** : barre de construction (bâtiments débloqués dessinés dans l'orientation où ils seront posés, avec touche ; outils d'édition dont Sélection). Bâtiments verrouillés masqués. Copier, Couper et Coller sont dans un petit plateau au-dessus de l'extrémité droite de la barre, affiché seulement quand ils peuvent servir.
 - **Bas gauche** : info-bulle contextuelle de l'objet survolé (type, valeur, tampons A/B/sortie, cycle en cours, débit).
 - **Bas droit** : indicateur de pause. En mode debug (`?debug=1`) seulement : indicateur de sauvegarde (« Sauvegardé il y a 12 s ») et coordonnées du curseur.
 - **Au-dessus de la barre de construction** : barre d'actions de l'outil actif (8.3).

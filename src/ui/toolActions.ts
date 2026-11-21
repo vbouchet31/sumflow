@@ -1,6 +1,11 @@
 import type { ToolController } from '../build/tools';
 import { type MessageKey, t } from '../i18n';
 import { el } from './dom';
+import { type Rect, rectSize } from '../build/area';
+
+function zoneSize(zone: Rect | null): { w: number; h: number } | null {
+  return zone ? rectSize(zone) : null;
+}
 
 type ActionId =
   | 'rotate'
@@ -176,6 +181,10 @@ export class ToolActions {
       case 'cut': {
         const size = tools.dragArea;
         return size ? t('hint.areaSize', size) : t(`hint.${tools.tool}`);
+      }
+      case 'select': {
+        const size = tools.dragArea ?? zoneSize(tools.selectedZone);
+        return size ? t('hint.areaSize', size) : t('hint.select');
       }
       case 'marker':
         return t('hint.marker');

@@ -30,6 +30,7 @@ Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGR
 | Bâtiments                                        | `1` à `9` (tapis, extracteur, opérateurs, stockage, pont), `P` priorité, `R` / `Shift+R` pivoter                   |
 | Démolir / vider                                  | `X` / `C` puis glisser une zone (clic = un objet) ; `Suppr` = démolir l'objet survolé                              |
 | Copier / couper / coller                         | `Ctrl+C` / `Ctrl+X` puis glisser ; `Ctrl+V` : clic ou glisser, `R` pivoter, `F` miroir, `Shift+molette` historique |
+| Sélection d'une zone                             | outil Sélection puis glisser : Copier et Couper apparaissent au-dessus de la barre (ou `Ctrl+C` / `Ctrl+X`)        |
 | Marqueur, pipette                                | `B` puis clic ; `E` sur un objet                                                                                   |
 | Bâtiment sélectionné                             | clic sans outil : une bulle à côté propose Pivoter, Copier (même orientation) et Supprimer                         |
 | Annuler / rétablir                               | `Ctrl+Z` / `Ctrl+Y` (ou `Ctrl+Shift+Z`)                                                                            |
@@ -52,6 +53,7 @@ Le jeu se joue au doigt sur tablette et sur téléphone tenu en paysage (en port
 | Tracer plus loin que l'écran    | amener le doigt près du bord : la carte défile       |
 | Abandonner un tracé             | poser un deuxième doigt                              |
 | Pivoter, miroir, coude, quitter | boutons au-dessus de la barre de construction        |
+| Copier, couper une zone         | outil Sélection, glisser, puis Copier ou Couper      |
 | Coller                          | toucher pour déplacer l'aperçu, puis « Poser »       |
 | Inspecter un objet              | le toucher sans outil                                |
 | Pivoter, copier, supprimer      | toucher le bâtiment, puis la bulle à côté de lui     |

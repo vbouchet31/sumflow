@@ -153,6 +153,8 @@ textarea {
 }
 
 #ui-root {
+  /* --bar-h is set from the real height of the build bar (buildBar.ts). */
+  --above-bar: calc(var(--edge-b) + var(--bar-h) + 8px);
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -356,17 +358,94 @@ body::after {
   outline-offset: 1px;
 }
 
-/* The selected tool is circled in yellow chalk. */
+/* The selected tool is framed in yellow chalk (the piece stays whole inside). */
 .build-btn[aria-pressed='true'] {
   border: 3px solid var(--chalk-yellow);
-  border-radius: 50% 45% 55% 40% / 45% 55% 45% 55%;
   background: var(--board-pressed);
   color: var(--chalk-yellow);
+  box-shadow: 0 0 0 3px rgb(243 224 138 / 22%);
   transform: rotate(-2deg);
 }
 
 .build-icon {
   font: 700 18px var(--font-num);
+}
+
+/* Dashed rectangle of the selection tool. */
+.build-icon-svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-dasharray: 3 2.5;
+  stroke-linecap: round;
+}
+
+/*
+ * A building pictured as it will be built: a square slot of a fixed size, whatever its
+ * rotation, so that turning a piece never moves the buttons.
+ */
+.build-piece {
+  --piece: 38px;
+
+  width: var(--piece);
+  height: var(--piece);
+  display: block;
+}
+
+.build-btn-piece {
+  padding-top: 5px;
+}
+
+.build-btn-piece[aria-pressed='true'] .build-piece {
+  filter: drop-shadow(0 0 3px rgb(243 224 138 / 55%));
+}
+
+/*
+ * Selection tray: copy and cut when a zone or a building is selected, paste when the
+ * clipboard holds something. It sits on the right end of the bar, which keeps its width.
+ */
+.sel-tray {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--edge-b) + var(--bar-h) - 3px);
+  transform: translateX(calc(var(--bar-w, 0px) / 2 - 100%));
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, var(--wood-light), var(--wood-mid));
+  border: 3px solid var(--wood-dark);
+  border-bottom: none;
+  box-shadow: 0 -4px 12px rgb(0 0 0 / 35%);
+  pointer-events: auto;
+}
+
+.sel-tray[hidden],
+.sel-tray .build-btn[hidden] {
+  display: none;
+}
+
+.sel-tray .build-btn {
+  min-width: 46px;
+  align-content: center;
+}
+
+.sel-tray .build-label {
+  display: none;
+}
+
+/*
+ * A phone held upright: the centred action bar would cover the tray, so it (and the tooltip
+ * above it) goes up. Wider screens have room for both side by side.
+ */
+.ui-narrow #ui-root:has(> .sel-tray:not([hidden])) {
+  --tray-lift: 60px;
+}
+
+.ui-narrow .tool-hint {
+  bottom: calc(var(--above-bar) + var(--tray-lift, 0px));
 }
 
 .build-btn kbd {
@@ -1531,6 +1610,15 @@ body::after {
   align-content: center;
 }
 
+.ui-icons .build-btn-piece {
+  width: 52px;
+  height: 52px;
+}
+
+.ui-icons .build-piece {
+  --piece: 42px;
+}
+
 /*
  * On a tablet or a phone the action bar can reach the right edge: the status chips go under
  * the top bar instead (an open panel covers them).
@@ -1600,7 +1688,7 @@ body::after {
 
 /* No room beside the action bar: the tooltip goes above it (a selection shows both). */
 .ui-compact :has(> .tool-hint:not([hidden])) > .tooltip {
-  bottom: calc(var(--above-bar) + var(--hint-h, 52px) + 6px);
+  bottom: calc(var(--above-bar) + var(--tray-lift, 0px) + var(--hint-h, 52px) + 6px);
 }
 
 /* Panels become sheets above everything but the dialogs. */
