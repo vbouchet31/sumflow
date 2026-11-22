@@ -9,7 +9,7 @@ async function state(page: Page): Promise<DebugSnapshot> {
 }
 
 async function editionAt(page: Page, x: number, y: number): Promise<string | null> {
-  return page.evaluate(([tx, ty]) => window.__sumflow?.buildingAt(tx, ty)?.edition ?? null, [
+  return page.evaluate(([tx, ty]) => window.__sumflow?.editionAt(tx, ty)?.edition ?? null, [
     x,
     y,
   ] as const);
@@ -130,7 +130,7 @@ test('a légendaire building is drawn in golden chalk', async ({ page }) => {
     api.grant('edition-legendaire');
     api.place('adder', 6, -6, 0);
     api.place('adder', 10, -6, 0);
-    const b = api.buildingAt(6, -6);
+    const b = api.editionAt(6, -6);
     if (b) api.applyEdition(b.id, 'legendaire');
   });
   await page.mouse.move(5, 300); // no hover over them

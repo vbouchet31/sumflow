@@ -16,6 +16,6 @@ test('Edition tool with a finger: tap the tool, tap a building', async ({ page }
   await button.tap();
   expect(await page.evaluate(() => window.__sumflow?.getState().tool)).toBe('edition');
   await touch.tap(tileCentre(page, 7, -6));
-  expect(await page.evaluate(() => window.__sumflow?.buildingAt(7, -6)?.edition)).toBe('brillante');
+  expect(await page.evaluate(() => window.__sumflow?.editionAt(7, -6)?.edition)).toBe('brillante');
   expect(await page.evaluate(() => window.__sumflow?.getState().editions.free.brillante)).toBe(0);
 });

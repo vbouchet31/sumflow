@@ -119,19 +119,13 @@ export interface DebugApi {
   setMarker: (x: number, y: number, text: string) => void;
   /** Output mask of the plain belt at (x, y) (bit d = direction d), or null. */
   beltAt: (x: number, y: number) => number | null;
-  /** The building covering (x, y): its id, type, origin, rotation and edition, or null. */
-  buildingAt: (
+  /** The building covering (x, y): its type, origin and rotation, or null. */
+  buildingAt: (x: number, y: number) => { type: string; x: number; y: number; rot: number } | null;
+  /** The building covering (x, y): its id and edition (null = base), or null. */
+  editionAt: (
     x: number,
     y: number,
-  ) => {
-    id: number;
-    type: string;
-    x: number;
-    y: number;
-    rot: number;
-    edition: SpecialEdition | null;
-    editionApplied: boolean;
-  } | null;
+  ) => { id: number; edition: SpecialEdition | null; applied: boolean } | null;
   /** Apply a free edition card on building `id` (undoable, like the Edition tool). */
   applyEdition: (id: number, edition: SpecialEdition) => boolean;
   /** Take the applied edition of building `id` back (undoable). */
@@ -243,10 +237,12 @@ export function installDebugApi(ctx: DebugContext): void {
     beltAt: (x, y) => world.beltAt(x, y)?.outputs ?? null,
     buildingAt: (x, y) => {
       const b = world.buildingAt(x, y);
+      return b ? { type: b.type, x: b.x, y: b.y, rot: b.rot } : null;
+    },
+    editionAt: (x, y) => {
+      const b = world.buildingAt(x, y);
       if (!b) return null;
-      const { id, type, rot } = b;
-      const edition = b.edition ?? null;
-      return { id, type, x: b.x, y: b.y, rot, edition, editionApplied: b.editionApplied === true };
+      return { id: b.id, edition: b.edition ?? null, applied: b.editionApplied === true };
     },
     applyEdition: (id, edition) => {
       const b = world.state.buildings.get(id);
