@@ -13,6 +13,8 @@ export type OfferSlot = Slot | 'joker';
 export type Edition = 'base' | 'brillante' | 'legendaire';
 export type SpecialEdition = Exclude<Edition, 'base'>;
 export const EDITIONS: readonly Edition[] = ['base', 'brillante', 'legendaire'];
+/** Editions of an edition card (every edition but base). */
+export const SPECIAL_EDITIONS: readonly SpecialEdition[] = ['brillante', 'legendaire'];
 
 /** One point of a weight curve: weight `w` at level `level`. */
 export interface CurvePoint {
@@ -90,8 +92,19 @@ export const SPECIAL_EDITION_ODDS: Readonly<Record<Edition, number>> = {
   legendaire: 5,
 };
 
+/** How applied editions behave (PLAN-recompenses §3.5). */
+export interface EditionRules {
+  /** Demolishing a building gives its applied edition card back (else the card is lost). */
+  returnOnDemolish: boolean;
+  /**
+   * "Remove the edition" is offered, and swapping editions gives the old card back (else
+   * the old card is lost: editions are permanent, as in Balatro).
+   */
+  removable: boolean;
+}
+
 /** Applied editions: given back on demolish, removable without demolishing (§3.5). */
-export const EDITION_RULES = { returnOnDemolish: true, removable: true } as const;
+export const EDITION_RULES: Readonly<EditionRules> = { returnOnDemolish: true, removable: true };
 
 /** Multipliers of an edition. Absent = unchanged. */
 export interface EditionEffect {

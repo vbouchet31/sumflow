@@ -80,8 +80,13 @@ export interface GameState {
   pendingLevels: number[];
   /** Offer drawn for `pendingLevels[0]`, or null until it is drawn (lazily). */
   currentOffer: StoredOffer | null;
-  /** Edition cards obtained. Free ones are computed (obtained minus applied). */
+  /** Edition cards obtained. Free ones are computed (obtained minus applied, `sim/inventory`). */
   editionCards: Record<SpecialEdition, number>;
+  /**
+   * Edition cards lost for good: permanent editions (`EDITION_RULES` false) demolished or
+   * swapped away. Always 0 with the default rules. Undo / redo adjust it (`Change.lost`).
+   */
+  editionsLost: Record<SpecialEdition, number>;
   /** Special buildings obtained, by `"type:edition"`. Free ones are computed. */
   specials: Record<string, number>;
   passives: PassiveId[];
@@ -136,6 +141,7 @@ export function createInitialState(seed: number): GameState {
     pendingLevels: [],
     currentOffer: null,
     editionCards: { brillante: 0, legendaire: 0 },
+    editionsLost: { brillante: 0, legendaire: 0 },
     specials: {},
     passives: [],
     naturalRefusals: 0,

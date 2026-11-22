@@ -398,6 +398,21 @@ body::after {
   padding-top: 5px;
 }
 
+/* Edition tool: free cards of each edition obtained (✦ 1 · ★ 2). */
+.build-badge {
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  color: var(--chalk-yellow);
+  font: 700 11px var(--font-num);
+  white-space: nowrap;
+}
+
+/* No free card left: the stick is greyed, the tool still shows what is applied. */
+.build-btn-empty .build-piece {
+  opacity: 0.45;
+}
+
 .build-btn-piece[aria-pressed='true'] .build-piece {
   filter: drop-shadow(0 0 3px rgb(243 224 138 / 55%));
 }
@@ -1002,6 +1017,48 @@ body::after {
   color: var(--chalk-yellow);
 }
 
+/* Edition tool variants: glyph in the chalk of the edition, name, free cards. */
+.tool-variants {
+  display: flex;
+  gap: 4px;
+}
+
+.tool-variants[hidden],
+.variant-btn[hidden] {
+  display: none;
+}
+
+.variant-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.variant-glyph {
+  font: 700 16px var(--font-num);
+}
+
+.variant-brillante .variant-glyph {
+  color: #d6e4f7;
+}
+
+.variant-legendaire .variant-glyph {
+  color: #f0c95a;
+}
+
+.variant-count {
+  min-width: 1.2em;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--board-deep);
+  font: 700 13px var(--font-num);
+}
+
+.variant-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 /* ---- Selection bubble: rotate, copy, delete next to the selected building ---------------- */
 
 .sel-bubble {
@@ -1089,6 +1146,17 @@ body::after {
 
 .sel-bubble-danger {
   color: var(--chalk-red);
+}
+
+/* Edition buttons in the chalk of their edition (EDITION_COLORS). */
+.sel-bubble-brillante svg {
+  stroke: #d6e4f7;
+  fill: rgb(214 228 247 / 25%);
+}
+
+.sel-bubble-legendaire svg {
+  stroke: #f0c95a;
+  fill: rgb(240 201 90 / 25%);
 }
 
 /* Delete stands apart, so that it is not pressed by mistake. */

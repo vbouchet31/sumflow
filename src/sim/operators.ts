@@ -1,8 +1,9 @@
 import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT, type Track } from '../config/balance';
-import { PASSIVE_EFFECTS } from '../config/cards';
+import { PASSIVE_EFFECTS, type SpecialEdition } from '../config/cards';
 import { add, divmod, mul, pow, sub } from '../core/intmath';
 import { EPS } from './belts';
 import { type Building, isOperator, type OperatorType } from './entities';
+import { editionEffect } from './inventory';
 import { outputGroup, pushOut } from './outputs';
 import type { GameState } from './state';
 import type { World } from './world';
@@ -38,10 +39,17 @@ export function compute(
   }
 }
 
-/** Seconds per operation for a building, from its track's upgrade level and the passives. */
-export function cycleDuration(world: World, type: OperatorType): number {
-  const track = OPERATOR_TRACK[type];
-  return 1 / (operatorSpeed(track, world.state.upgrades[track]) * passiveSpeed(world.state));
+/**
+ * Seconds per operation of an operator: its track's upgrade level, the passives and its own
+ * edition (PLAN-recompenses §3.4), all speed factors multiplied.
+ */
+export function cycleDuration(
+  world: World,
+  b: { type: OperatorType; edition?: SpecialEdition | undefined },
+): number {
+  const track = OPERATOR_TRACK[b.type];
+  const speed = operatorSpeed(track, world.state.upgrades[track]) * passiveSpeed(world.state);
+  return 1 / (speed * (editionEffect(b).speed ?? 1));
 }
 
 /** Operator speed factor of the passive cards owned (PLAN-recompenses §5.3, placeholder). */
@@ -105,7 +113,7 @@ export function stepOperators(world: World): void {
     let cycle = b.cycle ?? -1;
     if (cycle < 0) {
       if (!canStart(b)) continue;
-      cycle = cycleDuration(world, type);
+      cycle = cycleDuration(world, { type, edition: b.edition });
     }
     cycle -= TICK_DT;
     while (cycle <= EPS) {
@@ -114,7 +122,7 @@ export function stepOperators(world: World): void {
         cycle = -1;
         break;
       }
-      cycle += cycleDuration(world, type);
+      cycle += cycleDuration(world, { type, edition: b.edition });
     }
     b.cycle = cycle;
   }

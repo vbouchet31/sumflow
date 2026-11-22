@@ -324,9 +324,9 @@ export const fr = {
   'help.value':
     'Les gisements de {n} sont maintenant extractibles. Chaque nouvelle valeur débloque la suivante.',
   'help.edition.brillante':
-    'Un bâtiment brillant va plus vite, ou extrait et stocke davantage. Une carte Édition s’applique sur un bâtiment posé ; le démolir te la rend.',
+    'Un bâtiment brillant va plus vite, ou extrait et stocke davantage. Une carte Édition s’applique sur un bâtiment posé, avec l’outil Édition (G) ou sa bulle ; le démolir te la rend.',
   'help.edition.legendaire':
-    'Un bâtiment légendaire fait encore mieux qu’un brillant. Une carte Édition s’applique sur un bâtiment posé ; le démolir te la rend.',
+    'Un bâtiment légendaire fait encore mieux qu’un brillant. Une carte Édition s’applique sur un bâtiment posé, avec l’outil Édition (G) ou sa bulle ; le démolir te la rend.',
   'help.title.special': 'Bâtiment spécial',
   'help.special':
     'Un bâtiment spécial se compte à l’unité : la barre de construction montre combien il t’en reste. Le démolir te le rend, avec son édition.',
@@ -414,4 +414,22 @@ export const fr = {
   'offer.tag.new': 'Nouveau',
   'offer.tag.unique': 'Unique',
   'offer.tag.natural': 'Suite classique',
+  'tool.edition': 'Édition',
+  'hint.edition': 'Choisis un bâtiment : il prend l’édition',
+  'act.variants': 'Variantes de l’outil Édition',
+  'act.variant': '{name}, cartes libres : {n}',
+  'act.editionBrillante': 'Brillante',
+  'act.editionBrillanteTitle': 'Appliquer une carte Édition brillante (craie nacrée)',
+  'act.editionLegendaire': 'Légendaire',
+  'act.editionLegendaireTitle': 'Appliquer une carte Édition légendaire (craie dorée)',
+  'act.removeEdition': 'Retirer',
+  'act.removeEditionTitle': 'Retirer l’édition : la carte revient, le bâtiment repasse en base',
+  'tool.editionFree': 'Cartes libres : brillante {b}, légendaire {l}',
+  'tip.editionSpeed': 'Édition {edition} : vitesse × {x}',
+  'tip.editionRate': 'Édition {edition} : débit × {x}',
+  'tip.editionCapacity': 'Édition {edition} : capacité × {x}',
+  'tip.editionPlain': 'Édition {edition}',
+  'tip.editionApplied': 'Appliquée (démolir rend la carte)',
+  'tip.editionPermanent': 'Appliquée (définitive)',
+  'tip.editionNative': 'D’origine',
 } as const;

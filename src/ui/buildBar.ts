@@ -1,5 +1,7 @@
 import type { ToolController, ToolId } from '../build/tools';
+import { SPECIAL_EDITIONS } from '../config/cards';
 import type { Rot } from '../core/grid';
+import { drawCardArt } from '../render/cardArt';
 import { type MessageKey, t } from '../i18n';
 import {
   drawToolIcon,
@@ -33,6 +35,7 @@ const BUTTONS: readonly ToolButton[] = [
   { tool: 'storage', label: 'tool.storage', key: '8', icon: '▦' },
   { tool: 'bridge', label: 'tool.bridge', key: '9', icon: '≡' },
   { tool: 'priority', label: 'tool.priority', key: 'P', icon: '◆' },
+  { tool: 'edition', label: 'tool.edition', key: 'G', icon: '✦' },
   { tool: 'select', label: 'tool.select', icon: '⬚', edit: true },
   { tool: 'demolish', label: 'tool.demolish', key: 'X', icon: '✕', edit: true },
   { tool: 'clear', label: 'tool.clear', key: 'C', icon: '○', edit: true },
@@ -122,6 +125,9 @@ export class BuildBar {
   private rot: Rot;
   private frame = -1;
   private trayKey = '';
+  /** Edition tool: its chalk stick picture and its counter of free cards. */
+  private edition: { canvas: HTMLCanvasElement; badge: HTMLElement; drawn: string } | null = null;
+  private editionKey = '';
   /** No turning or moving pictures (reduced motion setting). */
   reducedMotion = false;
 
@@ -157,6 +163,16 @@ export class BuildBar {
         canvas.setAttribute('aria-hidden', 'true');
         btn.prepend(canvas);
         this.pictures.push({ tool: def.tool, canvas, btn, drawn: '' });
+      } else if (def.tool === 'edition') {
+        btn.classList.add('build-btn-piece');
+        const canvas = document.createElement('canvas');
+        canvas.className = 'build-piece';
+        canvas.setAttribute('aria-hidden', 'true');
+        const badge = document.createElement('span');
+        badge.className = 'build-badge';
+        btn.prepend(canvas);
+        btn.append(badge);
+        this.edition = { canvas, badge, drawn: '' };
       } else if (def.tool === 'select') {
         btn.prepend(selectIcon());
       } else {
@@ -257,6 +273,7 @@ export class BuildBar {
         }
       }
     }
+    this.updateEdition();
     this.updateTray();
   }
 
@@ -279,6 +296,45 @@ export class BuildBar {
       const key = `${size}|${iconRotates(p.tool) ? this.rot : 0}|${devicePixelRatio}`;
       if (force || key !== p.drawn) this.draw(p, performance.now() / 1000);
     }
+    if (force && this.edition) this.edition.drawn = '';
+    this.updateEdition();
+  }
+
+  /**
+   * Edition tool (PLAN-recompenses §4.5): the chalk stick of its variant and the free cards
+   * of each edition obtained (✦ 1 · ★ 2) in its badge.
+   */
+  private updateEdition(): void {
+    const e = this.edition;
+    const btn = this.buttons.get('edition');
+    if (!e || !btn || btn.hidden) return;
+    const { tools } = this;
+    const free = SPECIAL_EDITIONS.map((ed) => tools.freeEditions(ed));
+    const key = `${free.join()}|${SPECIAL_EDITIONS.map((ed) => tools.ownsEdition(ed)).join()}`;
+    if (key !== this.editionKey) {
+      this.editionKey = key;
+      e.badge.textContent = SPECIAL_EDITIONS.filter((ed) => tools.ownsEdition(ed))
+        .map((ed) => `${ed === 'brillante' ? '✦' : '★'}${tools.freeEditions(ed)}`)
+        .join(' · ');
+      const [b = 0, l = 0] = free;
+      btn.title = `${t('tool.edition')} (G) · ${t('tool.editionFree', { b, l })}`;
+      btn.classList.toggle(
+        'build-btn-empty',
+        free.every((n) => n === 0),
+      );
+    }
+    const size = e.canvas.clientWidth;
+    const drawn = `${size}|${tools.editionVariant}|${devicePixelRatio}`;
+    if (size === 0 || drawn === e.drawn) return;
+    e.drawn = drawn;
+    const dpr = window.devicePixelRatio || 1;
+    const px = Math.round(size * dpr);
+    e.canvas.width = px;
+    e.canvas.height = px;
+    const ctx = e.canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawCardArt(ctx, { kind: 'edition', edition: tools.editionVariant }, size);
   }
 
   private draw(p: Picture, time: number): void {

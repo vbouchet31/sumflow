@@ -1,3 +1,4 @@
+import type { SpecialEdition } from '../config/cards';
 import { type Dir, key, normalizeRot, type Rot, rotateDir } from '../core/grid';
 import type { Clip } from '../sim/clip';
 import {
@@ -6,6 +7,15 @@ import {
   type FreeBuildingType,
   isFreeBuilding,
 } from '../sim/entities';
+import {
+  applyEdition,
+  canRemoveEdition,
+  type EditionCheck,
+  editionCheck,
+  freeEditionCards,
+  hasEditionCards,
+  removeEdition,
+} from '../sim/inventory';
 import { togglePriorityAt } from '../sim/priority';
 import { isBuildingUnlocked, isFeatureUnlocked } from '../sim/state';
 import { singleOutput, type World } from '../sim/world';
@@ -64,6 +74,7 @@ export type ToolId =
   | 'priority'
   | 'paste'
   | 'marker'
+  | 'edition'
   | AreaTool
   | FreeBuildingType;
 
@@ -86,6 +97,8 @@ export interface Ghost {
   fade?: Rect[];
   /** Belts that stay while a building moves, tinted by line (see `PlannedBelt.line`). */
   tints?: { x: number; y: number; line: number }[];
+  /** Edition tool: the hovered building as it would look with the edition (a copy). */
+  preview?: Building;
 }
 
 /** A building being dragged to a new place (no tool). */
@@ -151,6 +164,8 @@ export class ToolController {
   elbowSwap = false;
   /** Belt drag: L-shaped path (`l`) or along the tiles the pointer went through (`free`). */
   beltMode: 'l' | 'free' = 'l';
+  /** Edition tool: the variant applied by a click. */
+  private variant: SpecialEdition = 'brillante';
   private hover: { x: number; y: number } | null = null;
   private selected: Selection | null = null;
   /** Zone selected with the `select` tool (kept until a new drag, a click or another tool). */
@@ -203,6 +218,7 @@ export class ToolController {
   setTool(tool: ToolId): void {
     if (!this.isAvailable(tool)) return;
     this.tool = this.tool === tool ? 'none' : tool;
+    if (this.tool === 'edition') this.variant = this.preferredVariant();
     this.drag = null;
     this.moving = null;
     this.selected = null;
@@ -234,7 +250,102 @@ export class ToolController {
     if (isFreeBuilding(tool) || tool === 'bridge') return isBuildingUnlocked(state, tool);
     if (tool === 'priority') return isFeatureUnlocked(state, 'priorities');
     if (tool === 'paste') return state.clipboard.length > 0;
+    if (tool === 'edition') return hasEditionCards(state);
     return true;
+  }
+
+  // ---- editions ------------------------------------------------------------
+
+  /** Variant of the Edition tool (brillante or légendaire). */
+  get editionVariant(): SpecialEdition {
+    return this.variant;
+  }
+
+  setEditionVariant(edition: SpecialEdition): void {
+    if (this.variant === edition) return;
+    this.variant = edition;
+    this.notify();
+  }
+
+  /** Free edition cards of `edition` (the counters of the tool and the bubble). */
+  freeEditions(edition: SpecialEdition): number {
+    return freeEditionCards(this.world.state, edition);
+  }
+
+  /** At least one card of `edition` was obtained (its variant is shown). */
+  ownsEdition(edition: SpecialEdition): boolean {
+    return this.world.state.editionCards[edition] > 0;
+  }
+
+  /** The current variant, unless it has no free card left and the other one has. */
+  private preferredVariant(): SpecialEdition {
+    const other = otherEdition(this.variant);
+    const usable = (e: SpecialEdition): boolean => this.freeEditions(e) > 0;
+    if (!usable(this.variant) && usable(other)) return other;
+    if (!this.ownsEdition(this.variant) && this.ownsEdition(other)) return other;
+    return this.variant;
+  }
+
+  /**
+   * `G`: select the Edition tool; pressed again, switch to the other variant when it was
+   * ever obtained, else put the tool down. False when no edition card was ever obtained.
+   */
+  editionKey(): boolean {
+    if (!this.isAvailable('edition')) return false;
+    if (this.tool !== 'edition') {
+      this.setTool('edition');
+      return true;
+    }
+    const other = otherEdition(this.variant);
+    if (this.ownsEdition(other)) this.setEditionVariant(other);
+    else this.setTool('none');
+    return true;
+  }
+
+  /** What a click of the Edition tool would do on the building `b`. */
+  editionCheck(b: Building, edition: SpecialEdition = this.variant): EditionCheck {
+    return editionCheck(this.world.state, b, edition);
+  }
+
+  /** Apply `edition` on `b` as one undoable action, with its sound and chalk dust. */
+  private applyEditionOn(b: Building, edition: SpecialEdition): boolean {
+    if (this.history.run(() => applyEdition(this.world, b, edition))) {
+      this.built();
+      return true;
+    }
+    this.events.onError?.();
+    return false;
+  }
+
+  /** The selected building can take `edition` (applied, or swapped with its own). */
+  canEditionSelection(edition: SpecialEdition): boolean {
+    const b = this.tool === 'none' ? this.selectedBuilding : null;
+    if (!b) return false;
+    const check = this.editionCheck(b, edition);
+    return check === 'apply' || check === 'swap';
+  }
+
+  /** Apply `edition` on the selected building (selection bubble). */
+  editionSelection(edition: SpecialEdition): boolean {
+    const b = this.selectedBuilding;
+    return b !== null && this.applyEditionOn(b, edition);
+  }
+
+  /** The selected building has an applied edition that can be taken back. */
+  get canRemoveSelectionEdition(): boolean {
+    const b = this.tool === 'none' ? this.selectedBuilding : null;
+    return b !== null && canRemoveEdition(this.world, b);
+  }
+
+  /** "Remove the edition": the card goes back to the player, the building to base. */
+  removeSelectionEdition(): boolean {
+    const b = this.selectedBuilding;
+    if (b && this.history.run(() => removeEdition(this.world, b))) {
+      this.built();
+      return true;
+    }
+    this.events.onError?.();
+    return false;
   }
 
   cancel(): void {
@@ -671,6 +782,13 @@ export class ToolController {
       else this.events.onError?.();
       return;
     }
+    if (tool === 'edition') {
+      const b = this.world.buildingAt(x, y);
+      if (b) this.applyEditionOn(b, this.variant);
+      // Belts and bridges take no edition yet (PLAN-recompenses §3.4).
+      else if (this.world.beltAt(x, y) || this.world.bridgeAt(x, y)) this.events.onError?.();
+      return;
+    }
     if (isAreaTool(tool)) {
       this.applyArea(tool, drag);
       return;
@@ -833,6 +951,35 @@ export class ToolController {
     return planPasteRow(this.world, clip, from, to);
   }
 
+  /**
+   * Edition tool over `(x, y)`: the building recoloured when the edition can go on it, the
+   * building (or belt, bridge) in red when it cannot, nothing when it already has it.
+   */
+  private editionGhost(x: number, y: number): Ghost {
+    const ghost: Ghost = { belts: [], buildings: [], demolish: null, area: null };
+    const b = this.world.buildingAt(x, y);
+    if (!b) {
+      if (this.world.beltAt(x, y) || this.world.bridgeAt(x, y)) {
+        ghost.belts.push({ x, y, dir: 1, status: 'blocked', outputs: 0 });
+      }
+      return ghost;
+    }
+    const check = this.editionCheck(b);
+    if (check === 'apply' || check === 'swap') {
+      ghost.preview = { ...b, edition: this.variant, editionApplied: true };
+    } else if (check !== 'same') {
+      ghost.buildings.push({
+        type: b.type,
+        x: b.x,
+        y: b.y,
+        rot: b.rot,
+        mirror: b.mirror === true,
+        ok: false,
+      });
+    }
+    return ghost;
+  }
+
   ghost(): Ghost {
     const empty: Ghost = { belts: [], buildings: [], demolish: null, area: null };
     const tool = this.tool;
@@ -845,6 +992,7 @@ export class ToolController {
     }
     if (!this.hover) return empty;
     if (tool === 'belt') return { ...empty, belts: this.beltPlan(drag) };
+    if (tool === 'edition') return this.editionGhost(this.hover.x, this.hover.y);
     if (tool === 'extractor') {
       return { ...empty, buildings: [planExtractor(this.world, this.hover.x, this.hover.y)] };
     }
@@ -873,6 +1021,10 @@ export class ToolController {
   }
 }
 
+function otherEdition(e: SpecialEdition): SpecialEdition {
+  return e === 'brillante' ? 'legendaire' : 'brillante';
+}
+
 /** Something worth selecting on a tile without a building: a belt, a bridge or a deposit. */
 function selectableTile(world: World, x: number, y: number): boolean {
   return (
@@ -891,7 +1043,11 @@ function firstDir(mask: number): Dir {
 function moveGhost(world: World, plan: MovePlan | null): Ghost {
   const ghost: Ghost = { belts: [], buildings: [], demolish: null, area: null, fade: [] };
   if (!plan) return ghost;
-  ghost.buildings.push(plan.building);
+  const moving = world.state.buildings.get(plan.id);
+  // A building keeps its edition when it moves.
+  ghost.buildings.push(
+    moving?.edition ? { ...plan.building, edition: moving.edition } : plan.building,
+  );
   ghost.belts.push(...plan.belts);
   for (const t of plan.broken) ghost.belts.push({ ...t, status: 'blocked', outputs: 0 });
   const b = world.state.buildings.get(plan.id);

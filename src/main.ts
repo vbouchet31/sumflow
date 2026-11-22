@@ -16,6 +16,7 @@ import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
 import { effectEvents } from './render/layers/effects';
 import { SimLoop } from './sim/loop';
+import { hasEditionCards } from './sim/inventory';
 import { createInitialState } from './sim/state';
 import { World } from './sim/world';
 import { BuildBar } from './ui/buildBar';
@@ -487,6 +488,9 @@ async function bootstrap(): Promise<void> {
       },
       onRotate: (delta) => tools.rotate(delta),
       onMirror: () => tools.mirror(),
+      onEdition: () => {
+        if (!tools.editionKey()) sfx.error();
+      },
       onPick: () => tools.pick(),
       onUndo: undo,
       onRedo: redo,
@@ -613,7 +617,7 @@ async function bootstrap(): Promise<void> {
       'upgrades',
       TRACKS.some((tr) => isUpgradeReady(state, tr)),
     );
-    const barKey = `${state.unlockedBuildings.length}|${state.unlockedFeatures.length}|${state.clipboard.length}`;
+    const barKey = `${state.unlockedBuildings.length}|${state.unlockedFeatures.length}|${state.clipboard.length}|${hasEditionCards(state)}`;
     if (barKey !== unlockedKey) {
       unlockedKey = barKey;
       buildBar.refresh();

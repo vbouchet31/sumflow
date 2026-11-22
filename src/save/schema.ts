@@ -7,8 +7,10 @@ import {
   EDITIONS,
   PASSIVE_EFFECTS,
   type PassiveId,
+  SPECIAL_EDITIONS,
   type SpecialEdition,
 } from '../config/cards';
+import { editionCapable } from '../sim/inventory';
 import { COORD_MAX, COORD_MIN, type Dir, type Rot } from '../core/grid';
 import type { Clip } from '../sim/clip';
 
@@ -64,6 +66,9 @@ export interface SavedBuilding {
   cycle?: number;
   storeValue?: number | null;
   storeCount?: number;
+  edition?: SpecialEdition;
+  /** Present (true) only for an edition applied from a card. */
+  editionApplied?: boolean;
 }
 
 export interface SavedRequirement {
@@ -119,6 +124,7 @@ export interface SaveData {
   pendingLevels: number[];
   currentOffer: { level: number; cards: SavedOfferCard[] } | null;
   editionCards: Record<SpecialEdition, number>;
+  editionsLost: Record<SpecialEdition, number>;
   specials: Record<string, number>;
   passives: PassiveId[];
   naturalRefusals: number;
@@ -318,6 +324,15 @@ function building(v: unknown, path: string): SavedBuilding {
     b.storeValue = o['storeValue'] === null ? null : int32(o['storeValue'], `${path}.storeValue`);
   }
   if (o['storeCount'] !== undefined) b.storeCount = int(o['storeCount'], `${path}.storeCount`, 0);
+  if (o['edition'] !== undefined) {
+    b.edition = oneOf(o['edition'], SPECIAL_EDITIONS, `${path}.edition`);
+    // Only edition cards exist on the map for now (no special building with a native
+    // edition before R6), and only on buildings that take one.
+    if (o['editionApplied'] !== true || !editionCapable(b.type)) fail(`${path}.edition`);
+    b.editionApplied = true;
+  } else if (o['editionApplied'] !== undefined) {
+    fail(`${path}.editionApplied`);
+  }
   return b;
 }
 
@@ -468,7 +483,12 @@ export function validateSave(raw: unknown): SaveData {
     ),
     currentOffer:
       o['currentOffer'] === null ? null : savedOffer(o['currentOffer'], '$.currentOffer'),
-    editionCards: counts(o['editionCards'], ['brillante', 'legendaire'], '$.editionCards', true),
+    editionCards: counts(o['editionCards'], SPECIAL_EDITIONS, '$.editionCards', true),
+    // Added within version 2 (unreleased): absent in earlier saves of it, meaning none.
+    editionsLost:
+      o['editionsLost'] === undefined
+        ? { brillante: 0, legendaire: 0 }
+        : counts(o['editionsLost'], SPECIAL_EDITIONS, '$.editionsLost', true),
     specials: counts(o['specials'], SPECIAL_KEYS, '$.specials', false),
     passives: arr(o['passives'], '$.passives').map((x, i) =>
       oneOf(x, PASSIVES, `$.passives[${i}]`),
@@ -491,5 +511,10 @@ export function validateSave(raw: unknown): SaveData {
   if (pending.some((n, i) => n >= data.level + 1 || (i > 0 && n <= (pending[i - 1] ?? 0))))
     fail('$.pendingLevels');
   if (data.currentOffer && data.currentOffer.level !== pending[0]) fail('$.currentOffer.level');
+  // Editions: never more applied (or lost) than obtained.
+  for (const e of SPECIAL_EDITIONS) {
+    const applied = data.buildings.filter((b) => b.edition === e && b.editionApplied).length;
+    if (applied + data.editionsLost[e] > data.editionCards[e]) fail(`$.editionCards.${e}`);
+  }
   return data;
 }

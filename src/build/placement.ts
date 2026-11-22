@@ -1,4 +1,5 @@
 import type { BuildingType } from '../config/buildings';
+import type { SpecialEdition } from '../config/cards';
 import { isInBounds, key, type Rot } from '../core/grid';
 import { buildingSize, footprintTiles, type FreeBuildingType } from '../sim/entities';
 import type { Building } from '../sim/entities';
@@ -17,6 +18,8 @@ export interface BuildingPlan {
   ok: boolean;
   /** Extractor only: value of the deposit it covers. */
   value?: number;
+  /** Edition it is drawn with (a building being moved keeps its own). */
+  edition?: SpecialEdition;
 }
 
 /**

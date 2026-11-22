@@ -67,6 +67,8 @@ function saveBuilding(b: Building): SavedBuilding {
   if (b.cycle !== undefined) s.cycle = b.cycle;
   if (b.storeValue !== undefined) s.storeValue = b.storeValue;
   if (b.storeCount !== undefined) s.storeCount = b.storeCount;
+  if (b.edition !== undefined) s.edition = b.edition;
+  if (b.editionApplied === true) s.editionApplied = true;
   return s;
 }
 
@@ -90,6 +92,8 @@ function loadBuilding(s: SavedBuilding): Building {
   if (s.cycle !== undefined) b.cycle = s.cycle;
   if (s.storeValue !== undefined) b.storeValue = s.storeValue;
   if (s.storeCount !== undefined) b.storeCount = s.storeCount;
+  if (s.edition !== undefined) b.edition = s.edition;
+  if (s.editionApplied === true) b.editionApplied = true;
   return b;
 }
 
@@ -143,6 +147,7 @@ export function serialize(world: World, camera: CameraState, savedAt = ''): Save
       ? { level: s.currentOffer.level, cards: s.currentOffer.cards.map((c) => ({ ...c })) }
       : null,
     editionCards: { ...s.editionCards },
+    editionsLost: { ...s.editionsLost },
     specials: Object.fromEntries(Object.entries(s.specials).sort(([a], [b]) => (a < b ? -1 : 1))),
     passives: [...s.passives],
     naturalRefusals: s.naturalRefusals,
@@ -178,6 +183,7 @@ export function deserialize(data: SaveData): { state: GameState; camera: CameraS
     ? { level: data.currentOffer.level, cards: data.currentOffer.cards.map((c) => ({ ...c })) }
     : null;
   state.editionCards = { ...data.editionCards };
+  state.editionsLost = { ...data.editionsLost };
   state.specials = { ...data.specials };
   state.passives = [...data.passives];
   state.naturalRefusals = data.naturalRefusals;

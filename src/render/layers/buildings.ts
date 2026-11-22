@@ -5,6 +5,8 @@ import type { Camera } from '../camera';
 import { itemColor } from '../itemColor';
 import { LOD } from '../lod';
 import { chalkSquare, shade, tileSeed } from '../chalk';
+import { editionGlint } from '../editions';
+import { EDITION_COLORS } from '../../config/colors';
 import { drawHub } from './hub';
 import { drawOperator } from './operators';
 import { drawStorage } from './storage';
@@ -39,15 +41,16 @@ function drawExtractor(ctx: CanvasRenderingContext2D, cam: Camera, b: Building, 
   const inset = 0.1 * s;
   const value = b.extractValue;
   ctx.globalAlpha = alpha;
-  chalkSquare(
-    ctx,
-    p.x + inset,
-    p.y + inset,
-    3 * s - 2 * inset,
-    tileSeed(b.x, b.y),
-    extractorChalk(value),
-    { hatch: Math.max(1, 0.09 * s), outline: Math.max(1.5, 0.09 * s) },
-  );
+  const side = 3 * s - 2 * inset;
+  // An edition keeps the colour of the items (what it produces) and draws its outline and
+  // glint in the edition chalk.
+  const chalk = extractorChalk(value);
+  if (b.edition) chalk.outline = EDITION_COLORS[b.edition].outline;
+  chalkSquare(ctx, p.x + inset, p.y + inset, side, tileSeed(b.x, b.y), chalk, {
+    hatch: Math.max(1, 0.09 * s),
+    outline: Math.max(1.5, (b.edition ? 0.14 : 0.09) * s),
+  });
+  if (b.edition) editionGlint(ctx, b.edition, [{ x: p.x + inset, y: p.y + inset, s: side }], s);
   if (cam.zoom >= LOD.buildingText) {
     // Output notches: small light bars on each outer face.
     ctx.fillStyle = CHALK.markFaint;
@@ -72,6 +75,27 @@ function drawExtractor(ctx: CanvasRenderingContext2D, cam: Camera, b: Building, 
   ctx.globalAlpha = 1;
 }
 
+/**
+ * One building as on the map (the hub excepted): also used for the ghost of the Edition
+ * tool, a copy of the hovered building with its new edition.
+ */
+export function drawBuilding(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  b: Building,
+  flash = 0,
+): void {
+  if (b.type === 'extractor') drawExtractor(ctx, cam, b);
+  else if (b.type === 'storage') drawStorage(ctx, cam, b);
+  else if (isOperator(b.type)) {
+    drawOperator(ctx, cam, b.type, b.x, b.y, b.rot, {
+      flash,
+      mirror: b.mirror === true,
+      edition: b.edition,
+    });
+  }
+}
+
 /** Buildings layer (PLAN §10.2 layer 4). */
 export function drawBuildings(
   ctx: CanvasRenderingContext2D,
@@ -90,13 +114,11 @@ export function drawBuildings(
       p.y + size.h * cam.scale < 0
     )
       continue;
-    if (b.type === 'hub') drawHub(ctx, cam, state);
-    else if (b.type === 'extractor') drawExtractor(ctx, cam, b);
-    else if (b.type === 'storage') drawStorage(ctx, cam, b);
-    else if (isOperator(b.type)) {
-      const age = b.flashTick === undefined ? Infinity : state.tick - b.flashTick;
-      const flash = !reducedMotion && age < FLASH_TICKS ? 1 - age / FLASH_TICKS : 0;
-      drawOperator(ctx, cam, b.type, b.x, b.y, b.rot, { flash, mirror: b.mirror === true });
+    if (b.type === 'hub') {
+      drawHub(ctx, cam, state);
+      continue;
     }
+    const age = b.flashTick === undefined ? Infinity : state.tick - b.flashTick;
+    drawBuilding(ctx, cam, b, !reducedMotion && age < FLASH_TICKS ? 1 - age / FLASH_TICKS : 0);
   }
 }

@@ -4,11 +4,12 @@ import { applyPaste, planPaste, transformClip } from '../build/clipboard';
 import type { ToolController } from '../build/tools';
 import { applyBuildingPlan, planExtractor, planOperator } from '../build/placement';
 import { type PlaceableType, TICK_RATE, type Track, TRACKS } from '../config/balance';
-import type { Edition } from '../config/cards';
+import type { Edition, SpecialEdition } from '../config/cards';
 import { type Dir, normalizeRot, rotateDir } from '../core/grid';
 import type { Camera } from '../render/camera';
 import type { Effects } from '../render/layers/effects';
 import { dirMask, type FreeBuildingType } from '../sim/entities';
+import { appliedEditions, applyEdition, freeEditions, removeEdition } from '../sim/inventory';
 import type { SimLoop } from '../sim/loop';
 import { drawOffer, nextValue, type OfferCard, type SlotDraw } from '../sim/offers';
 import { chooseCard, deliver, ensureOffer, setLevel } from '../sim/progression';
@@ -47,6 +48,8 @@ export interface DebugSnapshot {
   pendingLevels: number[];
   /** Cards obtained so far (fixed levels, offers, grants). */
   picks: number;
+  /** Edition cards: obtained, free, applied on the map and lost (permanent editions). */
+  editions: Record<'obtained' | 'free' | 'applied' | 'lost', Record<SpecialEdition, number>>;
   upgrades: Record<Track, number>;
   belts: number;
   bridges: number;
@@ -116,8 +119,23 @@ export interface DebugApi {
   setMarker: (x: number, y: number, text: string) => void;
   /** Output mask of the plain belt at (x, y) (bit d = direction d), or null. */
   beltAt: (x: number, y: number) => number | null;
-  /** The building covering (x, y): its type, origin and rotation, or null. */
-  buildingAt: (x: number, y: number) => { type: string; x: number; y: number; rot: number } | null;
+  /** The building covering (x, y): its id, type, origin, rotation and edition, or null. */
+  buildingAt: (
+    x: number,
+    y: number,
+  ) => {
+    id: number;
+    type: string;
+    x: number;
+    y: number;
+    rot: number;
+    edition: SpecialEdition | null;
+    editionApplied: boolean;
+  } | null;
+  /** Apply a free edition card on building `id` (undoable, like the Edition tool). */
+  applyEdition: (id: number, edition: SpecialEdition) => boolean;
+  /** Take the applied edition of building `id` back (undoable). */
+  removeEdition: (id: number) => boolean;
   /** Layout of every building except the hub, sorted (for comparisons in tests). */
   layout: () => string;
   /** Save now (compressed) and report the result. */
@@ -168,6 +186,12 @@ export function installDebugApi(ctx: DebugContext): void {
         finished: s.finishedAtTick !== null,
         pendingLevels: [...s.pendingLevels],
         picks: s.picks.length,
+        editions: {
+          obtained: { ...s.editionCards },
+          free: freeEditions(s),
+          applied: appliedEditions(s),
+          lost: { ...s.editionsLost },
+        },
         upgrades: { ...s.upgrades },
         belts: s.belts.size,
         bridges: s.bridges.size,
@@ -219,7 +243,18 @@ export function installDebugApi(ctx: DebugContext): void {
     beltAt: (x, y) => world.beltAt(x, y)?.outputs ?? null,
     buildingAt: (x, y) => {
       const b = world.buildingAt(x, y);
-      return b ? { type: b.type, x: b.x, y: b.y, rot: b.rot } : null;
+      if (!b) return null;
+      const { id, type, rot } = b;
+      const edition = b.edition ?? null;
+      return { id, type, x: b.x, y: b.y, rot, edition, editionApplied: b.editionApplied === true };
+    },
+    applyEdition: (id, edition) => {
+      const b = world.state.buildings.get(id);
+      return b !== undefined && history.run(() => applyEdition(world, b, edition));
+    },
+    removeEdition: (id) => {
+      const b = world.state.buildings.get(id);
+      return b !== undefined && history.run(() => removeEdition(world, b));
     },
     layout: () => layoutString(world),
     save: () => saves.save(),

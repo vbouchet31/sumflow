@@ -21,6 +21,8 @@ export const ACTION_KEYS = {
   marker: 'b',
   pick: 'e',
   mirror: 'f',
+  /** Edition tool (PLAN-recompenses §3.5); pressed again, the other variant. */
+  edition: 'g',
 } as const;
 
 /** Letters combined with Ctrl (or Cmd), by event.key (PLAN §8.2). */

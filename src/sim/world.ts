@@ -1,4 +1,10 @@
 import { BUILDINGS, type BuildingType } from '../config/buildings';
+import {
+  EDITION_RULES,
+  type EditionRules,
+  SPECIAL_EDITIONS,
+  type SpecialEdition,
+} from '../config/cards';
 import { CHUNK_SIZE, chunkOf, type Dir, key, type Rot, unkey } from '../core/grid';
 import { EventBus } from '../core/events';
 import type { DepositMap } from '../world/chunks';
@@ -18,6 +24,7 @@ import {
   portKey,
 } from './entities';
 import { type BuildingSnap, type Change, sameSnap, type TileSnap } from './journal';
+import { appliedEdition, freeEditionCards } from './inventory';
 import { computeNetwork, type BeltNetwork } from './network';
 import type { OutputGroup } from './outputs';
 import type { Emit, ProgressionEvents } from './progression';
@@ -87,14 +94,19 @@ export class World {
   readonly stats = new DeliveryStats();
   /** Output faces and their targets per building and port kind (see `outputGroup`). */
   readonly outputGroups = new Map<number, OutputGroup>();
+  /** How applied editions behave (a setting, see `EDITION_RULES`; tests try both). */
+  editionRules: Readonly<EditionRules> = EDITION_RULES;
   private network: BeltNetwork | null = null;
   /** Slots touched by the open change, with their state before it (undo journal). */
   private journal: {
     tiles: Map<number, TileSnap | null>;
     buildings: Map<number, BuildingSnap | null>;
     markers: Map<number, string | null>;
+    lost: Record<SpecialEdition, number>;
   } | null = null;
   private journalDepth = 0;
+  /** Undo / redo is putting slots back: removals are not demolitions (no card is lost). */
+  private replaying = false;
 
   constructor(
     readonly state: GameState,
@@ -177,7 +189,12 @@ export class World {
   /** Start recording structural changes. Nested calls join the outer change. */
   beginChange(): void {
     if (this.journalDepth++ === 0) {
-      this.journal = { tiles: new Map(), buildings: new Map(), markers: new Map() };
+      this.journal = {
+        tiles: new Map(),
+        buildings: new Map(),
+        markers: new Map(),
+        lost: { ...this.state.editionsLost },
+      };
     }
   }
 
@@ -204,8 +221,15 @@ export class World {
       const after = this.state.markers.get(k)?.text ?? null;
       if (before !== after) change.markers.set(k, { before, after });
     }
+    let lost = false;
+    const delta: Record<SpecialEdition, number> = { brillante: 0, legendaire: 0 };
+    for (const e of SPECIAL_EDITIONS) {
+      delta[e] = this.state.editionsLost[e] - j.lost[e];
+      if (delta[e] !== 0) lost = true;
+    }
+    if (lost) change.lost = delta;
     const empty = change.tiles.size + change.buildings.size + change.markers.size === 0;
-    return empty ? null : change;
+    return empty && !lost ? null : change;
   }
 
   private noteTile(k: number): void {
@@ -250,6 +274,8 @@ export class World {
       mirror: b.mirror === true,
       priority: b.priority,
       extractValue: b.extractValue ?? null,
+      edition: b.edition ?? null,
+      editionApplied: b.editionApplied === true,
     };
   }
 
@@ -269,10 +295,16 @@ export class World {
     // A building that only moved (same type and mirror) is moved back, with its contents.
     const moved = (b: Building, s: BuildingSnap): boolean =>
       b.type === s.type && (b.mirror === true) === s.mirror && !same(b, s);
-    for (const [id, c] of change.buildings) {
-      const target = c[side];
-      const cur = this.state.buildings.get(id);
-      if (cur && (!target || (!same(cur, target) && !moved(cur, target)))) this.removeBuilding(id);
+    this.replaying = true;
+    try {
+      for (const [id, c] of change.buildings) {
+        const target = c[side];
+        const cur = this.state.buildings.get(id);
+        if (cur && (!target || (!same(cur, target) && !moved(cur, target))))
+          this.removeBuilding(id);
+      }
+    } finally {
+      this.replaying = false;
     }
     for (const [id, c] of change.buildings) {
       const target = c[side];
@@ -286,6 +318,16 @@ export class World {
         this.insertBuilding(this.makeBuilding(id, target), target.priority);
       }
     }
+    if (change.lost) {
+      const sign = side === 'after' ? 1 : -1;
+      for (const e of SPECIAL_EDITIONS) {
+        this.state.editionsLost[e] = Math.max(
+          0,
+          this.state.editionsLost[e] + sign * change.lost[e],
+        );
+      }
+    }
+    this.restoreEditions(change, side);
     for (const [k, c] of change.tiles) {
       const target = c[side];
       const { x, y } = unkey(k);
@@ -306,12 +348,54 @@ export class World {
     this.invalidate();
   }
 
+  /**
+   * Editions of the buildings a change puts back (PLAN-recompenses §3.5, edge cases). First
+   * the cards that go back to the player, then those taken: an applied edition comes back
+   * only while a card of it is free, otherwise the building stays base (its card was applied
+   * elsewhere in the meantime). Native editions always follow their building.
+   */
+  private restoreEditions(change: Change, side: 'before' | 'after'): void {
+    const wanted: [Building, SpecialEdition][] = [];
+    for (const [id, c] of change.buildings) {
+      const target = c[side];
+      const cur = this.state.buildings.get(id);
+      if (!target || !cur) continue;
+      if (target.edition !== null && target.editionApplied) {
+        if (appliedEdition(cur) === target.edition) continue;
+        // Its current card goes back first: another building of the change may need it.
+        if (cur.edition !== undefined) this.setBuildingEdition(cur, null, false);
+        wanted.push([cur, target.edition]);
+      } else if (cur.edition !== (target.edition ?? undefined) || cur.editionApplied) {
+        this.setBuildingEdition(cur, target.edition, false);
+      }
+    }
+    for (const [b, edition] of wanted) {
+      if (freeEditionCards(this.state, edition) > 0) this.setBuildingEdition(b, edition, true);
+    }
+  }
+
   // ---- priorities and markers ---------------------------------------------
 
   /** Set a belt's (or lane's) prioritised output (PLAN §6.6). */
   setBeltPriority(belt: Belt, dir: Dir | null): void {
     this.noteTile(key(belt.x, belt.y));
     belt.priority = dir;
+  }
+
+  /**
+   * Set (or clear, with null) a building's edition. `applied`: it comes from an edition card.
+   * Inventory rules (free cards, swaps) are in `sim/inventory.ts`.
+   */
+  setBuildingEdition(b: Building, edition: SpecialEdition | null, applied: boolean): void {
+    this.noteBuilding(b.id);
+    if (edition === null) {
+      delete b.edition;
+      delete b.editionApplied;
+    } else {
+      b.edition = edition;
+      if (applied) b.editionApplied = true;
+      else delete b.editionApplied;
+    }
   }
 
   /** Set a building's prioritised output face (port key), or null. */
@@ -457,6 +541,8 @@ export class World {
       mirror: extra.mirror === true,
       priority: null,
       extractValue: extra.extractValue ?? null,
+      edition: null,
+      editionApplied: false,
     });
     return this.insertBuilding(b, null);
   }
@@ -474,6 +560,8 @@ export class World {
       priority: null,
     };
     if (def.rotatable && s.mirror) b.mirror = true;
+    // Native editions come with the building; applied ones are restored by `restoreEditions`.
+    if (s.edition !== null && !s.editionApplied) b.edition = s.edition;
     if (s.extractValue !== null) {
       b.extractValue = s.extractValue;
       b.extractAcc = 0;
@@ -515,6 +603,11 @@ export class World {
     const b = this.state.buildings.get(id);
     if (!b || b.type === 'hub') return null;
     this.noteBuilding(id);
+    // Permanent editions: a demolished building takes its edition card with it.
+    const applied = appliedEdition(b);
+    if (applied && !this.replaying && !this.editionRules.returnOnDemolish) {
+      this.state.editionsLost[applied] += 1;
+    }
     this.state.buildings.delete(id);
     this.unindexBuilding(b);
     this.emitFootprint(b);

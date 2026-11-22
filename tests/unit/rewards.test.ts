@@ -220,10 +220,10 @@ describe('card effects', () => {
 
   it('passive: operators go faster', () => {
     const world = new World(atLevel3(), new DepositMap(42));
-    const before = cycleDuration(world, 'adder');
+    const before = cycleDuration(world, { type: 'adder' });
     grantCard(world.state, 'passive-operators');
     expect(world.state.passives).toEqual(['operatorsBoost']);
-    expect(cycleDuration(world, 'adder')).toBeCloseTo(
+    expect(cycleDuration(world, { type: 'adder' })).toBeCloseTo(
       before / PASSIVE_EFFECTS.operatorsBoost.operatorSpeed,
     );
   });

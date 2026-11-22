@@ -1,4 +1,5 @@
 import type { BuildingType } from '../config/buildings';
+import type { SpecialEdition } from '../config/cards';
 import type { Dir, Rot } from '../core/grid';
 
 /**
@@ -17,6 +18,10 @@ export interface BuildingSnap {
   mirror: boolean;
   priority: number | null;
   extractValue: number | null;
+  /** Edition, or null for base (PLAN-recompenses §3.5): applying one is undoable. */
+  edition: SpecialEdition | null;
+  /** The edition comes from an edition card (false for none or a native edition). */
+  editionApplied: boolean;
 }
 
 export interface SlotChange<T> {
@@ -32,6 +37,11 @@ export interface Change {
   buildings: Map<number, SlotChange<BuildingSnap>>;
   /** By tile key: marker text. */
   markers: Map<number, SlotChange<string>>;
+  /**
+   * Edition cards the action lost for good (`GameState.editionsLost` after minus before),
+   * only with permanent editions. Undo takes them back, redo loses them again.
+   */
+  lost?: Record<SpecialEdition, number>;
 }
 
 export function sameSnap(a: unknown, b: unknown): boolean {

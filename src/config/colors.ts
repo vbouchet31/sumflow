@@ -115,11 +115,14 @@ export const EDITION_COLORS = {
     /** Darker edge of a chalk stick. */
     deep: '#9aa9c4',
     glint: 'rgba(255, 255, 255, 0.85)',
+    /** Outline of a building drawn in this chalk on the map. */
+    outline: '#f1f4ff',
   },
   legendaire: {
     stops: ['#d9a23a', '#f8dc84', '#e9b949', '#c98f2c'],
     deep: '#8f6420',
     glint: 'rgba(255, 244, 205, 0.9)',
+    outline: '#ffe9a3',
   },
   star: '#fff1b8',
   starLine: '#8f6420',

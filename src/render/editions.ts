@@ -1,13 +1,86 @@
 /**
  * Edition chalks (PLAN-recompenses §3.4): a brillante object is recoloured in pearly chalk
  * with a glint, a légendaire one in golden chalk with a small star. Base is left as drawn.
- * One helper for every place that shows an edition: the choice screen now, the buildings on
- * the map, the ghost, the build bar and the tooltip later (R5).
+ * One helper for every place that shows an edition: the choice screen, the build bar, and
+ * the buildings on the map and their ghosts (`editionChalk`, `editionGlint`).
  */
 import type { Edition } from '../config/cards';
 import { EDITION_COLORS } from '../config/colors';
+import { shade } from './chalk';
 
 type Tinted = Exclude<Edition, 'base'>;
+
+/**
+ * Chalk of one tile of a building in an edition, on the map: hatching in one of the
+ * edition's gradient colours (picked from the tile seed, so a pearly building shimmers and a
+ * golden one has several golds), a light outline. `darker` for input tiles, as for base.
+ */
+export function editionChalk(
+  edition: Tinted,
+  seed: number,
+  darker = false,
+): { wash: string; hatch: string; outline: string } {
+  const c = EDITION_COLORS[edition];
+  const hatch = c.stops[(seed >>> 4) % c.stops.length] ?? c.stops[0];
+  return {
+    wash: c.stops[1],
+    hatch: darker ? shade(hatch, -0.22) : hatch,
+    outline: c.outline,
+  };
+}
+
+/** A tile of a building on screen: its top-left corner and side, in pixels. */
+export interface ScreenTile {
+  x: number;
+  y: number;
+  s: number;
+}
+
+/**
+ * The glint of an edition across a building drawn on the map: a light diagonal band over
+ * its tiles only (clipped), then the sparkle or the star in the corner of its top-right
+ * tile when the tiles are large enough to show it.
+ */
+export function editionGlint(
+  ctx: CanvasRenderingContext2D,
+  edition: Tinted,
+  tiles: readonly ScreenTile[],
+  /** Size of one map tile in pixels (the mark keeps that scale on a 3 × 3 block). */
+  unit = tiles[0]?.s ?? 0,
+): void {
+  const first = tiles[0];
+  if (!first) return;
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  let corner = first;
+  for (const t of tiles) {
+    x0 = Math.min(x0, t.x);
+    y0 = Math.min(y0, t.y);
+    x1 = Math.max(x1, t.x + t.s);
+    y1 = Math.max(y1, t.y + t.s);
+    if (t.x - t.y > corner.x - corner.y) corner = t;
+  }
+  ctx.save();
+  ctx.beginPath();
+  for (const t of tiles) ctx.rect(t.x, t.y, t.s, t.s);
+  ctx.clip();
+  const glint = ctx.createLinearGradient(x0, y0, x1, y1);
+  glint.addColorStop(0.2, 'rgba(255, 255, 255, 0)');
+  glint.addColorStop(0.32, EDITION_COLORS[edition].glint);
+  glint.addColorStop(0.44, 'rgba(255, 255, 255, 0)');
+  ctx.globalAlpha *= edition === 'brillante' ? 0.45 : 0.3;
+  ctx.fillStyle = glint;
+  ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  ctx.restore();
+  const r = unit * 0.2;
+  if (r < 2.5) return;
+  const cx = corner.x + corner.s - r * 1.25;
+  const cy = corner.y + r * 1.25;
+  if (edition === 'legendaire') drawEditionStar(ctx, cx, cy, r);
+  else drawEditionSparkle(ctx, cx, cy, r * 1.2);
+}
 
 /** Diagonal gradient of the edition chalk across the rectangle (x, y, w, h). */
 export function editionGradient(

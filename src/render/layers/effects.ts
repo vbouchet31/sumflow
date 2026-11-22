@@ -1,7 +1,7 @@
 import type { Rect } from '../../build/area';
 import type { ToolEvents } from '../../build/tools';
 import type { Footprint } from '../../build/touched';
-import { BUILDING_COLORS, CHALK } from '../../config/colors';
+import { BUILDING_COLORS, CHALK, EDITION_COLORS } from '../../config/colors';
 import { EFFECTS } from '../../config/effects';
 import type { Camera } from '../camera';
 import { chalkStroke, hash01, rng, shade, tileSeed } from '../chalk';
@@ -198,6 +198,8 @@ function isTile(f: Footprint): boolean {
 /** Chalk of a building's tinted dust grains, or null for belts (plain white dust). */
 function dustTint(f: Footprint): string | null {
   const lighten = EFFECTS.dust.tintLighten;
+  // An edition was applied (or the building comes back with one): dust of its chalk.
+  if (f.edition !== undefined) return EDITION_COLORS[f.edition].stops[1];
   if (f.type === 'extractor' && f.value !== undefined) return shade(itemColor(f.value), lighten);
   const base = (BUILDING_COLORS as Record<string, string | undefined>)[f.type];
   return base ? shade(base, lighten) : null;

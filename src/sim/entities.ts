@@ -1,4 +1,5 @@
 import { BUILDINGS, type BuildingType, type PortRole } from '../config/buildings';
+import type { SpecialEdition } from '../config/cards';
 import {
   type Dir,
   DX,
@@ -97,6 +98,13 @@ export interface Building {
   /** Storage: stored value (null when empty) and count (PLAN §6.3). */
   storeValue?: number | null;
   storeCount?: number;
+  /** Edition (PLAN-recompenses §3.4); absent = base. */
+  edition?: SpecialEdition;
+  /**
+   * True when the edition comes from an edition card (it goes back to the player), false
+   * or absent for the native edition of a special building (it never leaves it).
+   */
+  editionApplied?: boolean;
 }
 
 export type OperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent';

@@ -325,9 +325,9 @@ export const en: Record<MessageKey, string> = {
   'help.title.value': 'New value',
   'help.value': 'Deposits of {n} can now be extracted. Each new value unlocks the next one.',
   'help.edition.brillante':
-    'A shiny building runs faster, or extracts and stores more. An edition card goes on a placed building; demolishing it gives the card back.',
+    'A shiny building runs faster, or extracts and stores more. An edition card goes on a placed building, with the Edition tool (G) or its bubble; demolishing it gives the card back.',
   'help.edition.legendaire':
-    'A legendary building does even better than a shiny one. An edition card goes on a placed building; demolishing it gives the card back.',
+    'A legendary building does even better than a shiny one. An edition card goes on a placed building, with the Edition tool (G) or its bubble; demolishing it gives the card back.',
   'help.title.special': 'Special building',
   'help.special':
     'Special buildings are counted: the build bar shows how many you have left. Demolishing one gives it back, edition included.',
@@ -415,4 +415,23 @@ export const en: Record<MessageKey, string> = {
   'offer.tag.new': 'New',
   'offer.tag.unique': 'Unique',
   'offer.tag.natural': 'Classic path',
+  'tool.edition': 'Edition',
+  'hint.edition': 'Pick a building: it takes the edition',
+  'act.variants': 'Edition tool variants',
+  'act.variant': '{name}, free cards: {n}',
+  'act.editionBrillante': 'Shiny',
+  'act.editionBrillanteTitle': 'Apply a shiny edition card (pearly chalk)',
+  'act.editionLegendaire': 'Legendary',
+  'act.editionLegendaireTitle': 'Apply a legendary edition card (golden chalk)',
+  'act.removeEdition': 'Remove',
+  'act.removeEditionTitle':
+    'Remove the edition: the card comes back, the building goes back to base',
+  'tool.editionFree': 'Free cards: shiny {b}, legendary {l}',
+  'tip.editionSpeed': '{Edition} edition: speed × {x}',
+  'tip.editionRate': '{Edition} edition: output × {x}',
+  'tip.editionCapacity': '{Edition} edition: capacity × {x}',
+  'tip.editionPlain': '{Edition} edition',
+  'tip.editionApplied': 'Applied (demolishing gives the card back)',
+  'tip.editionPermanent': 'Applied (permanent)',
+  'tip.editionNative': 'Native',
 };

@@ -1,4 +1,5 @@
 import type { ToolController } from '../build/tools';
+import { SPECIAL_EDITIONS, type SpecialEdition } from '../config/cards';
 import { type MessageKey, t } from '../i18n';
 import { el } from './dom';
 import { type Rect, rectSize } from '../build/area';
@@ -122,10 +123,23 @@ const ACTIONS: readonly ActionDef[] = [
  * can be done to it (a building's rotate, copy and delete are in its bubble). Shown for
  * every kind of pointer.
  */
+/** Glyph of each edition, as on its card and in the build bar badge. */
+const EDITION_GLYPH: Readonly<Record<SpecialEdition, string>> = { brillante: '✦', legendaire: '★' };
+const VARIANT_LABEL: Readonly<Record<SpecialEdition, MessageKey>> = {
+  brillante: 'act.editionBrillante',
+  legendaire: 'act.editionLegendaire',
+};
+
 export class ToolActions {
   private readonly box = el('div', 'tool-hint');
   private readonly label = el('span', 'tool-hint-text');
   private readonly buttons = new Map<ActionId, HTMLButtonElement>();
+  /** Edition tool: one button per variant, with its free cards (PLAN-recompenses §4.5). */
+  private readonly variants = el('span', 'tool-variants');
+  private readonly variantButtons = new Map<
+    SpecialEdition,
+    { btn: HTMLButtonElement; count: HTMLElement }
+  >();
   private last = '';
 
   constructor(
@@ -138,6 +152,29 @@ export class ToolActions {
     this.box.setAttribute('aria-label', t('act.label'));
     this.label.setAttribute('role', 'status');
     this.box.append(this.label);
+    this.variants.setAttribute('role', 'group');
+    this.variants.setAttribute('aria-label', t('act.variants'));
+    for (const edition of SPECIAL_EDITIONS) {
+      const count = el('span', 'variant-count');
+      const btn = el(
+        'button',
+        `hint-btn hint-btn-text variant-btn variant-${edition}`,
+        el('span', 'variant-glyph', EDITION_GLYPH[edition]),
+        el('span', undefined, t(VARIANT_LABEL[edition])),
+        count,
+      );
+      btn.type = 'button';
+      btn.dataset['variant'] = edition;
+      btn.title = t(`${VARIANT_LABEL[edition]}Title` as MessageKey);
+      btn.addEventListener('click', (e) => {
+        tools.setEditionVariant(edition);
+        if (e.detail > 0) btn.blur();
+      });
+      this.variants.append(btn);
+      this.variantButtons.set(edition, { btn, count });
+    }
+    this.variants.hidden = true;
+    this.box.append(this.variants);
     for (const def of ACTIONS) {
       const btn = el('button', 'hint-btn', def.icon ?? t(def.label));
       btn.type = 'button';
@@ -188,6 +225,8 @@ export class ToolActions {
       }
       case 'marker':
         return t('hint.marker');
+      case 'edition':
+        return t('hint.edition');
       default:
         return t(`tool.${tools.tool}`);
     }
@@ -200,9 +239,23 @@ export class ToolActions {
     const active = tools.tool !== 'none' || tools.selection !== null;
     const shown = ACTIONS.map((def) => active && def.shown(tools));
     const pressed = ACTIONS.map((def) => def.pressed?.(tools) ?? false);
-    const key = `${text}|${shown.join()}|${pressed.join()}`;
+    const editing = tools.tool === 'edition';
+    const free = SPECIAL_EDITIONS.map((e) => (editing ? tools.freeEditions(e) : 0));
+    const variant = editing ? `${tools.editionVariant}|${free.join()}` : '';
+    const key = `${text}|${shown.join()}|${pressed.join()}|${variant}`;
     if (key === this.last) return;
     this.last = key;
+    this.variants.hidden = !editing;
+    SPECIAL_EDITIONS.forEach((e, i) => {
+      const v = this.variantButtons.get(e);
+      if (!v) return;
+      const n = free[i] ?? 0;
+      v.btn.hidden = !editing;
+      v.count.textContent = String(n);
+      v.btn.disabled = n === 0;
+      v.btn.setAttribute('aria-pressed', String(editing && tools.editionVariant === e));
+      v.btn.setAttribute('aria-label', t('act.variant', { name: t(VARIANT_LABEL[e]), n }));
+    });
     this.label.textContent = text;
     this.box.hidden = !active;
     ACTIONS.forEach((def, i) => {

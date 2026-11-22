@@ -2,8 +2,10 @@ import { BUILDINGS } from '../../config/buildings';
 import { BUILDING_COLORS, CHALK, COLORS, FONT_NUM } from '../../config/colors';
 import { DX, DY, type Rot, transformLocal } from '../../core/grid';
 import { buildingSize, type OperatorType, portFaces } from '../../sim/entities';
+import type { SpecialEdition } from '../../config/cards';
 import type { Camera } from '../camera';
 import { chalkSquare, shade, tileSeed } from '../chalk';
+import { editionChalk, editionGlint, type ScreenTile } from '../editions';
 import { LOD } from '../lod';
 
 export const OPERATOR_SYMBOL: Record<OperatorType, string> = {
@@ -22,6 +24,8 @@ export interface OperatorDrawOptions {
   tint?: string;
   /** Mirrored building (mirror applied before the rotation). */
   mirror?: boolean;
+  /** Drawn in the chalk of this edition (PLAN-recompenses §3.4). */
+  edition?: SpecialEdition | undefined;
 }
 
 /**
@@ -54,6 +58,8 @@ export function drawOperator(
   }
   ctx.globalAlpha = opts.alpha ?? 1;
   const inset = 0.06 * s;
+  const edition = opts.tint ? undefined : opts.edition;
+  const drawn: ScreenTile[] = [];
 
   for (const t of def.tiles) {
     const p = transformLocal(t.x, t.y, def.w, def.h, rot, mirror);
@@ -67,17 +73,22 @@ export function drawOperator(
       ctx.fill();
       continue;
     }
+    const seed = tileSeed(ox + p.x, oy + p.y);
     // Inputs are coloured in darker than the body and the outputs.
     chalkSquare(
       ctx,
       sp.x + inset,
       sp.y + inset,
       s - 2 * inset,
-      tileSeed(ox + p.x, oy + p.y),
-      { wash: base, hatch: shade(base, isIn ? 0 : 0.25), outline: shade(base, 0.5) },
+      seed,
+      edition
+        ? editionChalk(edition, seed, isIn)
+        : { wash: base, hatch: shade(base, isIn ? 0 : 0.25), outline: shade(base, 0.5) },
       { hatch: Math.max(1, 0.07 * s), outline: Math.max(1.5, 0.08 * s) },
     );
+    if (edition) drawn.push({ x: sp.x + inset, y: sp.y + inset, s: s - 2 * inset });
   }
+  if (edition) editionGlint(ctx, edition, drawn);
 
   if (cam.zoom >= LOD.buildingText && !opts.tint) {
     // Port face notches.

@@ -1,7 +1,8 @@
-import { STORAGE_CAPACITY } from '../../config/balance';
 import { BUILDING_COLORS, CHALK, COLORS, FONT_NUM, HUB_COLORS } from '../../config/colors';
 import { formatCompact } from '../../core/format';
+import { storageCapacity } from '../../sim/belts';
 import type { Building } from '../../sim/entities';
+import { editionChalk, editionGlint } from '../editions';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
 import { chalkSquare, shade, tileSeed } from '../chalk';
@@ -13,16 +14,22 @@ export function drawStorage(ctx: CanvasRenderingContext2D, cam: Camera, b: Build
   const p = cam.worldToScreen(b.x, b.y);
   const inset = 0.1 * s;
   const base = BUILDING_COLORS.storage;
+  const side = 3 * s - 2 * inset;
+  const seed = tileSeed(b.x, b.y);
   chalkSquare(
     ctx,
     p.x + inset,
     p.y + inset,
-    3 * s - 2 * inset,
-    tileSeed(b.x, b.y),
-    { wash: base, hatch: shade(base, -0.25), outline: shade(base, 0.5) },
+    side,
+    seed,
+    b.edition
+      ? editionChalk(b.edition, seed, true)
+      : { wash: base, hatch: shade(base, -0.25), outline: shade(base, 0.5) },
     { hatch: Math.max(1, 0.09 * s), outline: Math.max(1.5, 0.09 * s) },
   );
+  if (b.edition) editionGlint(ctx, b.edition, [{ x: p.x + inset, y: p.y + inset, s: side }], s);
   if (cam.zoom < LOD.buildingText) return;
+  const capacity = storageCapacity(b);
 
   const count = b.storeCount ?? 0;
   const cx = p.x + 1.5 * s;
@@ -46,10 +53,17 @@ export function drawStorage(ctx: CanvasRenderingContext2D, cam: Camera, b: Build
   ctx.fill();
   if (count > 0) {
     ctx.fillStyle = HUB_COLORS.barFill;
-    roundRect(ctx, barX, barY, Math.max(barH, (barW * count) / STORAGE_CAPACITY), barH, barH / 2);
+    roundRect(
+      ctx,
+      barX,
+      barY,
+      Math.max(barH, (barW * Math.min(count, capacity)) / capacity),
+      barH,
+      barH / 2,
+    );
     ctx.fill();
   }
   ctx.fillStyle = HUB_COLORS.textMuted;
   ctx.font = `600 ${0.3 * s}px ${FONT_NUM}`;
-  ctx.fillText(`${formatCompact(count)} / ${formatCompact(STORAGE_CAPACITY)}`, cx, p.y + 2.4 * s);
+  ctx.fillText(`${formatCompact(count)} / ${formatCompact(capacity)}`, cx, p.y + 2.4 * s);
 }
