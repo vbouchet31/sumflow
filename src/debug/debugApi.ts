@@ -6,6 +6,7 @@ import { applyBuildingPlan, planExtractor, planOperator } from '../build/placeme
 import { TICK_RATE, type Track, TRACKS } from '../config/balance';
 import { type Dir, normalizeRot, rotateDir } from '../core/grid';
 import type { Camera } from '../render/camera';
+import type { Effects } from '../render/layers/effects';
 import { dirMask, type FreeBuildingType } from '../sim/entities';
 import type { SimLoop } from '../sim/loop';
 import { applyReward, deliver, setLevel } from '../sim/progression';
@@ -26,6 +27,7 @@ export interface DebugContext {
   tools: ToolController;
   saves: SaveManager;
   perf: PerfMeter;
+  effects: Effects;
 }
 
 export interface DebugSnapshot {
@@ -109,6 +111,8 @@ export interface DebugApi {
   perf: () => PerfStats;
   /** Move the camera (tiles) and optionally set the zoom. */
   lookAt: (x: number, y: number, zoom?: number) => void;
+  /** Chalk effects alive (sponge traces and dust puffs) and their dust grains. */
+  effects: () => { effects: number; grains: number };
 }
 
 declare global {
@@ -123,7 +127,7 @@ export function isDebugEnabled(search: string): boolean {
 
 /** Expose `window.__sumflow` (PLAN §13.4). Grows with each milestone. */
 export function installDebugApi(ctx: DebugContext): void {
-  const { world, camera, loop, tools, saves, perf } = ctx;
+  const { world, camera, loop, tools, saves, perf, effects } = ctx;
   const { history } = tools;
   const rect = (x0: number, y0: number, x1: number, y1: number) =>
     selectionRect({ x: x0, y: y0 }, { x: x1, y: y1 });
@@ -201,6 +205,10 @@ export function installDebugApi(ctx: DebugContext): void {
       runTicks(world, REFERENCE.warmupSeconds * TICK_RATE);
     },
     perf: () => ({ ...perf.stats }),
+    effects: () => {
+      effects.prune(performance.now());
+      return { effects: effects.size, grains: effects.grains };
+    },
     lookAt: (x, y, zoom) => {
       camera.centerOn(x, y);
       if (zoom !== undefined) camera.zoomAt(camera.viewW / 2, camera.viewH / 2, zoom / camera.zoom);

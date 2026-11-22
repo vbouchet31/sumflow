@@ -3,6 +3,7 @@ import { TILE_PX } from '../config/keymap';
 import { t } from '../i18n';
 import { Camera } from '../render/camera';
 import { Renderer } from '../render/renderer';
+import { effectEvents } from '../render/layers/effects';
 import { DEMOS, type DemoId } from '../tutorial/scenes';
 import { DemoScript } from '../tutorial/script';
 import { toolFace } from './buildBar';
@@ -92,7 +93,12 @@ export class TutorialDemo {
   }
 
   private newScript(): DemoScript {
-    const script = new DemoScript(DEMOS[this.id], this.options.touch);
+    // The demo is the real game: building raises the same chalk dust.
+    const script = new DemoScript(
+      DEMOS[this.id],
+      this.options.touch,
+      effectEvents(this.renderer.effects, () => performance.now()),
+    );
     if (this.options.still) script.finish();
     return script;
   }
