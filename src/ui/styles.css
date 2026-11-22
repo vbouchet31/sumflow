@@ -243,6 +243,14 @@ body::after {
   pointer-events: auto;
 }
 
+/* A finger needs a larger button. */
+@media (pointer: coarse) {
+  .debug-toggle {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
 /* Debug: card weights of the next offer and the inventory (PLAN-recompenses §5.4). */
 .debug-weights {
   position: absolute;
