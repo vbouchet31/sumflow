@@ -23,6 +23,7 @@
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Coût d'une carte              | Aucun. On prend 1 carte parmi N. Pas de monnaie.                                                                                                                                        |
 | Ouverture de l'écran de choix | Automatique en fin de niveau. Le jeu continue derrière (pas de pause).                                                                                                                  |
+| Forme d'une carte             | Recto : image de l'objet dans son édition, puis son nom. Un clic retourne la carte (explications). Un bouton « Choisir » sous chaque carte, retournée ou non : un seul clic suffit.     |
 | Fiches tutoriel               | Après le choix, seulement si le joueur obtient quelque chose de nouveau pour la première fois de la partie (une valeur, un bâtiment, une fonction, une édition, un exemplaire limité…). |
 | Dépendances                   | Une carte n'est proposée que si ses prérequis sont remplis : pas de 3 sans le 2, pas de − sans le ×, etc.                                                                               |
 | Valeurs extractibles          | Débloquées une par une, dans l'ordre (2, 3, … 9, 11, …). Le 10 reste interdit sur la carte.                                                                                             |
@@ -151,34 +152,56 @@ Les **pistes d'amélioration** restent liées aux bâtiments débloqués (`isTra
 ### 4.2 L'écran de choix
 
 ```
-┌──────────────────────────────────────────────────────┐
-│                 NIVEAU 8 TERMINÉ                     │
-│             Choisis ta récompense                    │
-│   (Tu gardes ce choix pour toute la partie.)         │  ← 1re fois seulement
-│                                                      │
-│  ┌──────────────┐  ┌──────────────┐                  │
-│  │  NOMBRES     │  │  ATELIER     │                  │
-│  │     ×        │  │   + ✦        │                  │
-│  │ Multiplica-  │  │ Additionneur │                  │
-│  │ teur         │  │ brillant ×1  │                  │
-│  │ Débloqué,    │  │ Vitesse ×1,25│                  │
-│  │ sans limite  │  │              │                  │
-│  │ [Nouveau]    │  │ [Exemplaire] │                  │
-│  │ [Suite       │  │              │                  │
-│  │  classique]  │  │              │                  │
-│  └──────────────┘  └──────────────┘                  │
-│                                                      │
-│       [ Prendre ]        Voir la carte               │
-└──────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────┐
+│                NIVEAU 8 TERMINÉ                   │
+│              Choisis ta récompense                │
+│    (Tu gardes ce choix pour toute la partie.)     │  ← 1re fois seulement
+│                                                   │
+│   ┌─────────────┐   ┌─────────────┐               │
+│   │             │   │      ✦      │               │
+│   │   [image    │   │   [image    │               │
+│   │    du ×]    │   │  du + doré] │               │
+│   │             │   │             │               │
+│   │Multiplicat. │   │ Additionneur│               │
+│   └─────────────┘   └─────────────┘               │
+│     [ Choisir ]       [ Choisir ]                 │
+│                                                   │
+│                  Voir la carte                    │
+└───────────────────────────────────────────────────┘
+
+Carte retournée (après un clic sur la carte) :
+   ┌─────────────┐
+   │ ATELIER     │
+   │ Additionneur│
+   │ légendaire  │
+   │ Exemplaire×1│
+   │ Vitesse ×1,5│
+   │ Fait A + B. │
+   │ [Nouveau]   │
+   └─────────────┘
+     [ Choisir ]
 ```
 
-- **Une carte montre** : son emplacement, une icône (dessinée à la craie, comme les outils), un nom, l'édition, une ligne d'effet et des étiquettes (Nouveau, Unique, Exemplaire × N, Suite classique).
-- **Choisir en deux temps** (proposition, §9) : toucher ou cliquer sélectionne la carte (elle s'agrandit et montre le détail), puis « Prendre » confirme. Le choix est définitif, donc on évite les erreurs de clic.
-- **Clavier** : `1` `2` `3` sélectionnent, `Entrée` prend, `Tab` circule, `Échap` = Voir la carte.
+- **Recto** : l'**image de l'objet dans son édition** et, en dessous, son **nom**. Rien d'autre, pour que la carte se lise d'un coup d'œil.
+  - Bâtiment : la même image que dans la barre de construction (`drawToolIcon`, `toolIcons.ts`), dans la bonne orientation, en craie nacrée ou dorée selon l'édition.
+  - Valeur : le nombre entouré à la craie, dans sa couleur d'item (`ITEM_CHALKS`).
+  - Fonction, passif, méta : une icône à la craie, comme les fiches tutoriel actuelles.
+- **Verso** (clic ou toucher sur la carte, qui se retourne) : l'emplacement, le nom complet avec l'édition, ce que la carte donne (débloqué sans limite, ou exemplaire × N), l'effet de l'édition, une ou deux phrases d'explication et les étiquettes (Nouveau, Unique, Suite classique). Un nouveau clic la remet au recto.
+- **Un bouton « Choisir » sous chaque carte**, retournée ou non. **Un seul clic suffit** pour qui connaît déjà le jeu ; retourner la carte reste facultatif.
+- **Clavier** :
+  - `Tab` passe d'une carte à son bouton, puis à la carte suivante ;
+  - `Entrée` ou `Espace` sur une carte la retourne ; sur un bouton, choisit ;
+  - `Échap` = Voir la carte.
+  - **Pas de raccourci `1` `2` `3` pour choisir** : ces touches choisissent déjà les bâtiments, et l'écran s'ouvre tout seul. Un joueur qui appuie sur `2` pour prendre un outil au moment où l'écran apparaît choisirait une carte par erreur.
+- **Protection contre le clic de trop** : l'écran s'ouvre pendant que le joueur construit. Les boutons « Choisir » restent inactifs environ 400 ms après l'ouverture (ils s'allument en fondu), pour qu'un clic destiné à la carte ne choisisse pas une récompense.
 - **Voir la carte** : ferme l'écran sans choisir. L'offre reste en attente : un badge « Récompense à choisir » apparaît sur le Hub et dans la barre du haut, et le toucher rouvre l'écran. Une offre réduite ne se rouvre pas toute seule ; l'offre suivante, si.
-- **Mise en page** : cartes côte à côte, empilées en portrait étroit. En téléphone paysage (342 px de haut), les cartes sont compactes (icône, nom, une ligne) et le détail n'apparaît qu'à la sélection.
-- **Accessibilité** : `role="dialog"`, focus piégé (`trapTab`, comme les fiches), cartes en boutons avec `aria-describedby`. L'animation d'apparition est coupée par « Réduire les animations ».
-- **Son** : l'arpège de fin de niveau existe déjà ; on ajoute un son doux au choix.
+- **Mise en page** : cartes côte à côte, empilées en portrait étroit, chacune avec son bouton dessous. En téléphone paysage (342 px de haut), l'image est réduite, mais le recto garde l'image et le nom.
+- **Animation** : la carte pivote sur elle-même (environ 300 ms). Avec « Réduire les animations », le recto est remplacé par le verso instantanément.
+- **Accessibilité** :
+  - `role="dialog"`, focus piégé (`trapTab`, comme les fiches) ;
+  - la carte est un bouton avec `aria-pressed` (retournée ou non), et son verso sert de description (`aria-describedby`), donc un lecteur d'écran lit l'explication sans retourner la carte ;
+  - chaque bouton « Choisir » nomme sa carte (« Choisir Additionneur légendaire »).
+- **Son** : l'arpège de fin de niveau existe déjà ; on ajoute un léger bruit de carte au retournement, et un son doux au choix.
 
 ### 4.3 Après le choix : les fiches tutoriel
 
@@ -363,7 +386,10 @@ Chacun couvre un cas d'interface précis. Ceux marqués « réel » sont jouable
   - sauvegarde aller-retour avec les nouveaux champs, v1 refusée.
 - **De bout en bout** :
   - l'écran s'ouvre en fin de niveau 3 et pas aux niveaux 1 et 2 ;
-  - clavier et toucher ;
+  - retourner une carte (clic, toucher, `Entrée`), puis la remettre au recto ;
+  - « Choisir » en un clic, carte retournée ou non ;
+  - boutons inactifs pendant les 400 ms qui suivent l'ouverture ;
+  - les touches `1` à `9` ne choisissent jamais de carte ;
   - « Voir la carte » puis badge, puis réouverture ;
   - une fiche après une nouveauté, aucune sinon ;
   - rattrapage avec 2 niveaux terminés, donc « 1 / 2 » ;
@@ -466,9 +492,8 @@ Pour chaque nouvel objet :
 
 ## 9. Questions ouvertes (à trancher avant ou pendant R3)
 
-1. **Choix en un ou deux temps** : sélectionner puis « Prendre » (proposé), ou un seul clic ?
-2. **Fil rouge** : le premier élément manquant de la suite, avec un poids qui baisse à chaque refus (proposé), ou la récompense prévue pour ce niveau dans le tableau actuel ?
-3. **Niveaux 1 et 2 fixes** : oui (proposé), ou un écran de choix dès le niveau 1 ?
-4. **Exemplaire d'un bâtiment pas encore débloqué** (par exemple 1 × brillant au niveau 4) : autorisé ou non ?
-5. **Coller sans exemplaire disponible** : version de base (proposé) ou pose bloquée ?
-6. **Prérequis du §3.2** : la liste proposée convient-elle (Priorités après le Pont, ^ après le ×, Stockage à partir du niveau 12) ?
+1. **Fil rouge** : le premier élément manquant de la suite, avec un poids qui baisse à chaque refus (proposé), ou la récompense prévue pour ce niveau dans le tableau actuel ?
+2. **Niveaux 1 et 2 fixes** : oui (proposé), ou un écran de choix dès le niveau 1 ?
+3. **Exemplaire d'un bâtiment pas encore débloqué** (par exemple 1 × brillant au niveau 4) : autorisé ou non ?
+4. **Coller sans exemplaire disponible** : version de base (proposé) ou pose bloquée ?
+5. **Prérequis du §3.2** : la liste proposée convient-elle (Priorités après le Pont, ^ après le ×, Stockage à partir du niveau 12) ?
