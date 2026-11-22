@@ -7,7 +7,8 @@ import { extractorRate } from '../sim/extractor';
 import { editionEffect } from '../sim/inventory';
 import { connectedOutputs } from '../sim/outputs';
 import { isOperator } from '../sim/entities';
-import { cycleDuration } from '../sim/operators';
+import { cycleDuration, passiveSpeed } from '../sim/operators';
+import { isSpecial } from '../config/buildings';
 import { type MessageKey } from '../i18n';
 import type { World } from '../sim/world';
 import { isExtractable } from '../world/deposits';
@@ -100,8 +101,12 @@ function describeObject(world: World, x: number, y: number): string[] {
     lines.push(
       cycle < 0 ? t('tip.idle') : t('tip.cycle', { pct: Math.round(100 * (1 - cycle / dur)) }),
       t('tip.speed', { rate: (1 / dur).toLocaleString(getLocale(), { maximumFractionDigits: 3 }) }),
-      ...editionLines(world, b),
     );
+    // The passive cards are in that speed: say by how much (PLAN-recompenses §5.3).
+    const passive = passiveSpeed(world.state);
+    if (passive !== 1) lines.push(t('tip.passive', { x: factor(passive) }));
+    if (isSpecial(b.type)) lines.push(t('tip.special'));
+    lines.push(...editionLines(world, b));
     return lines;
   }
   const bridge = world.bridgeAt(x, y);

@@ -51,7 +51,12 @@ export const BUILDING_COLORS = {
   exponent: '#9a832a',
   storage: '#8a8f86',
   bridge: '#4f6f8f',
+  /** Special building, placeholder (PLAN-recompenses §5.3): an old stone tablet. */
+  ancientAdder: '#8a7652',
 } as const;
+
+/** Ornament of the special buildings: a second, inner frame and studs in its corners. */
+export const SPECIAL_ORNAMENT = 'rgba(242, 226, 190, 0.75)';
 
 /**
  * Item chalks (PLAN §5): one stick per value 1..9, index 0 is value 1. An extractor is

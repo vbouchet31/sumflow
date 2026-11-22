@@ -166,7 +166,7 @@ describe('card pictures', () => {
     });
     expect(cardArt('special:ancientAdder', 'legendaire')).toEqual({
       kind: 'building',
-      tool: 'adder',
+      tool: 'ancientAdder',
       edition: 'legendaire',
     });
     expect(cardArt('value', 'base', 11)).toEqual({ kind: 'value', value: 11 });

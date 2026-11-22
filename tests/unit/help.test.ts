@@ -77,7 +77,7 @@ describe('reward tips (PLAN-recompenses §4.3)', () => {
     expect(tip('special').when(s)).toBe(true);
     expect(tipContent(tip('special'), s).art).toEqual({
       kind: 'building',
-      tool: 'adder',
+      tool: 'ancientAdder',
       edition: 'brillante',
     });
     // The special tip comes before the tip of its edition.

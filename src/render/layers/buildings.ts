@@ -5,8 +5,7 @@ import type { Camera } from '../camera';
 import { itemColor } from '../itemColor';
 import { LOD } from '../lod';
 import { chalkSquare, shade, tileSeed } from '../chalk';
-import { editionGlint } from '../editions';
-import { EDITION_COLORS } from '../../config/colors';
+import { editionFrame } from '../editions';
 import { drawHub } from './hub';
 import { drawOperator } from './operators';
 import { drawStorage } from './storage';
@@ -42,15 +41,15 @@ function drawExtractor(ctx: CanvasRenderingContext2D, cam: Camera, b: Building, 
   const value = b.extractValue;
   ctx.globalAlpha = alpha;
   const side = 3 * s - 2 * inset;
-  // An edition keeps the colour of the items (what it produces) and draws its outline and
-  // glint in the edition chalk.
-  const chalk = extractorChalk(value);
-  if (b.edition) chalk.outline = EDITION_COLORS[b.edition].outline;
-  chalkSquare(ctx, p.x + inset, p.y + inset, side, tileSeed(b.x, b.y), chalk, {
+  // An edition keeps the colour of the items (what it produces) and adds its frame, glint
+  // and mark in the edition chalk, as on every building.
+  const seed = tileSeed(b.x, b.y);
+  chalkSquare(ctx, p.x + inset, p.y + inset, side, seed, extractorChalk(value), {
     hatch: Math.max(1, 0.09 * s),
-    outline: Math.max(1.5, (b.edition ? 0.14 : 0.09) * s),
+    outline: Math.max(1.5, 0.09 * s),
   });
-  if (b.edition) editionGlint(ctx, b.edition, [{ x: p.x + inset, y: p.y + inset, s: side }], s);
+  if (b.edition)
+    editionFrame(ctx, b.edition, [{ x: p.x + inset, y: p.y + inset, s: side, seed }], s);
   if (cam.zoom >= LOD.buildingText) {
     // Output notches: small light bars on each outer face.
     ctx.fillStyle = CHALK.markFaint;

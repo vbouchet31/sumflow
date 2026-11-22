@@ -4,12 +4,12 @@
  * its item chalk, an edition card is a stick of pearly or golden chalk, and the other cards
  * get a chalk icon of their own.
  */
-import type { Edition, SpecialType } from '../config/cards';
-import { BUILDINGS } from '../config/buildings';
+import type { Edition } from '../config/cards';
+import { BUILDINGS, isSpecial } from '../config/buildings';
 import { CHALK, COLORS, EDITION_COLORS, FONT_NUM, HUB_COLORS } from '../config/colors';
 import { formatCompact } from '../core/format';
 import { chalkLine, chalkStroke, sketchCircle, sketchRect } from './chalk';
-import { drawEditionSparkle, drawEditionStar, editionGradient, markEdition } from './editions';
+import { drawEditionSparkle, drawEditionStar, editionGradient } from './editions';
 import { itemColor } from './itemColor';
 import { drawToolIcon, type IconTool, isIconTool } from './toolIcons';
 
@@ -22,9 +22,6 @@ export type CardArt =
   | { kind: 'passive' }
   | { kind: 'eventail' }
   | { kind: 'unknown' };
-
-/** Picture of each special building: the ordinary building it behaves like. */
-const SPECIAL_TOOL: Readonly<Record<SpecialType, IconTool>> = { ancientAdder: 'adder' };
 
 /** Feature cards drawn as the tool they bring. */
 const FEATURE_TOOL: Readonly<Record<string, IconTool>> = { priorities: 'priority' };
@@ -40,10 +37,9 @@ export function cardArt(icon: string, edition: Edition, value?: number): CardArt
       return { kind: 'value', value: value ?? 0 };
     case 'building':
       return isIconTool(name) ? { kind: 'building', tool: name, edition } : { kind: 'unknown' };
-    case 'special': {
-      const tool = SPECIAL_TOOL[name as SpecialType] as IconTool | undefined;
-      return tool ? { kind: 'building', tool, edition } : { kind: 'unknown' };
-    }
+    case 'special':
+      // Its own picture: the building it imitates, with the ornament of a special one.
+      return isSpecial(name) ? { kind: 'building', tool: name, edition } : { kind: 'unknown' };
     case 'edition':
       return name === 'brillante' || name === 'legendaire'
         ? { kind: 'edition', edition: name }
@@ -112,8 +108,8 @@ export function drawCardArt(
 const BUILDING_FILL = 0.92;
 
 /**
- * The build-bar picture, as large as its footprint allows in `w` × `h`, recoloured by its
- * edition. The bar draws a building with its longest side across a square: that square is
+ * The build-bar picture, as large as its footprint allows in `w` × `h`, in its edition (its
+ * own colours, the edition frame, glint and mark). The bar draws a building with its longest side across a square: that square is
  * scaled so the drawn tiles reach the rectangle's width or height, whichever comes first.
  */
 function drawBuilding(
@@ -130,9 +126,8 @@ function drawBuilding(
   const square = BUILDING_FILL * Math.min((w * long) / bw, (h * long) / bh);
   ctx.save();
   ctx.translate((w - square) / 2, (h - square) / 2);
-  drawToolIcon(ctx, tool, 0, square);
+  drawToolIcon(ctx, tool, 0, square, 0, edition === 'base' ? undefined : edition);
   ctx.restore();
-  markEdition(ctx, edition, 0, 0, w, h);
 }
 
 /** The value written large in its item chalk, circled by hand. */

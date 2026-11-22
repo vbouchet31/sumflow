@@ -1,4 +1,5 @@
-import type { SpecialEdition } from '../config/cards';
+import { isSpecial, type SpecialType } from '../config/buildings';
+import type { Edition, SpecialEdition } from '../config/cards';
 import { type Dir, key, normalizeRot, type Rot, rotateDir } from '../core/grid';
 import type { Clip } from '../sim/clip';
 import {
@@ -14,7 +15,11 @@ import {
   editionCheck,
   freeEditionCards,
   hasEditionCards,
+  nativeEdition,
+  ownsSpecial,
   removeEdition,
+  type SpecialStock,
+  specialStock,
 } from '../sim/inventory';
 import { togglePriorityAt } from '../sim/priority';
 import { isBuildingUnlocked, isFeatureUnlocked } from '../sim/state';
@@ -166,6 +171,8 @@ export class ToolController {
   beltMode: 'l' | 'free' = 'l';
   /** Edition tool: the variant applied by a click. */
   private variant: SpecialEdition = 'brillante';
+  /** Special building tools: the native edition placed by each (PLAN-recompenses §4.5). */
+  private readonly specialVariants: Partial<Record<SpecialType, Edition>> = {};
   private hover: { x: number; y: number } | null = null;
   private selected: Selection | null = null;
   /** Zone selected with the `select` tool (kept until a new drag, a click or another tool). */
@@ -219,6 +226,7 @@ export class ToolController {
     if (!this.isAvailable(tool)) return;
     this.tool = this.tool === tool ? 'none' : tool;
     if (this.tool === 'edition') this.variant = this.preferredVariant();
+    if (isSpecial(this.tool)) this.specialVariants[this.tool] = this.preferredSpecial(this.tool);
     this.drag = null;
     this.moving = null;
     this.selected = null;
@@ -247,10 +255,59 @@ export class ToolController {
   /** Locked buildings and features cannot be selected; paste needs a clipboard entry. */
   isAvailable(tool: ToolId): boolean {
     const { state } = this.world;
+    // A special building's tool shows once a copy is owned (all placed: greyed, see the bar).
+    if (isSpecial(tool)) return ownsSpecial(state, tool);
     if (isFreeBuilding(tool) || tool === 'bridge') return isBuildingUnlocked(state, tool);
     if (tool === 'priority') return isFeatureUnlocked(state, 'priorities');
     if (tool === 'paste') return state.clipboard.length > 0;
     if (tool === 'edition') return hasEditionCards(state);
+    return true;
+  }
+
+  // ---- special buildings --------------------------------------------------
+
+  /** Copies of a special type by native edition: obtained, placed, free (the bar counters). */
+  specialStock(type: SpecialType): SpecialStock[] {
+    return specialStock(this.world.state, type);
+  }
+
+  /** Native edition placed by the tool of `type`. */
+  specialVariant(type: SpecialType): Edition {
+    return this.specialVariants[type] ?? this.preferredSpecial(type);
+  }
+
+  setSpecialVariant(type: SpecialType, edition: Edition): void {
+    if (this.specialVariants[type] === edition) return;
+    this.specialVariants[type] = edition;
+    this.notify();
+  }
+
+  /** The current variant while it has a free copy, else the first edition that has one. */
+  private preferredSpecial(type: SpecialType): Edition {
+    const stock = this.specialStock(type);
+    const current = this.specialVariants[type];
+    const mine = stock.find((s) => s.edition === current);
+    if (mine && mine.free > 0) return mine.edition;
+    return (stock.find((s) => s.free > 0) ?? mine ?? stock[0])?.edition ?? 'base';
+  }
+
+  /**
+   * The key of a special building tool: select it; pressed again, the next native edition
+   * owned (Base, Brillante, Légendaire), or put the tool down when only one is owned.
+   */
+  specialKey(type: SpecialType): boolean {
+    if (!this.isAvailable(type)) return false;
+    if (this.tool !== type) {
+      this.setTool(type);
+      return true;
+    }
+    const editions = this.specialStock(type).map((s) => s.edition);
+    if (editions.length <= 1) {
+      this.setTool('none');
+      return true;
+    }
+    const i = editions.indexOf(this.specialVariant(type));
+    this.setSpecialVariant(type, editions[(i + 1) % editions.length] ?? 'base');
     return true;
   }
 
@@ -874,6 +931,8 @@ export class ToolController {
     if (b && b.type !== 'hub') {
       if (!this.isAvailable(b.type)) return false;
       this.rot = b.rot;
+      // A special building is taken with its native edition (an applied one stays behind).
+      if (isSpecial(b.type)) this.specialVariants[b.type] = nativeEdition(b);
       this.forceTool(b.type);
       return true;
     }
@@ -937,7 +996,15 @@ export class ToolController {
     if (!this.hover) return [];
     const from = drag ?? this.hover;
     const to = drag?.moved ? this.hover : from;
-    return planOperatorRow(this.world, type, from, to, this.rot);
+    const native = isSpecial(type) ? this.specialVariant(type) : 'base';
+    return planOperatorRow(
+      this.world,
+      type,
+      from,
+      to,
+      this.rot,
+      native === 'base' ? undefined : native,
+    );
   }
 
   private pastePlans(drag: Drag | null): PastePlan[] {
@@ -1065,14 +1132,17 @@ function pasteGhost(plans: PastePlan[]): Ghost {
   const ghost: Ghost = { belts: [], buildings: [], demolish: null, area: null };
   for (const p of plans) {
     for (const b of p.buildings) {
-      ghost.buildings.push({
+      const plan: BuildingPlan = {
         type: b.type,
         x: b.x,
         y: b.y,
         rot: b.rot,
         mirror: b.mirror,
         ok: b.ok,
-      });
+      };
+      // A special building is pasted with its native edition.
+      if (b.edition) plan.edition = b.edition;
+      ghost.buildings.push(plan);
     }
     for (const b of p.belts) {
       ghost.belts.push({

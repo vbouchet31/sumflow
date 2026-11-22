@@ -4,7 +4,9 @@
  */
 import type { MessageKey } from '../i18n';
 import type { Feature, PlaceableType } from './balance';
-import type { BuildingType } from './buildings';
+import type { BuildingType, SpecialType } from './buildings';
+
+export type { SpecialType } from './buildings';
 
 /** Card slot of the catalogue. */
 export type Slot = 'nombres' | 'atelier';
@@ -22,8 +24,6 @@ export interface CurvePoint {
   w: number;
 }
 
-/** Limited buildings owned by count (PLAN-recompenses §2). Placeholder only until R6. */
-export type SpecialType = 'ancientAdder';
 export type PassiveId = 'operatorsBoost';
 export type MetaId = 'eventail';
 
@@ -120,7 +120,7 @@ const operatorEdition = { brillante: { speed: 1.25 }, legendaire: { speed: 1.5 }
 
 /** Provisional edition effects by building type (§3.4). Absent = visual only, to be defined. */
 export const EDITION_EFFECTS: Partial<
-  Record<BuildingType | SpecialType, Readonly<Record<SpecialEdition, EditionEffect>>>
+  Record<BuildingType, Readonly<Record<SpecialEdition, EditionEffect>>>
 > = {
   adder: operatorEdition,
   multiplier: operatorEdition,

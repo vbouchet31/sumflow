@@ -1,4 +1,4 @@
-import { BUILDINGS, type BuildingType } from '../config/buildings';
+import { BUILDINGS, type BuildingType, isSpecial } from '../config/buildings';
 import {
   EDITION_RULES,
   type EditionRules,
@@ -18,13 +18,20 @@ import {
   buildingSize,
   footprintTiles,
   isOperator,
+  baseOperator,
   localPortFaces,
   type PortFace,
   portFaces,
   portKey,
 } from './entities';
 import { type BuildingSnap, type Change, sameSnap, type TileSnap } from './journal';
-import { appliedEdition, freeEditionCards } from './inventory';
+import {
+  appliedEdition,
+  freeEditionCards,
+  freeSpecials,
+  snapNative,
+  specialKey,
+} from './inventory';
 import { computeNetwork, type BeltNetwork } from './network';
 import type { OutputGroup } from './outputs';
 import type { Emit, ProgressionEvents } from './progression';
@@ -314,7 +321,7 @@ export class World {
       if (cur) {
         cur.priority = target.priority;
         if (target.extractValue !== null) cur.extractValue = target.extractValue;
-      } else {
+      } else if (this.canRestore(target)) {
         this.insertBuilding(this.makeBuilding(id, target), target.priority);
       }
     }
@@ -346,6 +353,18 @@ export class World {
       this.setMarker(x, y, c[side]);
     }
     this.invalidate();
+  }
+
+  /**
+   * A building undo or redo puts back: always, but a special building only while a copy of
+   * it is free (PLAN-recompenses §3.5, edge cases). Otherwise it stays away, as a building
+   * that cannot be placed; the rest of the change still applies.
+   */
+  private canRestore(s: BuildingSnap): boolean {
+    if (!isSpecial(s.type)) return true;
+    return (
+      freeSpecials(this.state, specialKey(s.type, snapNative(s.edition, s.editionApplied))) > 0
+    );
   }
 
   /**
@@ -524,14 +543,15 @@ export class World {
 
   /**
    * Add a building. Belts under its footprint are removed (replaced). The caller is
-   * responsible for validity (free footprint, deposit for extractors).
+   * responsible for validity (free footprint, deposit for extractors, a free copy of a
+   * special building: see `canPlaceType`).
    */
   addBuilding(
     type: BuildingType,
     x: number,
     y: number,
     rot: Rot,
-    extra: { extractValue?: number; mirror?: boolean } = {},
+    extra: { extractValue?: number; mirror?: boolean; native?: SpecialEdition } = {},
   ): Building {
     const b = this.makeBuilding(this.state.nextBuildingId, {
       type,
@@ -541,7 +561,8 @@ export class World {
       mirror: extra.mirror === true,
       priority: null,
       extractValue: extra.extractValue ?? null,
-      edition: null,
+      // The native edition of a special building, which never leaves it.
+      edition: extra.native ?? null,
       editionApplied: false,
     });
     return this.insertBuilding(b, null);
@@ -574,7 +595,7 @@ export class World {
       b.inA = [];
       b.inB = [];
       b.cycle = -1;
-      if (s.type === 'divider') {
+      if (baseOperator(s.type) === 'divider') {
         b.outQ = [];
         b.outR = [];
       } else {

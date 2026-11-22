@@ -2,14 +2,15 @@ import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT, type Track } from '../confi
 import { PASSIVE_EFFECTS, type SpecialEdition } from '../config/cards';
 import { add, divmod, mul, pow, sub } from '../core/intmath';
 import { EPS } from './belts';
-import { type Building, isOperator, type OperatorType } from './entities';
+import { baseOperator, type Building, isOperator, type OperatorType } from './entities';
+import type { BaseOperatorType } from '../config/buildings';
 import { editionEffect } from './inventory';
 import { outputGroup, pushOut } from './outputs';
 import type { GameState } from './state';
 import type { World } from './world';
 
-/** Upgrade track driving each operator's speed (PLAN §7.3). */
-export const OPERATOR_TRACK: Record<OperatorType, Track> = {
+/** Upgrade track driving each operator's speed (PLAN §7.3). Specials use their model's. */
+export const OPERATOR_TRACK: Record<BaseOperatorType, Track> = {
   adder: 'adder',
   multiplier: 'multiplier',
   subtractor: 'subdiv',
@@ -23,7 +24,7 @@ export function compute(
   a: number,
   b: number,
 ): { o?: number; q?: number; r?: number } {
-  switch (type) {
+  switch (baseOperator(type)) {
     case 'adder':
       return { o: add(a, b) };
     case 'multiplier':
@@ -47,7 +48,7 @@ export function cycleDuration(
   world: World,
   b: { type: OperatorType; edition?: SpecialEdition | undefined },
 ): number {
-  const track = OPERATOR_TRACK[b.type];
+  const track = OPERATOR_TRACK[baseOperator(b.type)];
   const speed = operatorSpeed(track, world.state.upgrades[track]) * passiveSpeed(world.state);
   return 1 / (speed * (editionEffect(b).speed ?? 1));
 }
@@ -65,7 +66,9 @@ function hasRoom(buf: number[] | undefined): boolean {
 
 function canStart(b: Building): boolean {
   if (!b.inA?.length || !b.inB?.length) return false;
-  if (b.type === 'divider') return hasRoom(b.outQ) && hasRoom(b.outR);
+  if (isOperator(b.type) && baseOperator(b.type) === 'divider') {
+    return hasRoom(b.outQ) && hasRoom(b.outR);
+  }
   return hasRoom(b.out);
 }
 

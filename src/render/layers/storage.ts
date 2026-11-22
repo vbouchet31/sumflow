@@ -2,7 +2,7 @@ import { BUILDING_COLORS, CHALK, COLORS, FONT_NUM, HUB_COLORS } from '../../conf
 import { formatCompact } from '../../core/format';
 import { storageCapacity } from '../../sim/belts';
 import type { Building } from '../../sim/entities';
-import { editionChalk, editionGlint } from '../editions';
+import { editionFrame } from '../editions';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
 import { chalkSquare, shade, tileSeed } from '../chalk';
@@ -22,12 +22,12 @@ export function drawStorage(ctx: CanvasRenderingContext2D, cam: Camera, b: Build
     p.y + inset,
     side,
     seed,
-    b.edition
-      ? editionChalk(b.edition, seed, true)
-      : { wash: base, hatch: shade(base, -0.25), outline: shade(base, 0.5) },
+    { wash: base, hatch: shade(base, -0.25), outline: shade(base, 0.5) },
     { hatch: Math.max(1, 0.09 * s), outline: Math.max(1.5, 0.09 * s) },
   );
-  if (b.edition) editionGlint(ctx, b.edition, [{ x: p.x + inset, y: p.y + inset, s: side }], s);
+  // An edition keeps the storage grey and adds its frame, glint and mark.
+  if (b.edition)
+    editionFrame(ctx, b.edition, [{ x: p.x + inset, y: p.y + inset, s: side, seed }], s);
   if (cam.zoom < LOD.buildingText) return;
   const capacity = storageCapacity(b);
 

@@ -1,6 +1,6 @@
 import type { Feature, PlaceableType, Track } from '../config/balance';
 import { TRACKS } from '../config/balance';
-import type { BuildingType } from '../config/buildings';
+import { type BuildingType, isSpecial, SPECIAL_TYPES } from '../config/buildings';
 import {
   CARDS,
   type Edition,
@@ -10,7 +10,7 @@ import {
   SPECIAL_EDITIONS,
   type SpecialEdition,
 } from '../config/cards';
-import { editionCapable } from '../sim/inventory';
+import { editionCapable, snapNative, specialKey } from '../sim/inventory';
 import { COORD_MAX, COORD_MIN, type Dir, type Rot } from '../core/grid';
 import type { Clip } from '../sim/clip';
 
@@ -217,6 +217,7 @@ const BUILDING_TYPES: readonly BuildingType[] = [
   'divider',
   'exponent',
   'storage',
+  ...SPECIAL_TYPES,
 ];
 
 const CARD_IDS: readonly string[] = CARDS.map((c) => c.id);
@@ -326,10 +327,14 @@ function building(v: unknown, path: string): SavedBuilding {
   if (o['storeCount'] !== undefined) b.storeCount = int(o['storeCount'], `${path}.storeCount`, 0);
   if (o['edition'] !== undefined) {
     b.edition = oneOf(o['edition'], SPECIAL_EDITIONS, `${path}.edition`);
-    // Only edition cards exist on the map for now (no special building with a native
-    // edition before R6), and only on buildings that take one.
-    if (o['editionApplied'] !== true || !editionCapable(b.type)) fail(`${path}.edition`);
-    b.editionApplied = true;
+    if (o['editionApplied'] === true) {
+      // An edition card, on a building that takes one.
+      if (!editionCapable(b.type)) fail(`${path}.edition`);
+      b.editionApplied = true;
+    } else if (o['editionApplied'] !== undefined || !isSpecial(b.type)) {
+      // A native edition: only special buildings have one.
+      fail(`${path}.edition`);
+    }
   } else if (o['editionApplied'] !== undefined) {
     fail(`${path}.editionApplied`);
   }
@@ -382,9 +387,20 @@ function clip(v: unknown, path: string): Clip {
               face: dir(pr['face'], `${p}.priority.face`),
             }
           : null,
+        // The native edition of a special building (absent = base).
+        ...(b['edition'] === undefined
+          ? {}
+          : { edition: clipEdition(b['edition'], b['type'], `${p}.edition`) }),
       };
     }),
   };
+}
+
+/** Native edition of a special building in a clip: refused on any other building. */
+function clipEdition(v: unknown, type: unknown, path: string): SpecialEdition {
+  const e = oneOf(v, SPECIAL_EDITIONS, path);
+  if (typeof type !== 'string' || !isSpecial(type)) fail(path);
+  return e;
 }
 
 function savedOffer(v: unknown, path: string): { level: number; cards: SavedOfferCard[] } {
@@ -516,5 +532,13 @@ export function validateSave(raw: unknown): SaveData {
     const applied = data.buildings.filter((b) => b.edition === e && b.editionApplied).length;
     if (applied + data.editionsLost[e] > data.editionCards[e]) fail(`$.editionCards.${e}`);
   }
+  // Special buildings: never more placed than obtained, edition by edition.
+  const placed = new Map<string, number>();
+  for (const b of data.buildings) {
+    if (!isSpecial(b.type)) continue;
+    const k = specialKey(b.type, snapNative(b.edition, b.editionApplied === true));
+    placed.set(k, (placed.get(k) ?? 0) + 1);
+  }
+  for (const [k, n] of placed) if (n > (data.specials[k] ?? 0)) fail(`$.specials.${k}`);
   return data;
 }

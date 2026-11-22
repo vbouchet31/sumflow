@@ -143,7 +143,7 @@ export function sketchRect(
   w: number,
   h: number,
   seed: number,
-  color: string,
+  color: string | CanvasGradient,
   lw: number,
 ): void {
   const r = rng(seed);

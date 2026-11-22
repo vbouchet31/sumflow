@@ -1,8 +1,35 @@
 import type { Dir } from '../core/grid';
 
+/** Operators placed without limit once unlocked. */
+export type BaseOperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent';
+
+/**
+ * Special buildings (PLAN-recompenses §2, §3.5): owned in limited copies, each with a native
+ * edition. Phase 1 has a single placeholder, to be removed or replaced in phase 2: every
+ * code path reads `SPECIAL_BUILDINGS` and works for any special type.
+ */
+export type SpecialType = 'ancientAdder';
+
 /** Building kinds that occupy tiles (belts and bridges are handled separately). */
-export type BuildingType =
-  'hub' | 'extractor' | 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent' | 'storage';
+export type BuildingType = 'hub' | 'extractor' | BaseOperatorType | 'storage' | SpecialType;
+
+export interface SpecialDef {
+  /** The ordinary operator it behaves like: same computation and upgrade track. */
+  like: BaseOperatorType;
+  /** Placeholder object of phase 1 (PLAN-recompenses §5.3). */
+  placeholder?: boolean;
+}
+
+/** Special buildings, in build bar order. */
+export const SPECIAL_BUILDINGS: Readonly<Record<SpecialType, SpecialDef>> = {
+  ancientAdder: { like: 'adder', placeholder: true },
+};
+
+export const SPECIAL_TYPES = Object.keys(SPECIAL_BUILDINGS) as SpecialType[];
+
+export function isSpecial(type: string): type is SpecialType {
+  return Object.hasOwn(SPECIAL_BUILDINGS, type);
+}
 
 /** Role of a footprint tile (PLAN §6.1). `any` ports follow the building's `anyRole`. */
 export type PortRole = 'A' | 'B' | 'O' | 'Q' | 'R' | 'any' | 'body';
@@ -39,8 +66,8 @@ const E = 1;
 const S = 2;
 const W = 3;
 
-/** Footprints in rotation 0 (PLAN §6.3). */
-export const BUILDINGS: Record<BuildingType, BuildingDef> = {
+/** Footprints in rotation 0 (PLAN §6.3). Special buildings take the footprint they imitate. */
+const ORDINARY: Record<Exclude<BuildingType, SpecialType>, BuildingDef> = {
   hub: { w: 6, h: 6, tiles: block(6), anyRole: 'input', rotatable: false },
   extractor: { w: 3, h: 3, tiles: block(3), anyRole: 'output', rotatable: false },
   storage: { w: 3, h: 3, tiles: block(3), anyRole: 'dynamic', rotatable: false },
@@ -96,4 +123,11 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
       { x: 1, y: 1, role: 'O', faces: [E, S] },
     ],
   },
+};
+
+export const BUILDINGS: Readonly<Record<BuildingType, BuildingDef>> = {
+  ...ORDINARY,
+  ...(Object.fromEntries(
+    SPECIAL_TYPES.map((t) => [t, ORDINARY[SPECIAL_BUILDINGS[t].like]]),
+  ) as Record<SpecialType, BuildingDef>),
 };

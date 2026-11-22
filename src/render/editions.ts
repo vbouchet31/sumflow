@@ -1,40 +1,69 @@
 /**
- * Edition chalks (PLAN-recompenses §3.4): a brillante object is recoloured in pearly chalk
- * with a glint, a légendaire one in golden chalk with a small star. Base is left as drawn.
- * One helper for every place that shows an edition: the choice screen, the build bar, and
- * the buildings on the map and their ghosts (`editionChalk`, `editionGlint`).
+ * Edition chalks (PLAN-recompenses §3.4): a building in an edition keeps its own colours
+ * (they tell operators apart) and gets a frame of pearly or golden chalk, a glint and, for
+ * a brillante, a sparkle, for a légendaire, a small star. Base is left as drawn. The same
+ * helper draws the buildings on the map, their ghosts, the build bar pictures and the
+ * pictures of the cards (`editionFrame`).
  */
 import type { Edition } from '../config/cards';
 import { EDITION_COLORS } from '../config/colors';
-import { shade } from './chalk';
+import { sketchRect } from './chalk';
 
 type Tinted = Exclude<Edition, 'base'>;
-
-/**
- * Chalk of one tile of a building in an edition, on the map: hatching in one of the
- * edition's gradient colours (picked from the tile seed, so a pearly building shimmers and a
- * golden one has several golds), a light outline. `darker` for input tiles, as for base.
- */
-export function editionChalk(
-  edition: Tinted,
-  seed: number,
-  darker = false,
-): { wash: string; hatch: string; outline: string } {
-  const c = EDITION_COLORS[edition];
-  const hatch = c.stops[(seed >>> 4) % c.stops.length] ?? c.stops[0];
-  return {
-    wash: c.stops[1],
-    hatch: darker ? shade(hatch, -0.22) : hatch,
-    outline: c.outline,
-  };
-}
 
 /** A tile of a building on screen: its top-left corner and side, in pixels. */
 export interface ScreenTile {
   x: number;
   y: number;
   s: number;
+  /** Seed of the hand-drawn wobble (the tile seed, as for its base outline). */
+  seed?: number;
 }
+
+/**
+ * The edition of a building drawn on the map, over its own chalk tiles: each tile is
+ * outlined again, thicker, with the edition chalk (a gradient across the building: the
+ * pearly chalk shimmers, the golden one has several golds), over a faint halo that keeps the
+ * frame readable when zoomed out; then the glint and the mark (`editionGlint`).
+ */
+export function editionFrame(
+  ctx: CanvasRenderingContext2D,
+  edition: Tinted,
+  tiles: readonly ScreenTile[],
+  /** Size of one map tile in pixels (line widths and the mark follow it). */
+  unit = tiles[0]?.s ?? 0,
+): void {
+  if (tiles.length === 0) return;
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const t of tiles) {
+    x0 = Math.min(x0, t.x);
+    y0 = Math.min(y0, t.y);
+    x1 = Math.max(x1, t.x + t.s);
+    y1 = Math.max(y1, t.y + t.s);
+  }
+  const lw = Math.max(2, unit * FRAME_WIDTH);
+  const alpha = ctx.globalAlpha;
+  // Halo: the edition colour, wide and faint, so the frame still reads at a few pixels.
+  ctx.save();
+  ctx.globalAlpha = alpha * 0.3;
+  ctx.strokeStyle = EDITION_COLORS[edition].stops[1];
+  ctx.lineWidth = lw * 2.2;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  for (const t of tiles) ctx.rect(t.x, t.y, t.s, t.s);
+  ctx.stroke();
+  ctx.restore();
+  const gradient = editionGradient(ctx, edition, x0, y0, x1 - x0, y1 - y0);
+  for (const t of tiles) sketchRect(ctx, t.x, t.y, t.s, t.s, t.seed ?? 0, gradient, lw);
+  ctx.globalAlpha = alpha;
+  editionGlint(ctx, edition, tiles, unit);
+}
+
+/** Width of the edition frame, in tiles (a base outline is 0.08). */
+const FRAME_WIDTH = 0.13;
 
 /**
  * The glint of an edition across a building drawn on the map: a light diagonal band over
@@ -97,38 +126,6 @@ export function editionGradient(
   return g;
 }
 
-/**
- * Recolour what is already drawn in (x, y, w, h) with the edition chalk: a wash of its
- * gradient and a diagonal glint, both painted `source-atop`, so only existing strokes
- * change. Draw the object alone first (its own canvas, or a clip around it): anything else
- * in the rectangle would be tinted too. Base does nothing.
- */
-export function tintEdition(
-  ctx: CanvasRenderingContext2D,
-  edition: Edition,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  strength = 0.6,
-): void {
-  if (edition === 'base') return;
-  ctx.save();
-  ctx.globalCompositeOperation = 'source-atop';
-  ctx.globalAlpha = strength;
-  ctx.fillStyle = editionGradient(ctx, edition, x, y, w, h);
-  ctx.fillRect(x, y, w, h);
-  // The glint: a light band across the object, a third of the way along.
-  const glint = ctx.createLinearGradient(x, y, x + w, y + h);
-  glint.addColorStop(0.22, 'rgba(255, 255, 255, 0)');
-  glint.addColorStop(0.32, EDITION_COLORS[edition].glint);
-  glint.addColorStop(0.42, 'rgba(255, 255, 255, 0)');
-  ctx.globalAlpha = edition === 'brillante' ? 0.75 : 0.55;
-  ctx.fillStyle = glint;
-  ctx.fillRect(x, y, w, h);
-  ctx.restore();
-}
-
 /** A small five-pointed star, filled with light chalk and outlined, centred on (cx, cy). */
 export function drawEditionStar(
   ctx: CanvasRenderingContext2D,
@@ -173,23 +170,4 @@ export function drawEditionSparkle(
   ctx.fillStyle = EDITION_COLORS.brillante.glint;
   ctx.fill();
   ctx.restore();
-}
-
-/**
- * The whole edition look of an object drawn alone in (x, y, w, h): its tint, then the
- * sparkle (brillante) or the star (légendaire) in the top-right corner.
- */
-export function markEdition(
-  ctx: CanvasRenderingContext2D,
-  edition: Edition,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-): void {
-  if (edition === 'base') return;
-  tintEdition(ctx, edition, x, y, w, h);
-  const r = Math.max(4, Math.min(w, h) * 0.13);
-  if (edition === 'legendaire') drawEditionStar(ctx, x + w - r * 1.1, y + r * 1.1, r);
-  else drawEditionSparkle(ctx, x + w - r * 1.1, y + r * 1.1, r);
 }
