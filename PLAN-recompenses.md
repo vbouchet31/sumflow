@@ -1,6 +1,6 @@
 # PLAN-recompenses.md : choisir sa récompense au Hub
 
-> **État : à valider.** Branche `claude/hub-objectives-reward-choices-kdavx9`. Ce document décrit le travail ; il ne modifie aucun code. Les choix faits en cours de route iront dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> **État : validé, prêt pour le développement (phase 1).** Branche `claude/hub-objectives-reward-choices-kdavx9`. Ce document décrit le travail ; il ne modifie aucun code. Les choix faits en cours de route iront dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ---
 
@@ -95,9 +95,22 @@ Un seul fichier, `src/config/cards.ts`, décrit toutes les cartes. Aucune règle
 
 **Disponibilité** d'une carte : tous ses prérequis sont remplis, `minLevel` est atteint, et elle n'a pas atteint `maxPicks` (1 pour une carte unique). Une carte `unlock` déjà obtenue n'est plus disponible.
 
-**Poids initiaux des déblocages actuels** (phase 1) : chaque courbe est centrée sur le niveau du tableau actuel. Le × (niveau 7 dans le tableau) a par exemple un poids faible avant 5, maximal vers 7, puis moyen. Ainsi, même hors fil rouge, l'ordre reste proche de l'actuel tant que la phase 3 n'a pas réglé les poids.
+**Emplacements et poids de départ** (phase 1, à régler en phase 3). Pour un déblocage placé au niveau L dans le tableau actuel, la courbe est `[(L − 4, 2), (L, 20), (L + 6, 8)]` : rare avant son niveau habituel, fréquent autour, moyen ensuite. Même hors fil rouge, l'ordre reste ainsi proche de l'actuel.
 
-**Prérequis proposés pour l'existant** (à valider) :
+| Carte                                   | Emplacement       | Poids de départ                                      |
+| --------------------------------------- | ----------------- | ---------------------------------------------------- |
+| Fil rouge (n'importe quelle carte)      | celui de la carte | `max(sa courbe, 50 → 25 → 15)` aux niveaux 3, 20, 40 |
+| Valeur suivante                         | Nombres           | 20                                                   |
+| × (L = 7), − (13), ÷ (16), ^ (19)       | Nombres           | courbe en L                                          |
+| Pont (4), Priorités (10), Stockage (22) | Atelier           | courbe en L                                          |
+| Édition brillante                       | Atelier           | 6                                                    |
+| Édition légendaire                      | Atelier           | 2                                                    |
+| Additionneur ancien (factice)           | Atelier           | 4                                                    |
+| Passif factice                          | Atelier           | 3                                                    |
+| Éventail (unique)                       | Atelier           | 3, à partir du niveau 6                              |
+| + et Améliorations                      | aucun             | jamais tirés (niveaux 1 et 2 fixes)                  |
+
+**Prérequis** (validés) :
 
 | Carte                                 | Prérequis                |
 | ------------------------------------- | ------------------------ |
@@ -138,14 +151,14 @@ Les **pistes d'amélioration** restent liées aux bâtiments ordinaires débloqu
 - **Tous les bâtiments acceptent une édition.** Les effets de chaque édition, bâtiment par bâtiment, seront discutés plus tard et décrits dans `EDITION_EFFECTS` (par type de bâtiment).
 - **Effets provisoires de la phase 1**, pour avoir quelque chose à tester :
 
-| Bâtiment                   | Brillante        | Légendaire       |
-| -------------------------- | ---------------- | ---------------- |
-| Opérateurs (+, ×, −, ÷, ^) | cycle × 1,25     | cycle × 1,5      |
-| Extracteur                 | débit × 1,25     | débit × 1,5      |
-| Stockage                   | capacité × 1,25  | capacité × 1,5   |
-| Bâtiment spécial factice   | cycle × 1,25     | cycle × 1,5      |
-| Autres (tapis, pont…)      | visuel seulement | visuel seulement |
+| Bâtiment                   | Brillante       | Légendaire     |
+| -------------------------- | --------------- | -------------- |
+| Opérateurs (+, ×, −, ÷, ^) | cycle × 1,25    | cycle × 1,5    |
+| Extracteur                 | débit × 1,25    | débit × 1,5    |
+| Stockage                   | capacité × 1,25 | capacité × 1,5 |
+| Bâtiment spécial factice   | cycle × 1,25    | cycle × 1,5    |
 
+- **Tapis, ponts et Hub : reportés.** Dans le code, ils ne sont pas rangés comme les autres bâtiments (tapis et ponts par case, Hub fixe), et aucun effet n'est encore prévu pour eux. Ils recevront des éditions quand leurs effets seront définis. La phase 1 couvre l'extracteur, les opérateurs, le stockage et les bâtiments spéciaux.
 - **Une seule édition par bâtiment.**
 - **Rendu** : la base reste comme aujourd'hui ; la brillante est en craie nacrée avec un reflet ; la légendaire en craie dorée avec une petite étoile. Le même code couleur sert sur la carte de l'offre, dans la barre de construction, sur le fantôme, dans l'info-bulle et sur la carte Édition elle-même (un bâton de craie nacrée ou dorée).
 - **Analogie Balatro** : la carte Édition joue le rôle des cartes qui ajoutent une édition à une carte choisie (comme la carte spectrale Aura), et le bâtiment spécial celui d'un joker vendu déjà avec son édition.
@@ -201,6 +214,7 @@ Les **pistes d'amélioration** restent liées aux bâtiments ordinaires débloqu
 2. Le niveau suivant démarre tout de suite. Les livraisons continuent de compter.
 3. Le niveau terminé entre dans la **file des offres en attente**.
 4. L'écran de choix s'ouvre dès que les conditions du §4.4 le permettent.
+5. **Dernier niveau** (cible de 2 milliards) : il donne une offre comme les autres. L'écran de fin s'ouvre après le choix.
 
 ### 4.2 L'écran de choix
 
@@ -566,6 +580,11 @@ Pour chaque nouvel objet :
 
 ---
 
-## 9. Questions ouvertes (à trancher avant ou pendant R5)
+## 9. Questions ouvertes
 
-1. **Prérequis du §3.2** : la liste proposée convient-elle (Priorités après le Pont, ^ après le ×, Stockage à partir du niveau 12) ?
+**Aucune question ne bloque la phase 1.** Sujets volontairement reportés :
+
+- **Effets des éditions**, bâtiment par bâtiment (y compris tapis, ponts et Hub) : avant ou pendant la phase 2. La phase 1 utilise les effets provisoires du §3.4.
+- **Éditions définitives** (comme dans Balatro) : un réglage prêt dans `EDITION_RULES` (§3.5), à décider après les premières parties.
+- **Contenu** : les 2 ou 3 premiers vrais objets, au début de la phase 2 (§6.2).
+- **Objectifs de réglage** du rythme : au début de la phase 3 (§7).

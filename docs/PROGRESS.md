@@ -30,7 +30,7 @@ Cible : tablette et téléphone en paysage d'abord. Branche `dev-mobile`.
 
 ## Choix de récompense au Hub (PLAN-recompenses.md)
 
-Branche `claude/hub-objectives-reward-choices-kdavx9`. Plan à valider avant le code.
+Branche `claude/hub-objectives-reward-choices-kdavx9`. Plan validé, phase 1 prête à démarrer.
 
 | Jalon                                         | État       |
 | --------------------------------------------- | ---------- |
