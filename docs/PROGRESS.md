@@ -38,7 +38,7 @@ Branche `claude/hub-objectives-reward-choices-kdavx9`. Plan validé, phase 1 en 
 | R2 Progression et sauvegarde                  | ✅ terminé |
 | R3 Écran de choix                             | ✅ terminé |
 | R4 Fiches après le choix                      | ✅ terminé |
-| R5 Éditions et exemplaires                    | ⏳ à faire |
+| R5 Éditions et exemplaires                    | ✅ terminé |
 | R6 Objets factices et finitions               | ⏳ à faire |
 | Phase 2 Premiers objets, simulateur de tirage | ⏳ à faire |
 | Phase 3 Simulateur de rythme, équilibrage     | ⏳ à faire |
