@@ -1,6 +1,6 @@
 /**
- * Automatic choice of the pending offers (PLAN-recompenses §5.4), driven by `?pick=` until
- * the choice screen exists, and kept afterwards for end-to-end tests.
+ * Automatic choice of the pending offers (PLAN-recompenses §5.4), driven by `?pick=`: for
+ * end-to-end tests and quick play-throughs. Without it, the player chooses on the screen.
  */
 import { hash2, mulberry32 } from '../core/rng';
 import { naturalAt } from './offers';
@@ -8,11 +8,14 @@ import { chooseCard, type Emit, ensureOffer } from './progression';
 import { offerContext } from './rewards';
 import type { GameState, StoredOffer } from './state';
 
-/** `natural`: the natural card if offered, else the first; `none`: never choose. */
+/**
+ * `natural`: the natural card if offered, else the first; `none`: never choose by itself
+ * (the choice screen does).
+ */
 export type PickMode = 'natural' | 'first' | 'random' | 'none';
 export const PICK_MODES: readonly PickMode[] = ['natural', 'first', 'random', 'none'];
-/** Mode without `?pick=`. Natural for now, so the game plays without a choice screen. */
-export const DEFAULT_PICK_MODE: PickMode = 'natural';
+/** Mode without `?pick=` (or with an unknown one): the player chooses on the screen. */
+export const DEFAULT_PICK_MODE: PickMode = 'none';
 
 /** Salt of the `random` mode stream (independent of the offer draw). */
 const PICK_SALT = 0x5049434b; // "PICK"

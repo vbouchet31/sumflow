@@ -147,6 +147,11 @@ export class PointerInput {
     if (step) this.camera.panScreen(step.dx, step.dy);
   }
 
+  /** A button or a finger is down on the map (a drag, a pan or a pinch may be going on). */
+  get pressed(): boolean {
+    return this.buildPointer !== null || this.panPointer !== null || this.touches.size > 0;
+  }
+
   /** Finger contact, or a pen touching the screen. */
   private isTouch(e: PointerEvent): boolean {
     return e.pointerType === 'touch' || this.touches.has(e.pointerId);

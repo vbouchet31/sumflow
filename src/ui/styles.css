@@ -1840,3 +1840,489 @@ body::after {
     font-size: 16px;
   }
 }
+
+/* ---- Reward choice screen (PLAN-recompenses §4.2) --------------------------------------- */
+
+/* Above the toasts: the level toast would cover the cards on a phone (the kicker says it). */
+.offer-overlay {
+  z-index: 41;
+  padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px))
+    max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+}
+
+.offer-sheet {
+  --card-w: 190px;
+  --art: 116px;
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  width: min(780px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 18px 24px 16px;
+  border-radius: 6px;
+  background: var(--board);
+  border: var(--frame) solid var(--wood);
+  box-shadow:
+    inset 0 0 0 1px var(--wood-dark),
+    inset 0 0 24px rgb(0 0 0 / 35%),
+    0 8px 24px rgb(0 0 0 / 45%);
+  outline: none;
+}
+
+.offer-head {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.offer-kicker {
+  margin: 0;
+  color: var(--chalk-pink);
+  font: 700 14px var(--font-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.offer-title {
+  margin: 0;
+  font: 400 30px var(--font-title);
+  letter-spacing: 0.03em;
+  text-decoration: underline wavy rgb(243 224 138 / 80%);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 7px;
+}
+
+.offer-intro {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font: 16px/1.3 var(--font-ui);
+}
+
+.offer-count {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  padding: 2px 10px;
+  border: 1px solid var(--chalk-line-strong);
+  border-radius: var(--hand-drawn);
+  color: var(--muted);
+  font: 15px var(--font-num);
+}
+
+.offer-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 22px;
+  max-width: 100%;
+}
+
+.offer-slot {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 10px;
+  width: var(--card-w);
+  min-width: 0;
+  animation: offer-deal 0.35s ease-out backwards;
+  animation-delay: calc(var(--deal, 0) * 80ms);
+}
+
+.offer-card {
+  display: grid;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  perspective: 900px;
+  touch-action: manipulation;
+}
+
+.offer-card:focus-visible {
+  outline: 2px solid var(--chalk-yellow);
+  outline-offset: 4px;
+}
+
+.offer-card-inner {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease-in-out;
+}
+
+.offer-card.is-flipped .offer-card-inner {
+  transform: rotateY(180deg);
+}
+
+/* Both faces share one cell: the card is as tall as its longer face. */
+.offer-face {
+  position: relative;
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 14px 12px 12px;
+  border: 2px solid var(--chalk-stroke);
+  border-radius: 14px 10px 13px 9px / 10px 14px 9px 13px;
+  background: var(--board-raised);
+  box-shadow:
+    inset 0 0 18px rgb(0 0 0 / 28%),
+    0 5px 0 rgb(0 0 0 / 25%);
+  backface-visibility: hidden;
+}
+
+.offer-front {
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.offer-back {
+  gap: 3px;
+  background: var(--board-sunk);
+  border-style: dashed;
+  transform: rotateY(180deg);
+}
+
+.offer-art {
+  display: block;
+  flex: none;
+  width: var(--art);
+  height: var(--art);
+}
+
+.offer-name {
+  font: 700 21px/1.15 var(--font-ui);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.offer-slot-name {
+  color: var(--chalk-pink);
+  font: 700 12px var(--font-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.offer-full-name {
+  font: 700 17px/1.15 var(--font-ui);
+}
+
+.offer-gives {
+  color: var(--chalk-yellow);
+  font: 600 14px/1.25 var(--font-ui);
+}
+
+.offer-effect {
+  color: var(--chalk-green);
+  font: 14px/1.25 var(--font-num);
+}
+
+.offer-text {
+  margin-top: 3px;
+  font: 14px/1.3 var(--font-ui);
+}
+
+.offer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: auto;
+  padding: 6px 18px 0 0;
+}
+
+.offer-tag {
+  padding: 0 7px;
+  border: 1px solid currentcolor;
+  border-radius: var(--hand-drawn);
+  font: 600 12px/1.5 var(--font-ui);
+}
+
+.offer-tag-new {
+  color: var(--chalk-yellow);
+}
+
+.offer-tag-unique {
+  color: var(--chalk-pink);
+}
+
+.offer-tag-natural {
+  color: var(--chalk-green);
+}
+
+.offer-flip-mark {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  color: var(--chalk-dim);
+  font: 16px var(--font-num);
+}
+
+.offer-choose {
+  width: 100%;
+  transition: opacity 0.25s ease-out;
+}
+
+/* The buttons wait a moment after the screen opens (a stray click must not choose). */
+.offer-sheet.is-arming .offer-choose,
+.offer-sheet.is-arming .offer-later {
+  opacity: 0.35;
+}
+
+.offer-foot {
+  display: flex;
+  justify-content: center;
+}
+
+.offer-later {
+  transition: opacity 0.25s ease-out;
+}
+
+.offer-overlay.is-opening {
+  animation: offer-fade 0.2s ease-out;
+}
+
+.offer-overlay.is-opening .offer-sheet {
+  animation: offer-pop 0.25s ease-out;
+}
+
+@keyframes offer-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes offer-pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+}
+
+@keyframes offer-deal {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@media (hover: hover) {
+  .offer-card:hover .offer-face {
+    border-color: var(--chalk);
+  }
+}
+
+/* Reduce motion (system or option): the card swaps faces at once, nothing slides in. */
+@media (prefers-reduced-motion: reduce) {
+  .offer-overlay.is-opening,
+  .offer-overlay.is-opening .offer-sheet,
+  .offer-slot {
+    animation: none;
+  }
+
+  .offer-card-inner,
+  .offer-choose,
+  .offer-later {
+    transition: none;
+  }
+}
+
+/* "Reward to choose" in the top bar: wider than the icon buttons, in yellow chalk. */
+.top-btn.top-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  padding: 0 12px 0 10px;
+  border-color: var(--chalk-yellow);
+  background: var(--chalk-yellow-bg);
+  color: var(--chalk-yellow);
+  font: 600 15px var(--font-ui);
+  white-space: nowrap;
+}
+
+.top-reward-icon {
+  position: relative;
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.top-reward-icon::before,
+.top-reward-icon::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  width: 10px;
+  height: 15px;
+  border: 2px solid currentcolor;
+  border-radius: 2px;
+  background: var(--board);
+}
+
+.top-reward-icon::before {
+  transform: translateX(-3px) rotate(-14deg);
+}
+
+.top-reward-icon::after {
+  transform: translateX(3px) rotate(12deg);
+}
+
+/*
+ * Below 1400 px the label would run into the toasts in the middle: the icon alone (its name
+ * stays in the tooltip and for screen readers).
+ */
+@media (max-width: 1400px) {
+  .top-btn.top-reward {
+    justify-content: center;
+    width: var(--top-h);
+    padding: 0;
+  }
+
+  .top-reward-label {
+    display: none;
+  }
+}
+
+/* A phone on its side (342 px high): smaller pictures, the title on one line. */
+@media (orientation: landscape) {
+  .ui-compact .offer-sheet {
+    --card-w: 172px;
+    --art: 84px;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px 12px;
+    width: min(760px, 100%);
+    padding: 8px 14px 10px;
+  }
+
+  .ui-compact .offer-head {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 2px 10px;
+    text-align: left;
+    justify-self: start;
+  }
+
+  .ui-compact .offer-title {
+    font-size: 21px;
+    text-decoration: none;
+  }
+
+  .ui-compact .offer-kicker {
+    font-size: 12px;
+  }
+
+  .ui-compact .offer-intro {
+    margin: 0;
+    font-size: 13px;
+  }
+
+  .ui-compact .offer-count {
+    position: static;
+    font-size: 13px;
+  }
+
+  .ui-compact .offer-foot {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .ui-compact .offer-later {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+
+  .ui-compact .offer-cards {
+    grid-column: 1 / -1;
+    gap: 12px;
+  }
+
+  .ui-compact .offer-slot {
+    gap: 6px;
+  }
+
+  .ui-compact .offer-face {
+    padding: 8px 9px;
+  }
+
+  .ui-compact .offer-front {
+    gap: 6px;
+  }
+
+  .ui-compact .offer-name {
+    font-size: 17px;
+  }
+
+  .ui-compact .offer-full-name {
+    font-size: 14px;
+  }
+
+  .ui-compact .offer-slot-name,
+  .ui-compact .offer-tag {
+    font-size: 11px;
+  }
+
+  .ui-compact .offer-gives,
+  .ui-compact .offer-effect,
+  .ui-compact .offer-text {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .ui-compact .offer-tags {
+    padding-top: 3px;
+  }
+
+  .ui-compact .offer-choose {
+    padding: 6px 12px;
+    font-size: 15px;
+  }
+}
+
+/* A phone held upright: the cards one under the other, picture beside the name. */
+.ui-narrow .offer-sheet {
+  --art: 64px;
+  gap: 12px;
+  padding: 14px 12px 12px;
+}
+
+.ui-narrow .offer-title {
+  font-size: 24px;
+}
+
+.ui-narrow .offer-count {
+  top: 8px;
+  right: 8px;
+}
+
+.ui-narrow .offer-cards {
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.ui-narrow .offer-slot {
+  width: 100%;
+}
+
+.ui-narrow .offer-front {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 14px;
+}
+
+.ui-narrow .offer-name {
+  text-align: left;
+}

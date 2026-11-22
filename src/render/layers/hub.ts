@@ -7,6 +7,7 @@ import { cardDef, offerContext } from '../../sim/rewards';
 import type { GameState } from '../../sim/state';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
+import { drawCardFan } from '../cardArt';
 import { roundRect } from '../shapes';
 
 const OPERATOR_SYMBOLS: Partial<Record<string, string>> = {
@@ -35,23 +36,38 @@ export function rewardIcon(step: NaturalStep): { glyph: string; color: string } 
   }
 }
 
-/** Provisional "cards" glyph of an offer: `n` card outlines fanned out around (x, y). */
-function drawCardsGlyph(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, n: number) {
-  const w = 0.62 * r;
-  const h = 0.9 * r;
-  ctx.strokeStyle = COLORS.text;
-  ctx.fillStyle = HUB_COLORS.rewardChoice;
-  ctx.lineWidth = Math.max(1, 0.12 * r);
-  for (let i = 0; i < n; i++) {
-    const k = i - (n - 1) / 2;
-    ctx.save();
-    ctx.translate(x + k * 0.38 * r, y + Math.abs(k) * 0.1 * r);
-    ctx.rotate(k * 0.3);
-    roundRect(ctx, -w / 2, -h / 2, w, h, 0.12 * r);
+/**
+ * Tag on the top edge of the frame while offers wait to be chosen ("Récompense à choisir",
+ * with their count): from far away, a yellow dot.
+ */
+function drawPendingTag(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  x: number,
+  y: number,
+  w: number,
+  pending: number,
+): void {
+  const s = cam.scale;
+  ctx.fillStyle = HUB_COLORS.pending;
+  if (cam.zoom < LOD.buildingText) {
+    const r = Math.max(3, 0.6 * s);
+    ctx.beginPath();
+    ctx.arc(x + w, y, r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.stroke();
-    ctx.restore();
+    return;
   }
+  const text = pending > 1 ? t('hub.pendingCount', { n: pending }) : t('hub.pending');
+  ctx.font = `700 ${0.42 * s}px ${FONT_UI}`;
+  const tw = ctx.measureText(text).width + 0.7 * s;
+  const th = 0.72 * s;
+  const tx = x + w / 2 - tw / 2;
+  roundRect(ctx, tx, y - th / 2, tw, th, th / 2);
+  ctx.fill();
+  ctx.fillStyle = HUB_COLORS.pendingText;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + w / 2, y + 0.03 * s);
 }
 
 export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameState): void {
@@ -73,6 +89,8 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
   ctx.strokeStyle = HUB_COLORS.innerFrame;
   ctx.lineWidth = Math.max(1, 0.05 * s);
   ctx.stroke();
+  const pending = state.pendingLevels.length;
+  if (pending > 0) drawPendingTag(ctx, cam, x, y, w, pending);
 
   if (cam.zoom < LOD.buildingText) return;
 
@@ -141,6 +159,7 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
     ctx.font = `700 ${0.55 * s}px ${FONT_NUM}`;
     ctx.fillText(icon.glyph, ix, iy + 0.03 * s);
   } else {
-    drawCardsGlyph(ctx, ix, iy, r, offerSlots(offerContext(state, state.level)).length);
+    const n = offerSlots(offerContext(state, state.level)).length;
+    drawCardFan(ctx, ix + 0.1 * s, iy, 0.68 * r, n, state.level);
   }
 }

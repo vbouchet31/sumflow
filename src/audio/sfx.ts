@@ -43,6 +43,45 @@ export class Sfx {
     osc.stop(t0 + duration + 0.02);
   }
 
+  /**
+   * A short burst of filtered noise (paper, chalk dust). The buffer is random noise: this is
+   * sound, outside the simulation, so it needs no seed.
+   */
+  private noise(start: number, duration: number, freq: number, gain: number): void {
+    const ctx = this.ctx;
+    if (!ctx || this.volume <= 0) return;
+    const t0 = ctx.currentTime + start;
+    const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(freq, t0);
+    filter.frequency.exponentialRampToValueAtTime(freq * 2.2, t0 + duration);
+    filter.Q.value = 1.2;
+    const amp = ctx.createGain();
+    amp.gain.setValueAtTime(0, t0);
+    amp.gain.linearRampToValueAtTime(gain * this.volume, t0 + duration * 0.3);
+    amp.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+    src.connect(filter).connect(amp).connect(ctx.destination);
+    src.start(t0);
+    src.stop(t0 + duration + 0.02);
+  }
+
+  /** A reward card turned over: a soft swish. */
+  cardFlip(): void {
+    this.noise(0, 0.12, 1400, 0.09);
+  }
+
+  /** A reward card taken: a soft low chime. */
+  cardChosen(): void {
+    this.tone(587.33, 0, 0.3, 'sine', 0.12);
+    this.tone(880, 0.07, 0.4, 'triangle', 0.09);
+  }
+
   /** Rising three-note arpeggio. */
   levelComplete(): void {
     [523.25, 659.25, 783.99].forEach((f, i) => this.tone(f, i * 0.11, 0.35, 'triangle', 0.25));

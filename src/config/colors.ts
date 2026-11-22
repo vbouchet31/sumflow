@@ -94,8 +94,35 @@ export const HUB_COLORS = {
   /** Behind the reward icons. */
   rewardExtraction: '#5f7166',
   rewardFeature: '#3a8f8a',
-  /** Behind the "cards" icon of a level that ends with an offer (provisional). */
-  rewardChoice: '#7d6a94',
+  /** Inside the chalk cards of a level that ends with an offer. */
+  rewardChoice: '#3b3550',
+  /** Outline of those cards. */
+  rewardChoiceLine: '#c9a6ea',
+  /** Tag on the frame while an offer waits to be chosen. */
+  pending: '#f3e08a',
+  pendingText: '#1f2a24',
+} as const;
+
+/**
+ * Edition chalks (PLAN-recompenses §3.4): pearly with a glint for brillante, golden with a
+ * small star for légendaire. Base keeps the usual colours. Shared by the choice screen and,
+ * later, the buildings on the map, the ghost and the build bar.
+ */
+export const EDITION_COLORS = {
+  brillante: {
+    /** Gradient across the object, from one corner to the other. */
+    stops: ['#cfe0f5', '#f3d6ec', '#d6f1e2', '#e3d9f7'],
+    /** Darker edge of a chalk stick. */
+    deep: '#9aa9c4',
+    glint: 'rgba(255, 255, 255, 0.85)',
+  },
+  legendaire: {
+    stops: ['#d9a23a', '#f8dc84', '#e9b949', '#c98f2c'],
+    deep: '#8f6420',
+    glint: 'rgba(255, 244, 205, 0.9)',
+  },
+  star: '#fff1b8',
+  starLine: '#8f6420',
 } as const;
 
 export const FONT_NUM = '"Patrick Hand", cursive';

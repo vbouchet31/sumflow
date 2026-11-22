@@ -559,6 +559,14 @@ export class ToolController {
     return !touch || this.selectedBuilding === b;
   }
 
+  /**
+   * A gesture is under way: a drag (belt, zone, paste, building row), a building lifted to
+   * move it, or a finger placing the paste preview.
+   */
+  get gesturing(): boolean {
+    return this.drag !== null || this.moving !== null || this.touchPaste;
+  }
+
   /** A building is being dragged (and has left its tile). */
   get isMoving(): boolean {
     return this.moving?.moved === true;

@@ -1,7 +1,7 @@
 import './ui/styles.css';
 import { Sfx } from './audio/sfx';
 import { ToolController } from './build/tools';
-import { CATCH_UP } from './config/balance';
+import { CATCH_UP, HUB } from './config/balance';
 import { FONT_NUM } from './config/colors';
 import { CAMERA } from './config/keymap';
 import { toSeed } from './core/rng';
@@ -40,9 +40,9 @@ import { SelectionBubble } from './ui/selectionBubble';
 import { describeTile, Tooltip } from './ui/tooltip';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
-import { setAutoBuy } from './sim/progression';
+import { chooseCard, ensureOffer, setAutoBuy } from './sim/progression';
 import { parsePickMode, resolvePending } from './sim/autoPick';
-import type { GameState } from './sim/state';
+import type { GameState, StoredOffer } from './sim/state';
 import { SaveManager } from './save/manager';
 import {
   decodeSave,
@@ -60,6 +60,8 @@ import { type CameraState, deserialize, serialize } from './save/serialize';
 import { defaultSettings, loadSettings, storeSettings } from './save/settings';
 import { knownTips, markSeen, pendingTips } from './ui/help';
 import { TutorialCard } from './ui/tutorial';
+import { OfferScreen } from './ui/offerScreen';
+import { canOpenOffer, OFFER_INTRO_ID, OfferSeries, offerView } from './ui/offerInfo';
 import { GameMenu } from './ui/menu';
 
 /** Longest frame delta honoured, in seconds (avoids a jump after a hitch). */
@@ -203,6 +205,7 @@ async function bootstrap(): Promise<void> {
     levels: () => levelsPanel.toggle(),
     upgrades: toggleUpgrades,
     menu: () => menu.toggle(),
+    reward: () => reopenOffer(),
   });
   const tooltip = new Tooltip(uiRoot);
   const buildBar = new BuildBar(uiRoot, tools);
@@ -236,14 +239,16 @@ async function bootstrap(): Promise<void> {
   };
   // `?tutorial=0` keeps the cards from opening by themselves (end-to-end tests).
   const autoTutorials = new URLSearchParams(location.search).get('tutorial') !== '0';
-  // `?pick=natural|first|random|none` chooses the pending offers by itself, until the choice
-  // screen exists (natural by default, see DEFAULT_PICK_MODE).
+  // `?pick=natural|first|random` chooses the pending offers by itself (end-to-end tests);
+  // without it (or with `none`) the player chooses on the screen.
   const pickMode = parsePickMode(new URLSearchParams(location.search).get('pick'));
+  const choiceScreen = pickMode === 'none';
   /** Cards shown one after the other: position in the series and its length. */
   const series = { index: 0, total: 0 };
   /** Open the next pending card when nothing else is on screen. Cheap: call every frame. */
   const showPendingTip = (): void => {
     if (!autoTutorials || tutorial.isOpen || menu.isOpen || endScreen.isOpen) return;
+    if (offerScreen.isOpen) return;
     if (markerEditor?.isOpen) return;
     const pending = pendingTips(state);
     const tip = pending[0];
@@ -264,6 +269,75 @@ async function bootstrap(): Promise<void> {
       },
     });
   };
+
+  // ---- Reward choice screen (PLAN-recompenses §4.2, §4.4) ----
+  /**
+   * Newest waiting level when the screen was closed with "See the map": those offers wait
+   * for the badge or the hub, the next completed level opens the screen again.
+   */
+  let minimizedLevel: number | null = null;
+  /** Offer on screen (identity: a forced or re-drawn offer is a new object). */
+  let shownOffer: StoredOffer | null = null;
+  const offerSeries = new OfferSeries();
+  /** Show the first pending offer (drawn now if needed), or close the screen if none. */
+  const showOffer = (): void => {
+    const offer = ensureOffer(state, world.emit);
+    shownOffer = offer;
+    if (!offer) {
+      offerScreen.close();
+      return;
+    }
+    const position = offerSeries.position(offer.level, state.pendingLevels.length);
+    offerScreen.show(offerView(state, offer, position));
+    markSeen(state, OFFER_INTRO_ID);
+  };
+  /** The badge (top bar or hub): open the waiting offer again, whatever was closed. */
+  const reopenOffer = (): void => {
+    if (!choiceScreen || state.pendingLevels.length === 0 || offerScreen.isOpen) return;
+    minimizedLevel = null;
+    showOffer();
+  };
+  /** Whether the screen may open by itself now (§4.4). */
+  const offerMayOpen = (): boolean =>
+    canOpenOffer({
+      newest: state.pendingLevels.at(-1) ?? null,
+      minimized: minimizedLevel,
+      modal: menu.isOpen || tutorial.isOpen || endScreen.isOpen || (markerEditor?.isOpen ?? false),
+      gesture: pointer.pressed || tools.gesturing,
+      catchingUp: loop.catchUpProgress !== null,
+      tipPending: autoTutorials && pendingTips(state).length > 0,
+    });
+  /** Every frame: open the screen when allowed, follow the offer while it is open. */
+  const syncOffer = (): void => {
+    if (!choiceScreen) return;
+    if (state.pendingLevels.length === 0) {
+      offerSeries.reset();
+      minimizedLevel = null;
+      shownOffer = null;
+      offerScreen.close();
+      return;
+    }
+    if (offerScreen.isOpen) {
+      // The offer changed under the screen (debug choice or forced offer): show the new one.
+      if (state.currentOffer !== shownOffer) showOffer();
+    } else if (offerMayOpen()) showOffer();
+  };
+  const offerScreen = new OfferScreen(uiRoot, {
+    choose: (index) => {
+      if (!chooseCard(state, index, world.emit)) return;
+      sfx.cardChosen();
+      // Next offer at once, unless the choice brought a tutorial card or the end screen:
+      // they come first, and the screen opens again after them.
+      if (state.pendingLevels.length > 0 && offerMayOpen()) showOffer();
+      else offerScreen.close();
+    },
+    later: () => {
+      minimizedLevel = state.pendingLevels.at(-1) ?? null;
+      offerScreen.close();
+    },
+    flip: () => sfx.cardFlip(),
+  });
+
   const catchUpBar = new CatchUpBar(uiRoot);
   const perfOverlay = new PerfOverlay(uiRoot);
   const perf = new PerfMeter();
@@ -357,9 +431,9 @@ async function bootstrap(): Promise<void> {
   window.addEventListener('pagehide', () => saves.saveSync());
   if (loaded.error === 'outdated') toasts.show(t('toast.loadOutdated'));
   else if (loaded.error) toasts.show(t('toast.loadError'));
-  // Soft click on every UI button (PLAN §12).
+  // Soft click on every UI button (PLAN §12), but those with a sound of their own.
   uiRoot.addEventListener('click', (e) => {
-    if (e.target instanceof Element && e.target.closest('button')) sfx.click();
+    if (e.target instanceof Element && e.target.closest('button:not([data-silent])')) sfx.click();
   });
 
   world.events.on('levelCompleted', ({ level, reward }) => {
@@ -424,12 +498,28 @@ async function bootstrap(): Promise<void> {
       onQuickDemolish: () => tools.deletePressed(),
       onTogglePause: togglePause,
     },
-    () => menu.isOpen || endScreen.isOpen || tutorial.isOpen || (markerEditor?.isOpen ?? false),
+    () =>
+      menu.isOpen ||
+      endScreen.isOpen ||
+      tutorial.isOpen ||
+      offerScreen.isOpen ||
+      (markerEditor?.isOpen ?? false),
   );
+  /** A press without a tool that starts and ends on the hub reopens a waiting offer. */
+  let hubPress = false;
+  const onHub = (x: number, y: number): boolean =>
+    x >= HUB.x && x < HUB.x + HUB.size && y >= HUB.y && y < HUB.y + HUB.size;
   const pointer = new PointerInput(canvas, camera, {
-    onDown: (x, y, mods) => tools.pointerDown(x, y, mods),
+    onDown: (x, y, mods) => {
+      hubPress = tools.tool === 'none' && onHub(x, y);
+      tools.pointerDown(x, y, mods);
+    },
     onMove: (x, y, mods) => tools.pointerMove(x, y, mods),
-    onUp: (x, y, mods) => tools.pointerUp(x, y, mods),
+    onUp: (x, y, mods) => {
+      tools.pointerUp(x, y, mods);
+      if (hubPress && onHub(x, y)) reopenOffer();
+      hubPress = false;
+    },
     onCancel: () => tools.pointerCancel(),
     onLeave: () => tools.clearHover(),
     // Touch: a tap without a tool selects the object (in `pointerUp`, as a click does). A
@@ -514,6 +604,7 @@ async function bootstrap(): Promise<void> {
     hud.update(world);
     for (const p of panels) p.update();
     topBar.setVisible('upgrades', upgradesAvailable());
+    topBar.setReward(choiceScreen && !offerScreen.isOpen ? state.pendingLevels.length : 0);
     topBar.setBadge(
       'upgrades',
       TRACKS.some((tr) => isUpgradeReady(state, tr)),
@@ -532,6 +623,7 @@ async function bootstrap(): Promise<void> {
     toolActions.update();
     selectionBubble.update();
     showPendingTip();
+    syncOffer();
     saves.update();
     statusBar.update(
       saves.lastSavedAt === null ? null : now - saves.lastSavedAt,
