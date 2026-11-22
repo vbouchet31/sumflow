@@ -1,5 +1,7 @@
 import type { ToolController, ToolId } from '../build/tools';
-import { SPECIAL_EDITIONS } from '../config/cards';
+import { isSpecial, SPECIAL_TYPES, type SpecialType } from '../config/buildings';
+import { type Edition, SPECIAL_EDITIONS } from '../config/cards';
+import { TOOL_CODES } from '../config/keymap';
 import type { Rot } from '../core/grid';
 import { drawCardArt } from '../render/cardArt';
 import { type MessageKey, t } from '../i18n';
@@ -24,6 +26,20 @@ interface ToolButton {
   edit?: boolean;
 }
 
+/** Digit of a tool in TOOL_CODES (`Digit0` gives `0`), if it has one. */
+function digitOf(tool: ToolId): string | undefined {
+  const code = Object.entries(TOOL_CODES).find(([, t]) => t === tool)?.[0];
+  return code?.replace('Digit', '');
+}
+
+/** One tool per special building type, after the ordinary buildings (PLAN-recompenses §4.5). */
+const SPECIAL_BUTTONS: readonly ToolButton[] = SPECIAL_TYPES.map((type) => {
+  const key = digitOf(type);
+  const def: ToolButton = { tool: type, label: `tool.${type}` as MessageKey, icon: '✧' };
+  if (key !== undefined) def.key = key;
+  return def;
+});
+
 const BUTTONS: readonly ToolButton[] = [
   { tool: 'belt', label: 'tool.belt', key: '1', icon: '»' },
   { tool: 'extractor', label: 'tool.extractor', key: '2', icon: '▣' },
@@ -34,6 +50,7 @@ const BUTTONS: readonly ToolButton[] = [
   { tool: 'exponent', label: 'tool.exponent', key: '7', icon: '^' },
   { tool: 'storage', label: 'tool.storage', key: '8', icon: '▦' },
   { tool: 'bridge', label: 'tool.bridge', key: '9', icon: '≡' },
+  ...SPECIAL_BUTTONS,
   { tool: 'priority', label: 'tool.priority', key: 'P', icon: '◆' },
   { tool: 'edition', label: 'tool.edition', key: 'G', icon: '✦' },
   { tool: 'select', label: 'tool.select', icon: '⬚', edit: true },
@@ -108,7 +125,16 @@ interface Picture {
   btn: HTMLButtonElement;
   /** Size and rotation it was last drawn at. */
   drawn: string;
+  /** Special building: its counter of free copies, drawn in the native edition chosen. */
+  special?: { type: SpecialType; badge: HTMLElement; key: string };
 }
+
+/** Badge glyph of each native edition (as on the edition cards). */
+const EDITION_MARK: Readonly<Record<Edition, string>> = {
+  base: '',
+  brillante: '✦',
+  legendaire: '★',
+};
 
 /**
  * Bottom-centre build bar (PLAN §9.1). Buildings are pictured as they will be built, in the
@@ -162,7 +188,14 @@ export class BuildBar {
         canvas.className = 'build-piece';
         canvas.setAttribute('aria-hidden', 'true');
         btn.prepend(canvas);
-        this.pictures.push({ tool: def.tool, canvas, btn, drawn: '' });
+        const picture: Picture = { tool: def.tool, canvas, btn, drawn: '' };
+        if (isSpecial(def.tool)) {
+          const badge = document.createElement('span');
+          badge.className = 'build-badge';
+          btn.append(badge);
+          picture.special = { type: def.tool, badge, key: '' };
+        }
+        this.pictures.push(picture);
       } else if (def.tool === 'edition') {
         btn.classList.add('build-btn-piece');
         const canvas = document.createElement('canvas');
@@ -274,7 +307,37 @@ export class BuildBar {
       }
     }
     this.updateEdition();
+    this.updateSpecials();
     this.updateTray();
+  }
+
+  /**
+   * Special building tools (PLAN-recompenses §4.5): the free copies of the native edition
+   * chosen in the badge (×1), the picture in that edition, greyed when no copy is free.
+   */
+  private updateSpecials(): void {
+    for (const p of this.pictures) {
+      const sp = p.special;
+      if (!sp || p.btn.hidden) continue;
+      const stock = this.tools.specialStock(sp.type);
+      const variant = this.tools.specialVariant(sp.type);
+      const free = stock.find((s) => s.edition === variant)?.free ?? 0;
+      const key = `${variant}|${stock.map((s) => `${s.edition}:${s.free}`).join()}`;
+      if (key === sp.key) continue;
+      sp.key = key;
+      sp.badge.textContent = `${EDITION_MARK[variant]}×${free}`;
+      const name = t(`tool.${sp.type}` as MessageKey);
+      const list = stock
+        .map(
+          (s) =>
+            `${s.edition === 'base' ? t('act.specialBase') : t(`edition.${s.edition}`)} ${s.free}`,
+        )
+        .join(', ');
+      const digit = digitOf(sp.type);
+      p.btn.title = `${name}${digit ? ` (${digit})` : ''} · ${t('tool.specialFree', { list })}`;
+      p.btn.classList.toggle('build-btn-empty', free === 0);
+      this.draw(p, performance.now() / 1000);
+    }
   }
 
   /** The new pictures arrive with a quarter turn from the old orientation. */
@@ -350,7 +413,9 @@ export class BuildBar {
     if (!ctx) return;
     const rot = iconRotates(p.tool) ? this.rot : 0;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawToolIcon(ctx, p.tool, rot, size, this.reducedMotion ? 0 : time);
+    const native = p.special ? this.tools.specialVariant(p.special.type) : 'base';
+    const edition = native === 'base' ? undefined : native;
+    drawToolIcon(ctx, p.tool, rot, size, this.reducedMotion ? 0 : time, edition);
     p.drawn = `${size}|${rot}|${devicePixelRatio}`;
   }
 

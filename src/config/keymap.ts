@@ -45,6 +45,11 @@ export const TOOL_CODES = {
   Digit7: 'exponent',
   Digit8: 'storage',
   Digit9: 'bridge',
+  /**
+   * The special building (PLAN-recompenses §4.5): pressed again, its next native edition.
+   * Only one special type exists (a placeholder); a second one would need a key of its own.
+   */
+  Digit0: 'ancientAdder',
 } as const;
 
 /** Keys by event.key. */

@@ -939,6 +939,8 @@ body::after {
 .build-group {
   display: flex;
   gap: 6px;
+  /* Never squeezed: buttons do not shrink, so a squeezed group would overlap the next one. */
+  flex: none;
 }
 
 .build-group-edit {
@@ -1710,18 +1712,26 @@ body::after {
   bottom: auto;
 }
 
-/* The bar reaches under the status chips well before it fills the screen: lift them. */
+/*
+ * The bar reaches under the status chips well before it fills the screen: lift them. The
+ * selection tray (copy, cut, paste) sits on the right end of the bar: while it shows, they
+ * go above it too, or it would cover them.
+ */
 @media (max-width: 1500px) {
+  #ui-root:has(> .sel-tray:not([hidden])) {
+    --tray-up: 58px;
+  }
+
   .status-bar {
-    bottom: var(--above-bar);
+    bottom: calc(var(--above-bar) + var(--tray-up, 0px));
   }
 
   .debug-panel {
-    bottom: calc(var(--above-bar) + 72px);
+    bottom: calc(var(--above-bar) + var(--tray-up, 0px) + 72px);
   }
 
   .perf-overlay {
-    bottom: calc(var(--above-bar) + 186px);
+    bottom: calc(var(--above-bar) + var(--tray-up, 0px) + 186px);
   }
 }
 

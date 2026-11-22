@@ -51,8 +51,8 @@ export const BUILDING_COLORS = {
   exponent: '#9a832a',
   storage: '#8a8f86',
   bridge: '#4f6f8f',
-  /** Special building, placeholder (PLAN-recompenses §5.3): an old stone tablet. */
-  ancientAdder: '#8a7652',
+  /** Special building, placeholder (PLAN-recompenses §5.3): an old slate tablet. */
+  ancientAdder: '#61788a',
 } as const;
 
 /** Ornament of the special buildings: a second, inner frame and studs in its corners. */

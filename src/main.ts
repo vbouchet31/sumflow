@@ -2,6 +2,7 @@ import './ui/styles.css';
 import { Sfx } from './audio/sfx';
 import { ToolController } from './build/tools';
 import { CATCH_UP, HUB } from './config/balance';
+import { isSpecial } from './config/buildings';
 import { FONT_NUM } from './config/colors';
 import { CAMERA } from './config/keymap';
 import { toSeed } from './core/rng';
@@ -480,7 +481,10 @@ async function bootstrap(): Promise<void> {
       onDelivered: () => deliveredPanel.toggle(),
       onTogglePerf: () => perfOverlay.toggle(),
       onTool: (tool) => {
-        if (tool === 'paste' && !tools.isAvailable('paste')) sfx.error();
+        // A special building's key: its tool, then its next native edition.
+        if (isSpecial(tool)) {
+          if (!tools.specialKey(tool)) sfx.error();
+        } else if (tool === 'paste' && !tools.isAvailable('paste')) sfx.error();
         // Ctrl+C / Ctrl+X on a selected zone or building copy it at once.
         else if ((tool === 'copy' || tool === 'cut') && tools.copyTarget) {
           tools.copyTargetRect(tool === 'cut');
@@ -617,7 +621,7 @@ async function bootstrap(): Promise<void> {
       'upgrades',
       TRACKS.some((tr) => isUpgradeReady(state, tr)),
     );
-    const barKey = `${state.unlockedBuildings.length}|${state.unlockedFeatures.length}|${state.clipboard.length}|${hasEditionCards(state)}`;
+    const barKey = `${state.unlockedBuildings.length}|${state.unlockedFeatures.length}|${state.clipboard.length}|${hasEditionCards(state)}|${Object.keys(state.specials).length}`;
     if (barKey !== unlockedKey) {
       unlockedKey = barKey;
       buildBar.refresh();
