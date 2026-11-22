@@ -497,7 +497,6 @@ Pour chaque nouvel objet :
 
 ## 9. Questions ouvertes (à trancher avant ou pendant R3)
 
-1. **Niveaux 1 et 2 fixes** : oui (proposé), ou un écran de choix dès le niveau 1 ?
-2. **Exemplaire d'un bâtiment pas encore débloqué** (par exemple 1 × brillant au niveau 4) : autorisé ou non ?
-3. **Coller sans exemplaire disponible** : version de base (proposé) ou pose bloquée ?
-4. **Prérequis du §3.2** : la liste proposée convient-elle (Priorités après le Pont, ^ après le ×, Stockage à partir du niveau 12) ?
+1. **Exemplaire d'un bâtiment pas encore débloqué** (par exemple 1 × brillant au niveau 4) : autorisé ou non ?
+2. **Coller sans exemplaire disponible** : version de base (proposé) ou pose bloquée ?
+3. **Prérequis du §3.2** : la liste proposée convient-elle (Priorités après le Pont, ^ après le ×, Stockage à partir du niveau 12) ?
