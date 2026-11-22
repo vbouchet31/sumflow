@@ -14,6 +14,7 @@ import { Keyboard } from './input/keyboard';
 import { PointerInput } from './input/pointer';
 import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
+import { effectEvents } from './render/layers/effects';
 import { SimLoop } from './sim/loop';
 import { createInitialState } from './sim/state';
 import { World } from './sim/world';
@@ -124,11 +125,24 @@ async function bootstrap(): Promise<void> {
   const sfx = new Sfx();
   const saves = new SaveManager(world, camera);
   let markerEditor: MarkerEditor | null = null;
+  // Chalk effects follow the clock of the frames (`requestAnimationFrame`).
+  const fx = effectEvents(renderer.effects, () => performance.now());
   const tools = new ToolController(world, {
-    onBuild: () => sfx.place(),
-    onDemolish: () => sfx.demolish(),
+    onBuild: (touched) => {
+      sfx.place();
+      fx.onBuild(touched);
+    },
+    onDemolish: (touched) => {
+      sfx.demolish();
+      fx.onDemolish(touched);
+    },
     onError: () => sfx.error(),
-    onClear: (n) => (n > 0 ? sfx.demolish() : sfx.error()),
+    onClear: (n, area) => {
+      if (n > 0) sfx.demolish();
+      else sfx.error();
+      fx.onClear(n, area);
+    },
+    onRestore: fx.onRestore,
     onMarker: (x, y, text) => {
       markerEditor?.open(text, (value) => {
         if (value === null) return;
@@ -431,7 +445,8 @@ async function bootstrap(): Promise<void> {
   let wheelAcc = 0;
   const debug = isDebugEnabled(location.search);
   const debugPanel = debug ? new DebugPanel(uiRoot) : null;
-  if (debug) installDebugApi({ world, camera, loop, tools, saves, perf });
+  if (debug)
+    installDebugApi({ world, camera, loop, tools, saves, perf, effects: renderer.effects });
 
   const resize = (): void => {
     renderer.resize(window.innerWidth, window.innerHeight, window.devicePixelRatio);

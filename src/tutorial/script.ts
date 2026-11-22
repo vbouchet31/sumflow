@@ -1,6 +1,6 @@
 import { applyBeltPlan, computeLPath, planBeltPath } from '../build/beltPath';
 import { applyBuildingPlan, planExtractor } from '../build/placement';
-import { ToolController, type ToolId } from '../build/tools';
+import { ToolController, type ToolEvents, type ToolId } from '../build/tools';
 import { TICK_RATE } from '../config/balance';
 import type { MessageKey } from '../i18n';
 import { createInitialState } from '../sim/state';
@@ -97,9 +97,11 @@ export class DemoScript {
     readonly scene: DemoScene,
     /** Touch: the finger only shows ghosts while it is down, as in the game. */
     private readonly touch = false,
+    /** What the demo's tools report (the view plays the chalk effects with them). */
+    events: ToolEvents = {},
   ) {
     this.world = sceneWorld(scene);
-    this.tools = new ToolController(this.world);
+    this.tools = new ToolController(this.world, events);
     this.world.events.on('delivered', ({ value }) => {
       this.delivered.set(value, (this.delivered.get(value) ?? 0) + 1);
     });

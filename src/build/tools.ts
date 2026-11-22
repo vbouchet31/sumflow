@@ -30,6 +30,8 @@ import {
   transformClip,
 } from './clipboard';
 import { History } from './history';
+import { NOTHING_TOUCHED } from './touched';
+import type { Touched } from './touched';
 import { applyMove, isMovable, isRotatable, type MovePlan, planMove, rotatedOrigin } from './move';
 import {
   applyBuildingPlan,
@@ -96,12 +98,18 @@ interface Moving {
   moved: boolean;
 }
 
+/**
+ * What the controller reports. Build and demolish events carry what the action did to the
+ * layout (for the chalk effects); a zone demolition, a cut and a clear carry their zone.
+ */
 export interface ToolEvents {
-  onBuild?: () => void;
-  onDemolish?: () => void;
+  onBuild?: (touched: Touched) => void;
+  onDemolish?: (touched: Touched) => void;
   onError?: () => void;
-  /** Items removed by the clear tool. */
-  onClear?: (items: number) => void;
+  /** Items removed by the clear tool, in the zone swept. */
+  onClear?: (items: number, area: Rect) => void;
+  /** Undo or redo changed the layout. */
+  onRestore?: (touched: Touched) => void;
   /** A marker tile was clicked: open the editor (existing text or null). */
   onMarker?: (x: number, y: number, text: string | null) => void;
 }
@@ -180,6 +188,17 @@ export class ToolController {
     for (const fn of this.listeners) fn();
   }
 
+  /** Report a build: what the action just run in `history` placed. */
+  private built(touched: Touched = this.history.lastTouched()): void {
+    this.events.onBuild?.(touched);
+  }
+
+  /** Report a demolition: what the action just run removed, and the zone swept, if any. */
+  private demolished(area: Rect | null = null): void {
+    const touched = this.history.lastTouched();
+    this.events.onDemolish?.(area ? { ...touched, area } : touched);
+  }
+
   /** Select a tool (selecting the active one again deselects it). Locked tools are ignored. */
   setTool(tool: ToolId): void {
     if (!this.isAvailable(tool)) return;
@@ -238,7 +257,7 @@ export class ToolController {
       } else if (b && isRotatable(b)) {
         const to = rotatedOrigin(b, delta);
         const plan = planMove(this.world, b.id, to.x, to.y, to.rot);
-        if (plan && this.history.run(() => applyMove(this.world, plan))) this.events.onBuild?.();
+        if (plan && this.history.run(() => applyMove(this.world, plan))) this.built();
         else this.events.onError?.();
       }
       return;
@@ -345,7 +364,7 @@ export class ToolController {
     if (!t || !this.history.run(() => demolishAt(this.world, t.x, t.y))) return false;
     this.selected = null;
     this.notify();
-    this.events.onDemolish?.();
+    this.demolished();
     return true;
   }
 
@@ -405,7 +424,7 @@ export class ToolController {
   copyTargetRect(cut: boolean): boolean {
     const rect = this.copyTarget;
     if (rect && this.copyRect(rect, cut)) {
-      if (cut) this.events.onDemolish?.();
+      if (cut) this.demolished(rect);
       return true;
     }
     this.events.onError?.();
@@ -484,7 +503,7 @@ export class ToolController {
     );
     if (placed > 0) {
       this.pending = null;
-      this.events.onBuild?.();
+      this.built();
     } else {
       this.events.onError?.();
     }
@@ -608,7 +627,7 @@ export class ToolController {
       if (plan && run(() => applyMove(this.world, plan))) {
         this.selected = { kind: 'building', id: moving.id };
         this.notify();
-        this.events.onBuild?.();
+        this.built();
       } else {
         this.events.onError?.();
       }
@@ -621,7 +640,7 @@ export class ToolController {
       return;
     }
     if (tool === 'priority' || (tool === 'belt' && mods.alt && !drag)) {
-      if (run(() => togglePriorityAt(this.world, x, y)) !== 'none') this.events.onBuild?.();
+      if (run(() => togglePriorityAt(this.world, x, y)) !== 'none') this.built();
       else this.events.onError?.();
       return;
     }
@@ -629,20 +648,18 @@ export class ToolController {
       const plan = planManualBridge(this.world, x, y, this.beltDir);
       if (plan) {
         run(() => this.world.setBridge(x, y, plan.h, plan.v));
-        this.events.onBuild?.();
+        this.built();
       } else this.events.onError?.();
       return;
     }
     if (tool === 'belt') {
       const plan = this.beltPlan(drag);
-      if (plan.length > 0 && run(() => applyBeltPlan(this.world, plan)) > 0)
-        this.events.onBuild?.();
+      if (plan.length > 0 && run(() => applyBeltPlan(this.world, plan)) > 0) this.built();
       else if (plan.every((t) => t.status === 'blocked')) this.events.onError?.();
       return;
     }
     if (tool === 'extractor') {
-      if (run(() => applyBuildingPlan(this.world, planExtractor(this.world, x, y))))
-        this.events.onBuild?.();
+      if (run(() => applyBuildingPlan(this.world, planExtractor(this.world, x, y)))) this.built();
       else this.events.onError?.();
       return;
     }
@@ -654,7 +671,7 @@ export class ToolController {
       const placed = run(() =>
         this.pastePlans(drag).reduce((n, p) => n + applyPaste(this.world, p), 0),
       );
-      if (placed > 0) this.events.onBuild?.();
+      if (placed > 0) this.built();
       else this.events.onError?.();
       return;
     }
@@ -670,7 +687,7 @@ export class ToolController {
         }
         return n;
       });
-      if (placed > 0) this.events.onBuild?.();
+      if (placed > 0) this.built();
       else this.events.onError?.();
     }
   }
@@ -691,12 +708,13 @@ export class ToolController {
         : this.history.run(() =>
             demolishAt(this.world, this.hover?.x ?? 0, this.hover?.y ?? 0) ? 1 : 0,
           );
-      if (n > 0) this.events.onDemolish?.();
+      if (n > 0) this.demolished(drag?.moved ? rect : null);
     } else if (tool === 'clear') {
-      this.events.onClear?.(clearArea(this.world, rect));
+      this.events.onClear?.(clearArea(this.world, rect), rect);
     } else if (this.copyRect(rect, tool === 'cut')) {
-      if (tool === 'cut') this.events.onDemolish?.();
-      else this.events.onBuild?.();
+      if (tool === 'cut') this.demolished(rect);
+      // A copy changes nothing on the map: the sound of a build, no effect.
+      else this.built(NOTHING_TOUCHED);
     } else {
       this.events.onError?.();
     }
@@ -716,7 +734,7 @@ export class ToolController {
       return;
     }
     const h = this.hover;
-    if (h && this.history.run(() => demolishAt(this.world, h.x, h.y))) this.events.onDemolish?.();
+    if (h && this.history.run(() => demolishAt(this.world, h.x, h.y))) this.demolished();
   }
 
   /**
@@ -754,12 +772,16 @@ export class ToolController {
 
   undo(): boolean {
     this.drag = null;
-    return this.history.undo();
+    if (!this.history.undo()) return false;
+    this.events.onRestore?.(this.history.lastTouched());
+    return true;
   }
 
   redo(): boolean {
     this.drag = null;
-    return this.history.redo();
+    if (!this.history.redo()) return false;
+    this.events.onRestore?.(this.history.lastTouched());
+    return true;
   }
 
   get hovered(): { x: number; y: number } | null {

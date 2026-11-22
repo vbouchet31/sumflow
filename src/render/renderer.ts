@@ -13,6 +13,7 @@ import { drawBridges, drawPriorities } from './layers/bridges';
 import { priorityTiles } from '../sim/priority';
 import { drawBuildings } from './layers/buildings';
 import { drawDeposits } from './layers/deposits';
+import { Effects } from './layers/effects';
 import { drawGhosts } from './layers/ghosts';
 import { drawGrid } from './layers/grid';
 import { clearItemSprites, drawItems } from './layers/items';
@@ -31,13 +32,15 @@ export class Renderer {
   private readonly ctx: CanvasRenderingContext2D;
   /** Time (ms, same clock as `draw`'s `nowMs`) of the last level-complete wave. */
   waveStart: number | null = null;
-  reducedMotion = false;
+  /** Sponge and dust of the player's actions (same clock as `draw`'s `nowMs`). */
+  readonly effects = new Effects();
   /** Options (PLAN §9.4). */
   showGrid = true;
   itemValuesAlways = false;
   /** Tile rectangle outlined on the map: the object inspected by a tap (touch screens). */
   selection: { x: number; y: number; w: number; h: number } | null = null;
   private dpr = 1;
+  private reduced = false;
   private readonly depositCache = new RegionCache();
   private readonly beltCache = new RegionCache();
   private world: World | null = null;
@@ -68,10 +71,16 @@ export class Renderer {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  /**
-   * Draw one frame in layer order (PLAN §10.2). Reads the world, never mutates it.
-   * Deposits and belts come from off-screen caches once the zoom has settled.
-   */
+  /** "Reduce motion" (PLAN §9.4): no wave, flash nor chalk effect. */
+  get reducedMotion(): boolean {
+    return this.reduced;
+  }
+
+  set reducedMotion(on: boolean) {
+    this.reduced = on;
+    this.effects.reducedMotion = on;
+  }
+
   /**
    * The fonts have changed (the handwriting font finished loading): drop the cached
    * pictures that hold text drawn with the fallback font.
@@ -81,6 +90,10 @@ export class Renderer {
     clearItemSprites();
   }
 
+  /**
+   * Draw one frame in layer order (PLAN §10.2). Reads the world, never mutates it.
+   * Deposits and belts come from off-screen caches once the zoom has settled.
+   */
   draw(world: World, ghost: Ghost, nowMs: number): void {
     const { ctx, camera, dpr } = this;
     const { state } = world;
@@ -99,6 +112,8 @@ export class Renderer {
     } else {
       drawDeposits(ctx, camera, world.deposits, state);
     }
+    // Sponge traces are on the board: what is drawn on it (belts, buildings) stays crisp.
+    this.effects.drawUnder(ctx, camera, nowMs);
 
     const v = camera.visibleTiles(1);
     // From zoom 0.6 chevrons move: only the tile bases are cached, chevrons are drawn live.
@@ -146,6 +161,7 @@ export class Renderer {
       ctx.lineWidth = 2;
       ctx.strokeRect(p.x + 1, p.y + 1, sel.w * camera.scale - 2, sel.h * camera.scale - 2);
     }
+    this.effects.drawOver(ctx, camera, nowMs);
     drawMarkers(ctx, camera, state.markers.values());
     if (this.waveStart !== null && !this.reducedMotion)
       drawWave(ctx, camera, nowMs - this.waveStart);

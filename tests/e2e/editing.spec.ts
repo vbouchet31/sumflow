@@ -262,3 +262,55 @@ test('select tool: a zone, then copy with Ctrl+C or cut from the selection tray'
   await expect(trayBtn('paste')).toBeVisible();
   await expect(trayBtn('copy')).toBeHidden();
 });
+
+test('chalk effects: dust when building, a sponge when demolishing, never on load', async ({
+  page,
+}) => {
+  await page.goto('./?debug=1&seed=42&tutorial=0');
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error('no viewport');
+  const at = (tx: number, ty: number): [number, number] => [
+    viewport.width / 2 + tx * 32 + 16,
+    viewport.height / 2 + ty * 32 + 16,
+  ];
+  const effects = () => page.evaluate(() => window.__sumflow?.effects() ?? null);
+  await page.evaluate(() => window.__sumflow?.unlockAll());
+
+  // Placing an adder with the mouse raises a puff of dust.
+  await page.keyboard.press('3');
+  await page.mouse.click(...at(8, -6));
+  expect((await effects())?.grains).toBeGreaterThan(0);
+  // Pause: the effects play all the same (they follow real time, not ticks).
+  await page.keyboard.press('Escape');
+  await page.keyboard.press(' ');
+  await page.mouse.move(...at(8, -6));
+  await page.keyboard.press('Delete');
+  expect((await effects())?.effects).toBeGreaterThan(0);
+  await expect.poll(effects, { timeout: 4000 }).toEqual({ effects: 0, grains: 0 });
+
+  // Building through the debug API (as a save or an import does) plays nothing.
+  await page.evaluate(() => {
+    window.__sumflow?.place('adder', 8, -6, 0);
+    window.__sumflow?.beltPath(8, -4, 8, 0);
+  });
+  expect(await effects()).toEqual({ effects: 0, grains: 0 });
+  await page.evaluate(() => window.__sumflow?.save());
+  await page.reload();
+  await page.waitForFunction(() => window.__sumflow !== undefined);
+  expect(await page.evaluate(() => window.__sumflow?.getState().buildings)).toBeGreaterThan(1);
+  expect(await effects()).toEqual({ effects: 0, grains: 0 });
+
+  // "Reduce motion": no effect at all.
+  await page.evaluate(() =>
+    localStorage.setItem('sumflow.settings', JSON.stringify({ reduceMotion: true })),
+  );
+  await page.reload();
+  await page.waitForFunction(() => window.__sumflow !== undefined);
+  await page.keyboard.press('x');
+  await page.mouse.move(...at(6, -7));
+  await page.mouse.down();
+  await page.mouse.move(...at(10, 1), { steps: 4 });
+  await page.mouse.up();
+  expect(await page.evaluate(() => window.__sumflow?.getState().buildings)).toBe(1);
+  expect(await effects()).toEqual({ effects: 0, grains: 0 });
+});

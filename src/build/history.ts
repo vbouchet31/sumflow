@@ -1,6 +1,7 @@
 import { EDIT } from '../config/balance';
 import type { Change } from '../sim/journal';
 import type { World } from '../sim/world';
+import { NOTHING_TOUCHED, type Touched, touchedBy } from './touched';
 
 /**
  * Undo / redo stacks (PLAN §8.2), 100 actions deep. Each action is recorded by the world's
@@ -11,18 +12,34 @@ export class History {
   private readonly undoStack: Change[] = [];
   private readonly redoStack: Change[] = [];
   private listeners = new Set<() => void>();
+  /** The change the latest action, undo or redo applied, and from which side. */
+  private last: { change: Change; side: 'before' | 'after' } | null = null;
+  private depth = 0;
 
   constructor(private readonly world: World) {}
 
   /** Run `fn` as one undoable action. Nested calls join the outer action. */
   run<T>(fn: () => T): T {
+    if (this.depth++ === 0) this.last = null;
     this.world.beginChange();
     try {
       return fn();
     } finally {
+      this.depth--;
       const change = this.world.endChange();
-      if (change) this.push(change);
+      if (change) {
+        this.last = { change, side: 'after' };
+        this.push(change);
+      }
     }
+  }
+
+  /**
+   * What the latest action (`run`), undo or redo did to the layout: nothing when it
+   * changed nothing. For the chalk effects.
+   */
+  lastTouched(): Touched {
+    return this.last ? touchedBy(this.last.change, this.last.side) : NOTHING_TOUCHED;
   }
 
   private push(change: Change): void {
@@ -48,6 +65,7 @@ export class History {
     const change = this.undoStack.pop();
     if (!change) return false;
     this.world.applyChange(change, 'before');
+    this.last = { change, side: 'before' };
     this.redoStack.push(change);
     this.notify();
     return true;
@@ -57,6 +75,7 @@ export class History {
     const change = this.redoStack.pop();
     if (!change) return false;
     this.world.applyChange(change, 'after');
+    this.last = { change, side: 'after' };
     this.undoStack.push(change);
     this.notify();
     return true;
