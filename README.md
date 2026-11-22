@@ -15,7 +15,7 @@ Version jouable en ligne : https://vbouchet31.github.io/sumflow/
 - **Améliorer** : livrer certains nombres accélère les tapis, les extracteurs et les opérateurs.
 - **Éditer** : copier, coller, pivoter, miroir, annuler, marqueurs, stockages.
 
-La carte est infinie et générée à partir d'une graine (`?seed=42` fixe celle d'une nouvelle partie). La partie est sauvegardée dans le navigateur ; le menu permet de l'exporter ou d'en importer une. Interface en français et en anglais.
+La carte est infinie et générée à partir d'une graine : un nombre ou un mot (ton pseudo, ton prénom…), saisi dans « Nouvelle partie » ou passé dans l'URL (`?seed=42`, `?seed=Vincent`) pour une nouvelle partie. Les majuscules et les espaces en trop ne comptent pas, les accents si. La partie est sauvegardée dans le navigateur ; le menu permet de l'exporter ou d'en importer une. Interface en français et en anglais.
 
 Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md), choix de conception dans [`docs/DECISIONS.md`](docs/DECISIONS.md).
 

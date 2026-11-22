@@ -149,3 +149,20 @@ test('New game from the menu starts a fresh game with the chosen seed', async ({
   expect(s?.belts).toBe(0);
   expect(s?.level).toBe(1);
 });
+
+test('New game from the menu accepts a word as seed, such as a name', async ({ page }) => {
+  await page.goto('./?debug=1&seed=42&tutorial=0');
+  await page.keyboard.press('Escape');
+  await page.locator('.menu-card .menu-btn').nth(1).click(); // New game
+  await page.locator('#new-seed').fill('Vincent');
+  await Promise.all([page.waitForEvent('load'), page.locator('#new-seed').press('Enter')]);
+  const s = await page.evaluate(() => window.__sumflow?.getState());
+  // Frozen value: same as `parseSeed('vincent')` in the unit tests.
+  expect(s?.seed).toBe(3201794912);
+  expect(s?.level).toBe(1);
+});
+
+test('?seed= accepts a word as well as a number', async ({ page }) => {
+  await page.goto('./?debug=1&seed=Vincent&tutorial=0');
+  expect((await page.evaluate(() => window.__sumflow?.getState()))?.seed).toBe(3201794912);
+});
