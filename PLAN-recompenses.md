@@ -37,6 +37,7 @@
 | Bâtiments sans limite (+, ×, −, ÷, ^, extracteur, stockage…) | Jamais proposés à l'unité, même avec une édition. On les débloque, c'est tout.                                                                                                                                                         |
 | Cartes Édition                                               | Une carte Édition s'applique sur **n'importe quel bâtiment** posé, bâtiments spéciaux compris. Si on démolit ce bâtiment, on récupère la carte Édition, à réappliquer ailleurs. Les effets de chaque édition seront définis plus tard. |
 | Bâtiment spécial obtenu en base                              | Il peut recevoir une carte Édition. Ce qui vient d'une carte Édition redevient une carte Édition ; une édition d'origine ne quitte jamais son bâtiment.                                                                                |
+| Récupérer une édition appliquée                              | Oui, de deux façons : en démolissant le bâtiment, ou sans démolir (« Retirer l'édition » dans la bulle). Choix provisoire : on pourra passer plus tard à des éditions définitives, comme dans Balatro (réglage `EDITION_RULES`, §3.5). |
 | Bâtiments spéciaux                                           | Limités, obtenus avec leur édition (par exemple un Concaténateur doré). Le bâtiment et son édition ne se séparent pas : le démolir rend un Concaténateur doré.                                                                         |
 | Taux d'édition des bâtiments spéciaux                        | Base, brillante, légendaire : 85 / 10 / 5 % au départ.                                                                                                                                                                                 |
 | Sauvegardes existantes                                       | Pas de migration. Les anciennes sauvegardes sont refusées proprement.                                                                                                                                                                  |
@@ -168,6 +169,10 @@ Les **pistes d'amélioration** restent liées aux bâtiments ordinaires débloqu
 - **Bulle de sélection** (`selectionBubble.ts`, qui propose déjà Pivoter, Copier, Supprimer) : un bouton ✦ « Édition » applique une carte libre sur le bâtiment sélectionné.
 - **Remplacer** : appliquer une carte sur un bâtiment qui a déjà une édition appliquée échange les deux. L'ancienne carte revient au joueur.
 - **Retirer sans démolir** : dans la bulle, « Retirer l'édition » rend la carte et remet le bâtiment en base. Une édition d'origine ne se retire pas.
+- **Réglage pour plus tard** : `EDITION_RULES = { returnOnDemolish: true, removable: true }`. Si l'on passe un jour à des éditions définitives (comme dans Balatro), on met les deux à `false` :
+  - la carte Édition est alors **consommée** à l'application, donc le compte devient « obtenues − consommées » au lieu de « obtenues − appliquées » ;
+  - annuler l'application (`Ctrl+Z`) rend quand même la carte, sinon une erreur de clic coûterait une carte ;
+  - la phase 1 écrit le code pour les deux réglages et teste les deux, pour que ce changement ne coûte qu'une ligne de configuration.
 
 **Cas limites**
 
@@ -563,5 +568,4 @@ Pour chaque nouvel objet :
 
 ## 9. Questions ouvertes (à trancher avant ou pendant R5)
 
-1. **Retirer une édition sans démolir** (bouton de la bulle) : oui (proposé) ou non ?
-2. **Prérequis du §3.2** : la liste proposée convient-elle (Priorités après le Pont, ^ après le ×, Stockage à partir du niveau 12) ?
+1. **Prérequis du §3.2** : la liste proposée convient-elle (Priorités après le Pont, ^ après le ×, Stockage à partir du niveau 12) ?
