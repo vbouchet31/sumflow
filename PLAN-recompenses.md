@@ -1,6 +1,6 @@
 # PLAN-recompenses.md : choisir sa récompense au Hub
 
-> **État : validé, prêt pour le développement (phase 1).** Branche `claude/hub-objectives-reward-choices-kdavx9`. Ce document décrit le travail ; il ne modifie aucun code. Les choix faits en cours de route iront dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> **État : phase 1 terminée (jalons R1 à R6), phase 2 à venir.** Branche `claude/hub-objectives-reward-choices-kdavx9`. Ce document décrit le travail ; il ne modifie aucun code. Les choix faits en cours de route iront dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ---
 

@@ -28,6 +28,7 @@ Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGR
 | Zoom                                             | molette, centré sur le curseur                                                                                                     |
 | Retour au Hub                                    | `H`                                                                                                                                |
 | Bâtiments                                        | `1` à `9` (tapis, extracteur, opérateurs, stockage, pont), `P` priorité, `R` / `Shift+R` pivoter                                   |
+| Bâtiment spécial                                 | `0` (dès le premier exemplaire, pastille = exemplaires libres) ; `0` de nouveau : l'édition suivante (Base, Brillante, Légendaire) |
 | Démolir / vider                                  | `X` / `C` puis glisser une zone (clic = un objet) ; `Suppr` = démolir l'objet survolé                                              |
 | Copier / couper / coller                         | `Ctrl+C` / `Ctrl+X` puis glisser ; `Ctrl+V` : clic ou glisser, `R` pivoter, `F` miroir, `Shift+molette` historique                 |
 | Sélection d'une zone                             | outil Sélection puis glisser : Copier et Couper apparaissent au-dessus de la barre (ou `Ctrl+C` / `Ctrl+X`)                        |

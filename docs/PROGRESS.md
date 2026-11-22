@@ -30,7 +30,7 @@ Cible : tablette et téléphone en paysage d'abord. Branche `dev-mobile`.
 
 ## Choix de récompense au Hub (PLAN-recompenses.md)
 
-Branche `claude/hub-objectives-reward-choices-kdavx9`. Plan validé, phase 1 en cours.
+Branche `claude/hub-objectives-reward-choices-kdavx9`. **Phase 1 terminée** (moteur et ergonomie, objets factices) ; la phase 2 commence par le choix des premiers vrais objets.
 
 | Jalon                                         | État       |
 | --------------------------------------------- | ---------- |
@@ -39,7 +39,7 @@ Branche `claude/hub-objectives-reward-choices-kdavx9`. Plan validé, phase 1 en 
 | R3 Écran de choix                             | ✅ terminé |
 | R4 Fiches après le choix                      | ✅ terminé |
 | R5 Éditions et exemplaires                    | ✅ terminé |
-| R6 Objets factices et finitions               | ⏳ à faire |
+| R6 Objets factices et finitions               | ✅ terminé |
 | Phase 2 Premiers objets, simulateur de tirage | ⏳ à faire |
 | Phase 3 Simulateur de rythme, équilibrage     | ⏳ à faire |
 

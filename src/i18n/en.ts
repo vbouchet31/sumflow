@@ -330,9 +330,10 @@ export const en: Record<MessageKey, string> = {
     'A legendary building does even better than a shiny one. An edition card goes on a placed building, with the Edition tool (G) or its bubble; demolishing it gives the card back.',
   'help.title.special': 'Special building',
   'help.special':
-    'Special buildings are counted: the build bar shows how many you have left. Demolishing one gives it back, edition included.',
+    'Special buildings are counted: their tool (key 0) shows how many you have left. Demolishing one gives it back, edition included.',
   'help.title.passive': 'Passive effect',
-  'help.passive': 'A passive works on its own, for the whole game. Nothing to place!',
+  'help.passive':
+    'A passive works on its own, for the whole game. Nothing to place! The Upgrades panel lists your active effects.',
   'help.eventail': 'Offers now show {n} cards. The Joker card can be any card.',
   'about.body': 'Fan project, inspired by Beltmatic by Notional Games. Original code and visuals.',
   'about.original': 'The original game on Steam',

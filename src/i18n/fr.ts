@@ -329,9 +329,10 @@ export const fr = {
     'Un bâtiment légendaire fait encore mieux qu’un brillant. Une carte Édition s’applique sur un bâtiment posé, avec l’outil Édition (G) ou sa bulle ; le démolir te la rend.',
   'help.title.special': 'Bâtiment spécial',
   'help.special':
-    'Un bâtiment spécial se compte à l’unité : la barre de construction montre combien il t’en reste. Le démolir te le rend, avec son édition.',
+    'Un bâtiment spécial se compte à l’unité : son outil (touche 0) montre combien il t’en reste. Le démolir te le rend, avec son édition.',
   'help.title.passive': 'Effet permanent',
-  'help.passive': 'Un passif agit tout seul, pour toute la partie. Rien à poser !',
+  'help.passive':
+    'Un passif agit tout seul, pour toute la partie. Rien à poser ! Le panneau Améliorations liste tes effets actifs.',
   'help.eventail':
     'Les offres montrent maintenant {n} cartes. La carte Joker peut être n’importe laquelle.',
   'about.body':
