@@ -34,6 +34,7 @@ Cible : tablette et téléphone en paysage d'abord. Branche `dev-mobile`.
 - [x] Bâtiments coloriés et esquissés, Hub tracé à la règle, nombres entourés à la main, stockage, fantômes, icônes.
 - [x] Tapis en rails continus par chaîne : virages serrés, portes de bâtiments, bouts libres, jonctions en T et en +, ponts.
 - [x] Tests : géométrie des chaînes et utilitaires craie (unitaires), couleurs et cache des tapis (e2e), contraste.
+- [x] Effets craie : coup d'éponge à la démolition (objet, zone, couper, vider), poussière de craie à la pose (bâtiments, tapis discrets, collage, déplacement), aussi à l'annulation. Coupés par « Réduire les animations ». Tests unitaires (cycle de vie, plafonds, chargement) et e2e.
 - [ ] À vérifier sur appareil : coût du rendu craie sur un téléphone milieu de gamme (zoom continu).
 
 ## Fiches tutoriel
