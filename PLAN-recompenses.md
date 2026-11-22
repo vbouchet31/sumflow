@@ -24,6 +24,7 @@
 | Coût d'une carte              | Aucun. On prend 1 carte parmi N. Pas de monnaie.                                                                                                                                        |
 | Ouverture de l'écran de choix | Automatique en fin de niveau. Le jeu continue derrière (pas de pause).                                                                                                                  |
 | Forme d'une carte             | Recto : image de l'objet dans son édition, puis son nom. Un clic retourne la carte (explications). Un bouton « Choisir » sous chaque carte, retournée ou non : un seul clic suffit.     |
+| Fil rouge                     | Le premier élément du tableau actuel que le joueur n'a pas encore. Son poids baisse à chaque refus, sans descendre sous la courbe normale de la carte.                                  |
 | Fiches tutoriel               | Après le choix, seulement si le joueur obtient quelque chose de nouveau pour la première fois de la partie (une valeur, un bâtiment, une fonction, une édition, un exemplaire limité…). |
 | Dépendances                   | Une carte n'est proposée que si ses prérequis sont remplis : pas de 3 sans le 2, pas de − sans le ×, etc.                                                                               |
 | Valeurs extractibles          | Débloquées une par une, dans l'ordre (2, 3, … 9, 11, …). Le 10 reste interdit sur la carte.                                                                                             |
@@ -58,7 +59,11 @@ Chaque « valeur » du tableau correspond déjà à exactement une nouvelle vale
 
 **La carte fil rouge d'une offre** est le premier élément de cette suite que le joueur n'a pas encore. La k-ième « valeur » de la suite est considérée comme acquise si `maxExtraction` l'atteint.
 
-- Un joueur qui a refusé le 2 voit donc revenir « Valeur 2 » comme fil rouge. Pour qu'un joueur qui refuse volontairement ne soit pas harcelé, le poids du fil rouge baisse à chaque refus (`naturalRefusalDecay`, par exemple × 0,7 par refus, à régler en phase 3).
+- Un joueur qui a refusé le 2 voit donc revenir « Valeur 2 » comme fil rouge.
+- **Pour qu'un joueur qui refuse volontairement ne soit pas harcelé**, le poids du fil rouge baisse à chaque refus : `poids × naturalRefusalDecay ^ refus` (par exemple 0,7, à régler en phase 3).
+  - Un **refus** : l'offre contenait la carte fil rouge et le joueur en a pris une autre. Une offre sans la carte fil rouge ne compte pas.
+  - Le compteur suit **un élément du fil rouge** : il repart à 0 dès que cet élément est obtenu (par la carte fil rouge ou autrement) et que le fil rouge passe au suivant.
+  - Le poids ne descend jamais sous la courbe normale de la carte : refuser le 2 dix fois le rend aussi rare qu'une carte ordinaire, pas introuvable.
 - **Niveaux 1 et 2** : récompense du fil rouge donnée directement, sans écran (`OFFERS.fixedUntil = 2`). Le premier écran de choix arrive à la fin du niveau 3.
 
 ### 3.2 Le catalogue
@@ -322,7 +327,7 @@ currentOffer: { level: number; cards: { card: string; edition: Edition }[] } | n
 /** Exemplaires possédés, par "type:édition". Les disponibles se calculent. */
 owned: Record<string, number>;
 passives: PassiveId[];
-/** Refus du fil rouge, pour naturalRefusalDecay. */
+/** Refus de l'élément actuel du fil rouge (remis à 0 quand il est obtenu). */
 naturalRefusals: number;
 ```
 
@@ -492,8 +497,7 @@ Pour chaque nouvel objet :
 
 ## 9. Questions ouvertes (à trancher avant ou pendant R3)
 
-1. **Fil rouge** : le premier élément manquant de la suite, avec un poids qui baisse à chaque refus (proposé), ou la récompense prévue pour ce niveau dans le tableau actuel ?
-2. **Niveaux 1 et 2 fixes** : oui (proposé), ou un écran de choix dès le niveau 1 ?
-3. **Exemplaire d'un bâtiment pas encore débloqué** (par exemple 1 × brillant au niveau 4) : autorisé ou non ?
-4. **Coller sans exemplaire disponible** : version de base (proposé) ou pose bloquée ?
-5. **Prérequis du §3.2** : la liste proposée convient-elle (Priorités après le Pont, ^ après le ×, Stockage à partir du niveau 12) ?
+1. **Niveaux 1 et 2 fixes** : oui (proposé), ou un écran de choix dès le niveau 1 ?
+2. **Exemplaire d'un bâtiment pas encore débloqué** (par exemple 1 × brillant au niveau 4) : autorisé ou non ?
+3. **Coller sans exemplaire disponible** : version de base (proposé) ou pose bloquée ?
+4. **Prérequis du §3.2** : la liste proposée convient-elle (Priorités après le Pont, ^ après le ×, Stockage à partir du niveau 12) ?
