@@ -23,23 +23,24 @@
 
 ## 1. Décisions déjà prises
 
-| Sujet                                                        | Décision                                                                                                                                                                            |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Coût d'une carte                                             | Aucun. On prend 1 carte parmi N. Pas de monnaie.                                                                                                                                    |
-| Ouverture de l'écran de choix                                | Automatique en fin de niveau. Le jeu continue derrière (pas de pause).                                                                                                              |
-| Forme d'une carte                                            | Recto : image de l'objet dans son édition, puis son nom. Un clic retourne la carte (explications). Un bouton « Choisir » sous chaque carte, retournée ou non : un seul clic suffit. |
-| Fil rouge                                                    | Le premier élément du tableau actuel que le joueur n'a pas encore. Son poids baisse à chaque refus, sans descendre sous la courbe normale de la carte.                              |
-| Niveaux 1 et 2                                               | Fixes : + puis Améliorations, donnés d'office sans écran. Le premier écran de choix arrive à la fin du niveau 3.                                                                    |
-| Fiches tutoriel                                              | Après le choix, seulement si le joueur obtient quelque chose de nouveau pour la première fois de la partie (une valeur, un bâtiment, une fonction, une édition…).                   |
-| Dépendances                                                  | Une carte n'est proposée que si ses prérequis sont remplis : pas de 3 sans le 2, pas de − sans le ×, etc.                                                                           |
-| Valeurs extractibles                                         | Débloquées une par une, dans l'ordre (2, 3, … 9, 11, …). Le 10 reste interdit sur la carte.                                                                                         |
-| Probabilités                                                 | Calculées avant chaque tirage : courbes par niveau, ajustables (le système de boutique de Balatro sert de modèle).                                                                  |
-| Bâtiments sans limite (+, ×, −, ÷, ^, extracteur, stockage…) | Jamais proposés à l'unité, même avec une édition. On les débloque, c'est tout.                                                                                                      |
-| Cartes Édition                                               | Une carte Édition s'applique sur n'importe quel bâtiment posé qui accepte une édition. Si on démolit ce bâtiment, on récupère la carte Édition, à réappliquer ailleurs.             |
-| Bâtiments spéciaux                                           | Limités, obtenus avec leur édition (par exemple un Concaténateur doré). Le bâtiment et son édition ne se séparent pas : le démolir rend un Concaténateur doré.                      |
-| Taux d'édition des bâtiments spéciaux                        | Base, brillante, légendaire : 85 / 10 / 5 % au départ.                                                                                                                              |
-| Sauvegardes existantes                                       | Pas de migration. Les anciennes sauvegardes sont refusées proprement.                                                                                                               |
-| Contenu                                                      | Pas décidé maintenant. La phase 1 utilise des objets factices ; on ajoute ensuite les objets un par un.                                                                             |
+| Sujet                                                        | Décision                                                                                                                                                                                                                               |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Coût d'une carte                                             | Aucun. On prend 1 carte parmi N. Pas de monnaie.                                                                                                                                                                                       |
+| Ouverture de l'écran de choix                                | Automatique en fin de niveau. Le jeu continue derrière (pas de pause).                                                                                                                                                                 |
+| Forme d'une carte                                            | Recto : image de l'objet dans son édition, puis son nom. Un clic retourne la carte (explications). Un bouton « Choisir » sous chaque carte, retournée ou non : un seul clic suffit.                                                    |
+| Fil rouge                                                    | Le premier élément du tableau actuel que le joueur n'a pas encore. Son poids baisse à chaque refus, sans descendre sous la courbe normale de la carte.                                                                                 |
+| Niveaux 1 et 2                                               | Fixes : + puis Améliorations, donnés d'office sans écran. Le premier écran de choix arrive à la fin du niveau 3.                                                                                                                       |
+| Fiches tutoriel                                              | Après le choix, seulement si le joueur obtient quelque chose de nouveau pour la première fois de la partie (une valeur, un bâtiment, une fonction, une édition…).                                                                      |
+| Dépendances                                                  | Une carte n'est proposée que si ses prérequis sont remplis : pas de 3 sans le 2, pas de − sans le ×, etc.                                                                                                                              |
+| Valeurs extractibles                                         | Débloquées une par une, dans l'ordre (2, 3, … 9, 11, …). Le 10 reste interdit sur la carte.                                                                                                                                            |
+| Probabilités                                                 | Calculées avant chaque tirage : courbes par niveau, ajustables (le système de boutique de Balatro sert de modèle).                                                                                                                     |
+| Bâtiments sans limite (+, ×, −, ÷, ^, extracteur, stockage…) | Jamais proposés à l'unité, même avec une édition. On les débloque, c'est tout.                                                                                                                                                         |
+| Cartes Édition                                               | Une carte Édition s'applique sur **n'importe quel bâtiment** posé, bâtiments spéciaux compris. Si on démolit ce bâtiment, on récupère la carte Édition, à réappliquer ailleurs. Les effets de chaque édition seront définis plus tard. |
+| Bâtiment spécial obtenu en base                              | Il peut recevoir une carte Édition. Ce qui vient d'une carte Édition redevient une carte Édition ; une édition d'origine ne quitte jamais son bâtiment.                                                                                |
+| Bâtiments spéciaux                                           | Limités, obtenus avec leur édition (par exemple un Concaténateur doré). Le bâtiment et son édition ne se séparent pas : le démolir rend un Concaténateur doré.                                                                         |
+| Taux d'édition des bâtiments spéciaux                        | Base, brillante, légendaire : 85 / 10 / 5 % au départ.                                                                                                                                                                                 |
+| Sauvegardes existantes                                       | Pas de migration. Les anciennes sauvegardes sont refusées proprement.                                                                                                                                                                  |
+| Contenu                                                      | Pas décidé maintenant. La phase 1 utilise des objets factices ; on ajoute ensuite les objets un par un.                                                                                                                                |
 
 ---
 
@@ -97,19 +98,19 @@ Un seul fichier, `src/config/cards.ts`, décrit toutes les cartes. Aucune règle
 
 **Prérequis proposés pour l'existant** (à valider) :
 
-| Carte                                 | Prérequis                                                                      |
-| ------------------------------------- | ------------------------------------------------------------------------------ |
-| Valeur k                              | valeur précédente                                                              |
-| +                                     | aucun (fixe au niveau 1)                                                       |
-| Améliorations                         | aucun (fixe au niveau 2)                                                       |
-| Pont                                  | aucun                                                                          |
-| ×                                     | +                                                                              |
-| Priorités                             | Pont                                                                           |
-| −                                     | ×                                                                              |
-| ÷                                     | −                                                                              |
-| ^                                     | ×                                                                              |
-| Stockage                              | niveau 12 ou plus                                                              |
-| Édition brillante, Édition légendaire | au moins un bâtiment qui accepte une édition (toujours vrai après le niveau 1) |
+| Carte                                 | Prérequis                |
+| ------------------------------------- | ------------------------ |
+| Valeur k                              | valeur précédente        |
+| +                                     | aucun (fixe au niveau 1) |
+| Améliorations                         | aucun (fixe au niveau 2) |
+| Pont                                  | aucun                    |
+| ×                                     | +                        |
+| Priorités                             | Pont                     |
+| −                                     | ×                        |
+| ÷                                     | −                        |
+| ^                                     | ×                        |
+| Stockage                              | niveau 12 ou plus        |
+| Édition brillante, Édition légendaire | aucun                    |
 
 Les **pistes d'amélioration** restent liées aux bâtiments ordinaires débloqués (`isTrackUnlocked`). La piste d'un bâtiment spécial se décide dans sa fiche (§6.1) : une piste existante, une nouvelle, ou aucune.
 
@@ -133,15 +134,16 @@ Les **pistes d'amélioration** restent liées aux bâtiments ordinaires débloqu
 - **Effet commun**, comme dans Balatro, pour que le joueur apprenne la règle une seule fois :
   - brillante : vitesse × 1,25 ;
   - légendaire : vitesse × 1,5, plus l'effet propre du bâtiment s'il en a un.
-- **Ce que « vitesse » veut dire pour chaque bâtiment** (configuration `EDITION_EFFECTS`, par type) :
+- **Tous les bâtiments acceptent une édition.** Les effets de chaque édition, bâtiment par bâtiment, seront discutés plus tard et décrits dans `EDITION_EFFECTS` (par type de bâtiment).
+- **Effets provisoires de la phase 1**, pour avoir quelque chose à tester :
 
-| Bâtiment                   | Brillante       | Légendaire     | Accepte une édition ? |
-| -------------------------- | --------------- | -------------- | --------------------- |
-| Opérateurs (+, ×, −, ÷, ^) | cycle × 1,25    | cycle × 1,5    | oui                   |
-| Extracteur                 | débit × 1,25    | débit × 1,5    | oui                   |
-| Stockage                   | capacité × 1,25 | capacité × 1,5 | oui                   |
-| Bâtiment spécial           | sa fiche        | sa fiche       | oui (voir §9)         |
-| Tapis, pont, Hub           |                 |                | non                   |
+| Bâtiment                   | Brillante        | Légendaire       |
+| -------------------------- | ---------------- | ---------------- |
+| Opérateurs (+, ×, −, ÷, ^) | cycle × 1,25     | cycle × 1,5      |
+| Extracteur                 | débit × 1,25     | débit × 1,5      |
+| Stockage                   | capacité × 1,25  | capacité × 1,5   |
+| Bâtiment spécial factice   | cycle × 1,25     | cycle × 1,5      |
+| Autres (tapis, pont…)      | visuel seulement | visuel seulement |
 
 - **Une seule édition par bâtiment.**
 - **Rendu** : la base reste comme aujourd'hui ; la brillante est en craie nacrée avec un reflet ; la légendaire en craie dorée avec une petite étoile. Le même code couleur sert sur la carte de l'offre, dans la barre de construction, sur le fantôme, dans l'info-bulle et sur la carte Édition elle-même (un bâton de craie nacrée ou dorée).
@@ -162,7 +164,7 @@ Les **pistes d'amélioration** restent liées aux bâtiments ordinaires débloqu
 
 **Appliquer une carte Édition**
 
-- **Outil Édition** (touche `G`, visible dès qu'on possède une carte Édition) : on choisit Brillante ou Légendaire dans la rangée de variantes, puis on clique un bâtiment. Le fantôme montre le bâtiment recoloré ; un bâtiment qui n'accepte pas d'édition est marqué en rouge.
+- **Outil Édition** (touche `G`, visible dès qu'on possède une carte Édition) : on choisit Brillante ou Légendaire dans la rangée de variantes, puis on clique un bâtiment. Le fantôme montre le bâtiment recoloré.
 - **Bulle de sélection** (`selectionBubble.ts`, qui propose déjà Pivoter, Copier, Supprimer) : un bouton ✦ « Édition » applique une carte libre sur le bâtiment sélectionné.
 - **Remplacer** : appliquer une carte sur un bâtiment qui a déjà une édition appliquée échange les deux. L'ancienne carte revient au joueur.
 - **Retirer sans démolir** : dans la bulle, « Retirer l'édition » rend la carte et remet le bâtiment en base. Une édition d'origine ne se retire pas.
@@ -360,7 +362,7 @@ export const OFFERS = {
 };
 /** Édition d'origine d'un bâtiment spécial. */
 export const SPECIAL_EDITION_ODDS = { base: 85, brillante: 10, legendaire: 5 };
-/** Effet de chaque édition, par type de bâtiment (absent = n'accepte pas d'édition). */
+/** Effet de chaque édition, par type de bâtiment (absent = effet visuel seulement, à définir). */
 export const EDITION_EFFECTS: Partial<Record<BuildingType, Record<SpecialEdition, EditionEffect>>>;
 export const GUARDS: readonly Guard[] = [];
 ```
@@ -443,7 +445,7 @@ Chacun couvre un cas d'interface précis. Ceux marqués « réel » sont jouable
   - le fil rouge suivi de bout en bout redonne exactement l'ordre de `LEVEL_TABLE` ;
   - valeurs 9 → 11 ;
   - répartition des éditions d'origine ;
-  - cartes Édition : appliquer, échanger, retirer, démolir rend la carte, annuler et rétablir chaque action, refus sur un tapis ou un pont ;
+  - cartes Édition : appliquer, échanger, retirer, démolir rend la carte, annuler et rétablir chaque action, sur un bâtiment ordinaire comme sur un bâtiment spécial de base ;
   - bâtiments spéciaux : pose refusée à 0, démolir le rend avec son édition, collage bloqué sans exemplaire libre ;
   - collage d'un bâtiment ordinaire à édition appliquée : collé en base ;
   - annuler une démolition quand la carte a été réappliquée ailleurs : bâtiment restauré en base ;
@@ -561,6 +563,5 @@ Pour chaque nouvel objet :
 
 ## 9. Questions ouvertes (à trancher avant ou pendant R5)
 
-1. **Carte Édition sur un bâtiment spécial de base** (un Concaténateur obtenu en base, puis une carte Édition légendaire dessus) : autorisé, avec la carte qui revient au joueur quand on démolit (proposé : « ce qui vient d'une carte Édition redevient une carte Édition ») ? Ou interdit ?
-2. **Retirer une édition sans démolir** (bouton de la bulle) : oui (proposé) ou non ?
-3. **Prérequis du §3.2** : la liste proposée convient-elle (Priorités après le Pont, ^ après le ×, Stockage à partir du niveau 12) ?
+1. **Retirer une édition sans démolir** (bouton de la bulle) : oui (proposé) ou non ?
+2. **Prérequis du §3.2** : la liste proposée convient-elle (Priorités après le Pont, ^ après le ×, Stockage à partir du niveau 12) ?
