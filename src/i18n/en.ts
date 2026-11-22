@@ -322,6 +322,18 @@ export const en: Record<MessageKey, string> = {
   'help.exponent': 'Exponent: A to the power of B. Results grow fast.',
   'help.storage':
     'Storage: it holds up to 10,000 copies of a single value and outputs them at full speed.',
+  'help.title.value': 'New value',
+  'help.value': 'Deposits of {n} can now be extracted. Each new value unlocks the next one.',
+  'help.edition.brillante':
+    'A shiny building runs faster, or extracts and stores more. An edition card goes on a placed building; demolishing it gives the card back.',
+  'help.edition.legendaire':
+    'A legendary building does even better than a shiny one. An edition card goes on a placed building; demolishing it gives the card back.',
+  'help.title.special': 'Special building',
+  'help.special':
+    'Special buildings are counted: the build bar shows how many you have left. Demolishing one gives it back, edition included.',
+  'help.title.passive': 'Passive effect',
+  'help.passive': 'A passive works on its own, for the whole game. Nothing to place!',
+  'help.eventail': 'Offers now show {n} cards. The Joker card can be any card.',
   'about.body': 'Fan project, inspired by Beltmatic by Notional Games. Original code and visuals.',
   'about.original': 'The original game on Steam',
   'about.repo': 'Source code on GitHub',

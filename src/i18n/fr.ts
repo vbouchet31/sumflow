@@ -320,6 +320,20 @@ export const fr = {
   'help.exponent': 'Exposant : A à la puissance B. Les résultats grandissent vite.',
   'help.storage':
     'Stockage : il garde jusqu’à 10 000 exemplaires d’une seule valeur et les ressort à pleine vitesse.',
+  'help.title.value': 'Nouvelle valeur',
+  'help.value':
+    'Les gisements de {n} sont maintenant extractibles. Chaque nouvelle valeur débloque la suivante.',
+  'help.edition.brillante':
+    'Un bâtiment brillant va plus vite, ou extrait et stocke davantage. Une carte Édition s’applique sur un bâtiment posé ; le démolir te la rend.',
+  'help.edition.legendaire':
+    'Un bâtiment légendaire fait encore mieux qu’un brillant. Une carte Édition s’applique sur un bâtiment posé ; le démolir te la rend.',
+  'help.title.special': 'Bâtiment spécial',
+  'help.special':
+    'Un bâtiment spécial se compte à l’unité : la barre de construction montre combien il t’en reste. Le démolir te le rend, avec son édition.',
+  'help.title.passive': 'Effet permanent',
+  'help.passive': 'Un passif agit tout seul, pour toute la partie. Rien à poser !',
+  'help.eventail':
+    'Les offres montrent maintenant {n} cartes. La carte Joker peut être n’importe laquelle.',
   'about.body':
     'Projet de fan, inspiré par Beltmatic de Notional Games. Code et visuels originaux.',
   'about.original': 'Le jeu original sur Steam',

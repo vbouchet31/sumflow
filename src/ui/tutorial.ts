@@ -1,4 +1,5 @@
 import { t } from '../i18n';
+import { type CardArt, drawCardArt } from '../render/cardArt';
 import { el, releaseFocus, trapTab } from './dom';
 import type { HelpTip } from './help';
 import { TutorialDemo } from './tutorialDemo';
@@ -9,7 +10,14 @@ export interface TutorialShowOptions {
   total?: number;
   /** Called once the card is closed (button, Escape or a tap outside). */
   onClose?: () => void;
+  /** Reward card picture instead of the icon glyph (tips without a demo). */
+  art?: CardArt;
+  /** Parameters of the tip text. */
+  params?: Record<string, string | number>;
 }
+
+/** Size of a reward card picture on a tutorial card, in CSS pixels (drawn at this size). */
+const ART_PX = 120;
 
 /**
  * Tutorial card (PLAN §7.5): a modal dialog with an animated demo of the tip, a title and
@@ -72,7 +80,7 @@ export class TutorialCard {
     );
     const title = el('h2', undefined, t(tip.title));
     title.id = 'tut-title';
-    const text = el('p', 'tut-text', t(tip.text));
+    const text = el('p', 'tut-text', t(tip.text, options.params));
     text.id = 'tut-text';
 
     let visual: HTMLElement;
@@ -81,8 +89,9 @@ export class TutorialCard {
       visual = this.demo.element;
     } else {
       this.demo = null;
-      visual = el('div', 'tut-demo tut-demo-icon', el('span', 'tut-big-icon', tip.icon));
-      visual.firstElementChild?.setAttribute('aria-hidden', 'true');
+      const icon = options.art ? artCanvas(options.art) : el('span', 'tut-big-icon', tip.icon);
+      icon.setAttribute('aria-hidden', 'true');
+      visual = el('div', 'tut-demo tut-demo-icon', icon);
     }
 
     const ok = el('button', 'primary-btn tut-ok', t(more ? 'help.next' : 'help.dismiss'));
@@ -114,4 +123,19 @@ export class TutorialCard {
     this.onClose = undefined;
     done?.();
   }
+}
+
+/** A reward card picture, drawn as on the front of the card. */
+function artCanvas(art: CardArt): HTMLElement {
+  const canvas = document.createElement('canvas');
+  canvas.className = 'tut-art';
+  const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+  canvas.width = ART_PX * dpr;
+  canvas.height = ART_PX * dpr;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawCardArt(ctx, art, ART_PX);
+  }
+  return el('span', 'tut-big-icon tut-big-art', canvas);
 }

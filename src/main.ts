@@ -58,7 +58,7 @@ import {
 import { SaveError } from './save/schema';
 import { type CameraState, deserialize, serialize } from './save/serialize';
 import { defaultSettings, loadSettings, storeSettings } from './save/settings';
-import { knownTips, markSeen, pendingTips } from './ui/help';
+import { knownTips, markSeen, pendingTips, tipContent } from './ui/help';
 import { TutorialCard } from './ui/tutorial';
 import { OfferScreen } from './ui/offerScreen';
 import { canOpenOffer, OFFER_INTRO_ID, OfferSeries, offerView } from './ui/offerInfo';
@@ -235,7 +235,8 @@ async function bootstrap(): Promise<void> {
   const openTutorial: TutorialCard['show'] = (tip, options) => {
     tutorial.touch = usesTouch();
     tutorial.still = settings.reduceMotion;
-    tutorial.show(tip, options);
+    // Picture and text parameters read from the game when the card opens (value, editions…).
+    tutorial.show(tip, { ...options, ...tipContent(tip, state) });
   };
   // `?tutorial=0` keeps the cards from opening by themselves (end-to-end tests).
   const autoTutorials = new URLSearchParams(location.search).get('tutorial') !== '0';
@@ -318,8 +319,11 @@ async function bootstrap(): Promise<void> {
       return;
     }
     if (offerScreen.isOpen) {
-      // The offer changed under the screen (debug choice or forced offer): show the new one.
-      if (state.currentOffer !== shownOffer) showOffer();
+      // The offer changed under the screen (debug choice or forced offer): show the new one,
+      // unless that choice brought tutorial cards. They come first, as after a click (§4.3).
+      if (state.currentOffer === shownOffer) return;
+      if (autoTutorials && pendingTips(state).length > 0) offerScreen.close();
+      else showOffer();
     } else if (offerMayOpen()) showOffer();
   };
   const offerScreen = new OfferScreen(uiRoot, {

@@ -9,8 +9,12 @@ import type { OfferCardView, OfferView } from './offerInfo';
  * map, or a double click, must not take a reward (PLAN-recompenses §4.2).
  */
 export const CHOOSE_DELAY_MS = 400;
-/** Side of the card pictures, in CSS pixels, before the layout scales them. */
-const ART_PX = 128;
+/**
+ * Size of the card pictures, in CSS pixels, before the layout scales them. Wider than tall
+ * (5:4, as `--art-w` and `--art` in the style sheet), so a long building fills the card.
+ */
+const ART_W = 160;
+const ART_H = 128;
 
 export interface OfferScreenHandlers {
   /** Card `index` of the offer was chosen. */
@@ -223,11 +227,11 @@ export class OfferScreen {
   /** Draw the card picture at the device resolution (the style sheet sets its size). */
   private paint(canvas: HTMLCanvasElement, view: OfferCardView): void {
     const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
-    canvas.width = ART_PX * dpr;
-    canvas.height = ART_PX * dpr;
+    canvas.width = ART_W * dpr;
+    canvas.height = ART_H * dpr;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawCardArt(ctx, cardArt(view.icon, view.card.edition, view.card.value), ART_PX);
+    drawCardArt(ctx, cardArt(view.icon, view.card.edition, view.card.value), ART_W, ART_H);
   }
 }

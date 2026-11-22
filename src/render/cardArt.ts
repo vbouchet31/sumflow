@@ -5,6 +5,7 @@
  * get a chalk icon of their own.
  */
 import type { Edition, SpecialType } from '../config/cards';
+import { BUILDINGS } from '../config/buildings';
 import { CHALK, COLORS, EDITION_COLORS, FONT_NUM, HUB_COLORS } from '../config/colors';
 import { formatCompact } from '../core/format';
 import { chalkLine, chalkStroke, sketchCircle, sketchRect } from './chalk';
@@ -61,13 +62,26 @@ export function cardArt(icon: string, edition: Edition, value?: number): CardArt
   }
 }
 
-/** Draw `art` in a `size` × `size` square at the origin of `ctx` (CSS pixels). */
-export function drawCardArt(ctx: CanvasRenderingContext2D, art: CardArt, size: number): void {
-  ctx.clearRect(0, 0, size, size);
+/**
+ * Draw `art` in a `w` × `h` rectangle at the origin of `ctx` (CSS pixels; square by default).
+ * A building fills the rectangle as far as its footprint allows (a long multiplier uses the
+ * whole width); every other picture is drawn in the centred square.
+ */
+export function drawCardArt(
+  ctx: CanvasRenderingContext2D,
+  art: CardArt,
+  w: number,
+  h: number = w,
+): void {
+  ctx.clearRect(0, 0, w, h);
+  if (art.kind === 'building') {
+    drawBuilding(ctx, art.tool, art.edition, w, h);
+    return;
+  }
+  const size = Math.min(w, h);
+  ctx.save();
+  ctx.translate((w - size) / 2, (h - size) / 2);
   switch (art.kind) {
-    case 'building':
-      drawBuilding(ctx, art.tool, art.edition, size);
-      break;
     case 'value':
       drawValue(ctx, art.value, size);
       break;
@@ -91,22 +105,34 @@ export function drawCardArt(ctx: CanvasRenderingContext2D, art: CardArt, size: n
       ctx.fillText('?', size / 2, size / 2);
       break;
   }
+  ctx.restore();
 }
 
-/** The build-bar picture, a little inside the square, recoloured by its edition. */
+/** Share of the rectangle a building picture fills, leaving room for the chalk wobble. */
+const BUILDING_FILL = 0.92;
+
+/**
+ * The build-bar picture, as large as its footprint allows in `w` × `h`, recoloured by its
+ * edition. The bar draws a building with its longest side across a square: that square is
+ * scaled so the drawn tiles reach the rectangle's width or height, whichever comes first.
+ */
 function drawBuilding(
   ctx: CanvasRenderingContext2D,
   tool: IconTool,
   edition: Edition,
-  size: number,
+  w: number,
+  h: number,
 ): void {
-  const inner = size * 0.82;
-  const o = (size - inner) / 2;
+  const def = (BUILDINGS as Partial<Record<string, { w: number; h: number }>>)[tool];
+  const bw = def?.w ?? 1;
+  const bh = def?.h ?? 1;
+  const long = Math.max(bw, bh);
+  const square = BUILDING_FILL * Math.min((w * long) / bw, (h * long) / bh);
   ctx.save();
-  ctx.translate(o, o);
-  drawToolIcon(ctx, tool, 0, inner);
+  ctx.translate((w - square) / 2, (h - square) / 2);
+  drawToolIcon(ctx, tool, 0, square);
   ctx.restore();
-  markEdition(ctx, edition, 0, 0, size, size);
+  markEdition(ctx, edition, 0, 0, w, h);
 }
 
 /** The value written large in its item chalk, circled by hand. */

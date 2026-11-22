@@ -1290,6 +1290,20 @@ body::after {
   font: 700 40px var(--font-num);
 }
 
+/* A reward card picture (value, edition, special building…), as on the card front. */
+.tut-big-art {
+  width: auto;
+  height: auto;
+  border: none;
+  background: none;
+}
+
+.tut-art {
+  display: block;
+  width: 120px;
+  height: 120px;
+}
+
 .tut-body {
   display: grid;
   gap: 10px;
@@ -1852,7 +1866,7 @@ body::after {
 
 .offer-sheet {
   --card-w: 190px;
-  --art: 116px;
+  --art: 128px;
   position: relative;
   display: grid;
   justify-items: center;
@@ -1993,8 +2007,11 @@ body::after {
 .offer-art {
   display: block;
   flex: none;
-  width: var(--art);
+  /* Same 5:4 shape as the drawing (offerScreen.ts): a long building fills the card. */
+  width: calc(var(--art) * 1.25);
+  max-width: 100%;
   height: var(--art);
+  object-fit: contain;
 }
 
 .offer-name {
@@ -2195,7 +2212,7 @@ body::after {
 @media (orientation: landscape) {
   .ui-compact .offer-sheet {
     --card-w: 172px;
-    --art: 84px;
+    --art: 96px;
     grid-template-columns: 1fr auto;
     align-items: center;
     gap: 8px 12px;
