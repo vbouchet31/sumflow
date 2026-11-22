@@ -2,7 +2,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { copyArea } from '../../src/build/clipboard';
 import { selectionRect } from '../../src/build/area';
 import { E, S, W } from '../../src/core/grid';
-import { type Migration, MIGRATIONS, migrate } from '../../src/save/migrations';
+import {
+  FIRST_SUPPORTED_VERSION,
+  isOutdated,
+  type Migration,
+  MIGRATIONS,
+  migrate,
+} from '../../src/save/migrations';
 import {
   decodeSave,
   encodeSave,
@@ -173,10 +179,15 @@ describe('storage', () => {
 
 describe('migrations', () => {
   it('the current list brings every known version to the current one', () => {
-    expect(MIGRATIONS).toHaveLength(SAVE_VERSION - 1);
+    expect(MIGRATIONS).toHaveLength(SAVE_VERSION - FIRST_SUPPORTED_VERSION);
     expect(migrate({ version: SAVE_VERSION, a: 1 })).toEqual({ version: SAVE_VERSION, a: 1 });
     expect(migrate({ version: SAVE_VERSION + 1 })).toBeNull();
     expect(migrate({})).toBeNull();
+    // Version 1 (fixed level rewards) is never migrated.
+    expect(migrate({ version: 1 })).toBeNull();
+    expect(isOutdated({ version: 1 })).toBe(true);
+    expect(isOutdated({ version: SAVE_VERSION })).toBe(false);
+    expect(isOutdated({ version: 'x' })).toBe(false);
   });
 
   it('applies migrations in order', () => {
@@ -184,13 +195,13 @@ describe('migrations', () => {
       (d) => ({ ...d, renamed: d['old'] }),
       (d) => ({ ...d, extra: [d['renamed']] }),
     ];
-    expect(migrate({ version: 1, old: 5 }, steps, 3)).toEqual({
+    expect(migrate({ version: 1, old: 5 }, steps, 3, 1)).toEqual({
       version: 3,
       old: 5,
       renamed: 5,
       extra: [5],
     });
-    expect(migrate({ version: 2, renamed: 1 }, steps, 3)).toEqual({
+    expect(migrate({ version: 2, renamed: 1 }, steps, 3, 1)).toEqual({
       version: 3,
       renamed: 1,
       extra: [1],

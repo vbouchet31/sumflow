@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { LEVEL_TABLE, LEVELS } from '../../src/config/balance';
-import { ensureLevels, type GeneratedLevel, quantityFor, rewardFor } from '../../src/sim/levels';
-import { completeLevel, deliver, setLevel } from '../../src/sim/progression';
+import { resolvePending } from '../../src/sim/autoPick';
+import { ensureLevels, type GeneratedLevel, quantityFor } from '../../src/sim/levels';
+import { chooseCard, completeLevel, deliver, setLevel } from '../../src/sim/progression';
 import { createInitialState } from '../../src/sim/state';
 
 const SEEDS = [0, 1, 42, 987654321, 2 ** 32 - 1];
@@ -58,7 +59,6 @@ describe('level generation', () => {
     }
     expect(quantityFor(31)).toBe(14_200);
     expect(quantityFor(60)).toBe(20_000);
-    expect(rewardFor(31)).toEqual({ kind: 'extraction', max: 24 });
   });
 
   it('ends with a final level capped at 2 000 000 000', () => {
@@ -78,7 +78,7 @@ describe('progression', () => {
     expect(s.levels.length).toBe(1 + LEVELS.lookahead);
   });
 
-  it('applies rewards: adder, upgrades, extraction, bridge, …', () => {
+  it('applies rewards: adder, upgrades, then the natural card of each offer', () => {
     const s = createInitialState(42);
     deliver(s, 1, undefined);
     for (let i = 0; i < 10; i++) deliver(s, 1);
@@ -88,10 +88,14 @@ describe('progression', () => {
     completeLevel(s);
     expect(s.unlockedFeatures).toContain('upgrades');
     completeLevel(s);
+    expect(s.maxExtraction).toBe(1); // level 3 gives an offer, not chosen yet
+    resolvePending(s, 'natural');
     expect(s.maxExtraction).toBe(2);
     completeLevel(s);
+    resolvePending(s, 'natural');
     expect(s.unlockedBuildings).toContain('bridge');
     completeLevel(s);
+    resolvePending(s, 'natural');
     expect(s.maxExtraction).toBe(3);
     expect(s.level).toBe(6);
   });
@@ -124,7 +128,7 @@ describe('progression', () => {
     expect(s.maxExtraction).toBe(15);
   });
 
-  it('finishing the final level switches to free play', () => {
+  it('finishing the final level switches to free play, its offer still to choose', () => {
     const s = createInitialState(1);
     const levels = ensureLevels(s.seed, s.levels, 5000);
     setLevel(s, levels.length);
@@ -133,9 +137,16 @@ describe('progression', () => {
     expect(s.levelRequirement).toBeNull();
     expect(s.finishedAtTick).toBe(s.tick);
     expect(events).toEqual([
-      { type: 'levelCompleted', payload: expect.objectContaining({ final: true }) },
+      { type: 'levelCompleted', payload: expect.objectContaining({ final: true, reward: null }) },
     ]);
+    expect(s.pendingLevels).toEqual([levels.length]);
     deliver(s, 5); // no crash in free play
     expect(s.totalDelivered).toBe(1);
+    expect(chooseCard(s, 0, (type, payload) => events.push({ type, payload }))).toBe(true);
+    expect(events.at(-1)).toEqual({
+      type: 'cardChosen',
+      payload: expect.objectContaining({ level: levels.length, final: true }),
+    });
+    expect(s.pendingLevels).toEqual([]);
   });
 });

@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { START_BUILDINGS, START_MAX_EXTRACTION } from '../../src/config/balance';
+import {
+  LEVEL_TABLE,
+  type Reward,
+  START_BUILDINGS,
+  START_MAX_EXTRACTION,
+} from '../../src/config/balance';
 import { CARDS, type CardDef, type Edition, OFFERS } from '../../src/config/cards';
 import { mulberry32 } from '../../src/core/rng';
-import { rewardFor } from '../../src/sim/levels';
 import {
   type Catalogue,
   cardWeight,
@@ -25,6 +29,11 @@ type Ctx = {
     ? T[]
     : OfferContext[K];
 };
+
+/** The fixed reward of level `n` before reward cards: the table, then Extraction n − 7. */
+function legacyReward(n: number): Reward {
+  return LEVEL_TABLE[n - 1]?.reward ?? { kind: 'extraction', max: n - 7 };
+}
 
 function card(id: string): CardDef {
   const c = CARDS.find((x) => x.id === id);
@@ -93,7 +102,7 @@ describe('natural sequence', () => {
     const seq = naturalSequence();
     expect(seq).toHaveLength(30);
     seq.forEach((step, i) => {
-      const reward = rewardFor(i + 1);
+      const reward = legacyReward(i + 1);
       if (reward?.kind === 'extraction') expect(step).toEqual({ card: 'value', value: reward.max });
       if (reward?.kind === 'building')
         expect(card(step.card).effect).toEqual({ kind: 'unlock', building: reward.building });
@@ -119,7 +128,7 @@ describe('natural sequence', () => {
     for (let n = 1; n <= 80; n++) {
       ctx.level = n;
       const step = naturalAt(ctx);
-      const reward = rewardFor(n);
+      const reward = legacyReward(n);
       const effect = card(step.card).effect;
       if (reward?.kind === 'extraction') {
         expect(effect.kind).toBe('value');
