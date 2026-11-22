@@ -224,8 +224,82 @@ body::after {
   background: color-mix(in srgb, var(--board) 85%, transparent);
   color: var(--fg);
   font: 12px/1.5 var(--font-num);
-  white-space: pre;
   pointer-events: none;
+}
+
+.debug-text {
+  white-space: pre;
+}
+
+.debug-toggle {
+  margin-top: 4px;
+  padding: 1px 8px;
+  border: 1px solid var(--chalk-stroke);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fg);
+  font: 12px var(--font-num);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Debug: card weights of the next offer and the inventory (PLAN-recompenses §5.4). */
+.debug-weights {
+  position: absolute;
+  right: var(--edge-r);
+  top: calc(var(--edge-t) + var(--top-h, 48px) + 8px);
+  max-width: min(460px, calc(100vw - 32px));
+  max-height: calc(100dvh - var(--edge-t) - var(--top-h, 48px) - 200px);
+  overflow: auto;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--board-deep) 94%, transparent);
+  border: 1px solid var(--chalk-stroke);
+  color: var(--fg);
+  font: 12px/1.4 var(--font-num);
+  pointer-events: auto;
+}
+
+.debug-weights[hidden] {
+  display: none;
+}
+
+.debug-weights-title {
+  margin: 4px 0;
+  color: var(--chalk-yellow);
+  font: 700 13px var(--font-ui);
+}
+
+.debug-table {
+  width: 100%;
+  margin-bottom: 6px;
+  border-collapse: collapse;
+}
+
+.debug-table caption {
+  text-align: left;
+  color: var(--muted);
+}
+
+.debug-table th,
+.debug-table td {
+  padding: 0 6px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.debug-table th:first-child,
+.debug-table td:first-child {
+  text-align: left;
+}
+
+.debug-drawn {
+  color: var(--chalk-yellow);
+}
+
+.debug-inventory {
+  margin: 0;
+  padding-left: 16px;
 }
 
 .perf-overlay {
@@ -742,9 +816,59 @@ body::after {
 }
 
 .end-stats {
-  margin: 12px 0 18px;
+  margin: 12px 0 14px;
   color: var(--muted);
   font: 14px/1.7 var(--font-num);
+}
+
+/* The card fits the screen: the list of picks scrolls when it is long. */
+.end-card {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 24px);
+}
+
+.end-card > * {
+  flex: none;
+}
+
+.end-picks-title {
+  margin: 0 0 6px;
+  color: var(--chalk-yellow);
+  font: 700 16px var(--font-ui);
+}
+
+.end-picks {
+  flex: 0 1 auto;
+  min-height: 3em;
+  max-height: 40vh;
+  margin: 0 0 18px;
+  padding: 6px 10px;
+  overflow-y: auto;
+  border-radius: var(--hand-drawn);
+  background: color-mix(in srgb, var(--board-deep) 60%, transparent);
+  list-style: none;
+  text-align: left;
+  font: 14px/1.6 var(--font-num);
+}
+
+.end-picks:focus-visible {
+  outline: 2px solid var(--chalk-yellow);
+}
+
+.end-pick {
+  display: flex;
+  gap: 10px;
+}
+
+.end-pick-level {
+  flex: none;
+  min-width: 4.2em;
+  color: var(--muted);
+}
+
+.end-pick-none {
+  color: var(--muted);
 }
 
 /* Main actions: outlined in yellow chalk. */
@@ -786,6 +910,30 @@ body::after {
   gap: 8px;
   margin-bottom: 10px;
   font: 13px var(--font-ui);
+}
+
+/* Passive cards owned: a short list above the tracks. */
+.upg-effects {
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  border-radius: var(--hand-drawn);
+  border: 2px dashed var(--chalk-line-strong);
+  font: 13px var(--font-ui);
+}
+
+.upg-effects[hidden] {
+  display: none;
+}
+
+.upg-effects-title {
+  margin: 0 0 2px;
+  color: var(--chalk-yellow);
+  font: 700 14px var(--font-ui);
+}
+
+.upg-effects-list {
+  margin: 0;
+  padding-left: 18px;
 }
 
 .upg-list {

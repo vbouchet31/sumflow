@@ -9,7 +9,14 @@ import { type Dir, normalizeRot, rotateDir } from '../core/grid';
 import type { Camera } from '../render/camera';
 import type { Effects } from '../render/layers/effects';
 import { dirMask, type FreeBuildingType } from '../sim/entities';
-import { appliedEditions, applyEdition, freeEditions, removeEdition } from '../sim/inventory';
+import {
+  appliedEditions,
+  applyEdition,
+  freeEditions,
+  removeEdition,
+  specialStock,
+} from '../sim/inventory';
+import { SPECIAL_TYPES } from '../config/buildings';
 import type { SimLoop } from '../sim/loop';
 import { drawOffer, nextValue, type OfferCard, type SlotDraw } from '../sim/offers';
 import { chooseCard, deliver, ensureOffer, setLevel } from '../sim/progression';
@@ -50,6 +57,8 @@ export interface DebugSnapshot {
   picks: number;
   /** Edition cards: obtained, free, applied on the map and lost (permanent editions). */
   editions: Record<'obtained' | 'free' | 'applied' | 'lost', Record<SpecialEdition, number>>;
+  /** Special buildings by `"type:edition"`: copies obtained, placed on the map and free. */
+  specials: Record<string, { obtained: number; placed: number; free: number }>;
   upgrades: Record<Track, number>;
   belts: number;
   bridges: number;
@@ -76,13 +85,15 @@ export interface DebugApi {
   /**
    * Place a building. `belt`: one belt at (x, y) facing `rot` (0 = East, clockwise, like the
    * belt tool). `extractor`: snaps to the deposit covering (x, y). Operators: (x, y) is the
-   * top-left corner, `rot` quarter turns clockwise; must be unlocked.
+   * top-left corner, `rot` quarter turns clockwise; must be unlocked. A special building
+   * takes a free copy of its native `edition` (base by default).
    */
   place: (
     type: 'belt' | 'extractor' | FreeBuildingType,
     x: number,
     y: number,
     rot?: number,
+    edition?: SpecialEdition,
   ) => boolean;
   beltPath: (x1: number, y1: number, x2: number, y2: number, ctrl?: boolean) => number;
   /** Simulate `seconds` immediately (synchronously). */
@@ -186,6 +197,14 @@ export function installDebugApi(ctx: DebugContext): void {
           applied: appliedEditions(s),
           lost: { ...s.editionsLost },
         },
+        specials: Object.fromEntries(
+          SPECIAL_TYPES.flatMap((type) =>
+            specialStock(s, type).map((st) => [
+              `${type}:${st.edition}`,
+              { obtained: st.obtained, placed: st.placed, free: st.free },
+            ]),
+          ),
+        ),
         upgrades: { ...s.upgrades },
         belts: s.belts.size,
         bridges: s.bridges.size,
@@ -205,7 +224,7 @@ export function installDebugApi(ctx: DebugContext): void {
     },
     findDeposit: (value) => world.deposits.findNearest(value),
     depositAt: (x, y) => world.deposits.depositAt(x, y),
-    place: (type, x, y, rot = 0) =>
+    place: (type, x, y, rot = 0, edition) =>
       history.run(() => {
         if (type === 'belt') {
           const dir: Dir = rotateDir(1, rot);
@@ -215,7 +234,7 @@ export function installDebugApi(ctx: DebugContext): void {
         if (type === 'extractor')
           return applyBuildingPlan(world, planExtractor(world, x, y)) !== null;
         // Operators: (x, y) is the top-left corner after rotation (0 = as defined in PLAN §6.3).
-        const plan = planOperator(world, type, x, y, normalizeRot(rot));
+        const plan = planOperator(world, type, x, y, normalizeRot(rot), edition);
         return applyBuildingPlan(world, plan) !== null;
       }),
     beltPath: (x1, y1, x2, y2, ctrl = false) =>

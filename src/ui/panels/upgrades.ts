@@ -5,6 +5,7 @@ import { purchase, setAutoBuy } from '../../sim/progression';
 import { isTrackMaxed, isTrackUnlocked, isUpgradeReady, trackValue } from '../../sim/upgrades';
 import type { World } from '../../sim/world';
 import { el } from '../dom';
+import { activeEffects } from '../labels';
 import { Panel } from './panel';
 
 const UNIT: Record<Track, MessageKey> = {
@@ -35,6 +36,10 @@ export class UpgradesPanel extends Panel {
   private readonly rows = new Map<Track, Row>();
   private readonly list = el('div', 'upg-list');
   private readonly auto: HTMLInputElement;
+  /** Passive cards owned (PLAN-recompenses §5.3): hidden while there are none. */
+  private readonly effects = el('section', 'upg-effects');
+  private readonly effectList = el('ul', 'upg-effects-list');
+  private effectsKey = '';
 
   constructor(
     parent: HTMLElement,
@@ -47,7 +52,9 @@ export class UpgradesPanel extends Panel {
       setAutoBuy(this.world.state, this.auto.checked, this.world.emit),
     );
     const label = el('label', 'upg-auto', this.auto, t('upg.autoBuy'));
-    this.content.append(label, this.list);
+    this.effects.append(el('h3', 'upg-effects-title', t('effects.title')), this.effectList);
+    this.effects.hidden = true;
+    this.content.append(this.effects, label, this.list);
     for (const track of TRACKS) {
       const title = el('div', 'upg-title');
       const effect = el('div', 'upg-effect');
@@ -70,6 +77,13 @@ export class UpgradesPanel extends Panel {
     const { state } = this.world;
     const loc = getLocale();
     this.auto.checked = state.autoBuyUpgrades;
+    const effectsKey = `${state.passives.join()}|${loc}`;
+    if (force || effectsKey !== this.effectsKey) {
+      this.effectsKey = effectsKey;
+      const lines = activeEffects(state);
+      this.effects.hidden = lines.length === 0;
+      this.effectList.replaceChildren(...lines.map((line) => el('li', undefined, line)));
+    }
     for (const [track, row] of this.rows) {
       const unlocked = isTrackUnlocked(state, track);
       row.box.hidden = !unlocked;

@@ -1,5 +1,5 @@
-import { type CardDef, type Edition, OFFERS, PASSIVE_EFFECTS } from '../config/cards';
-import { t } from '../i18n';
+import { CARDS, type CardDef, type Edition, OFFERS, PASSIVE_EFFECTS } from '../config/cards';
+import { getLocale, t } from '../i18n';
 import { fixedReward, offerSlots } from '../sim/offers';
 import { cardDef, offerContext } from '../sim/rewards';
 import type { GameState } from '../sim/state';
@@ -28,6 +28,29 @@ export function nextRewardLabel(state: GameState, level: number): string {
   if (fixed) return cardLabel(fixed);
   const n = offerSlots(offerContext(state, level)).length;
   return n > OFFERS.slots.length ? t('reward.choiceCards', { n }) : t('reward.choice');
+}
+
+/**
+ * The passive cards owned and what they do (PLAN-recompenses §5.3), one line per passive,
+ * its copies multiplied: "Opérateurs +5 % : vitesse des opérateurs × 1,05". Empty if none.
+ */
+export function activeEffects(state: GameState): string[] {
+  const lines: string[] = [];
+  for (const id of new Set(state.passives)) {
+    const n = state.passives.filter((p) => p === id).length;
+    const def = CARDS.find((c) => c.effect.kind === 'passive' && c.effect.id === id);
+    const name = def ? t(def.title, cardParams(def)) : id;
+    const x = (PASSIVE_EFFECTS[id].operatorSpeed ** n).toLocaleString(getLocale(), {
+      maximumFractionDigits: 3,
+    });
+    lines.push(
+      t('effects.line', {
+        name: n > 1 ? `${name} ×${n}` : name,
+        effect: t('effects.operatorSpeed', { x }),
+      }),
+    );
+  }
+  return lines;
 }
 
 /** "1 h 05 min" / "12 min" from milliseconds. */

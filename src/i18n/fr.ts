@@ -448,6 +448,7 @@ export const fr = {
   'end.pickGranted': 'Hors offre',
   'end.noPicks': 'Aucune carte choisie.',
   'debug.weights': 'Tirage du niveau {n}',
+  'debug.weightsToggle': 'Poids des cartes',
   'debug.weightsNone': 'Aucune offre en vue',
   'debug.slot': 'Emplacement {slot}',
   'debug.slotEmpty': 'vide',

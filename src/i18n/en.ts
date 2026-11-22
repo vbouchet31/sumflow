@@ -450,6 +450,7 @@ export const en: Record<MessageKey, string> = {
   'end.pickGranted': 'Outside an offer',
   'end.noPicks': 'No card chosen.',
   'debug.weights': 'Draw of level {n}',
+  'debug.weightsToggle': 'Card weights',
   'debug.weightsNone': 'No offer in sight',
   'debug.slot': 'Slot {slot}',
   'debug.slotEmpty': 'empty',

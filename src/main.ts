@@ -561,7 +561,7 @@ async function bootstrap(): Promise<void> {
 
   let wheelAcc = 0;
   const debug = isDebugEnabled(location.search);
-  const debugPanel = debug ? new DebugPanel(uiRoot) : null;
+  const debugPanel = debug ? new DebugPanel(uiRoot, () => world.state) : null;
   if (debug)
     installDebugApi({ world, camera, loop, tools, saves, perf, effects: renderer.effects });
 
