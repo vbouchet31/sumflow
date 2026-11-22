@@ -102,12 +102,16 @@ test('a tutorial card opens on a new game, then one per unlock, and is not shown
   // Each unlock brings its card; Escape closes one and the next follows.
   await page.evaluate(() => window.__sumflow?.unlockAll());
   await expect(card).toHaveAttribute('data-tip', 'adder');
-  await expect(card.locator('.tut-count')).toHaveText('1 / 9');
+  await expect(card.locator('.tut-count')).toHaveText('1 / 10');
   await expect(card.locator('.tut-ok')).toHaveText('Next');
   await page.keyboard.press('Escape');
   await expect(card).toHaveAttribute('data-tip', 'upgrades');
-  await expect(card.locator('.tut-count')).toHaveText('2 / 9');
+  await expect(card.locator('.tut-count')).toHaveText('2 / 10');
   await expect(card.locator('.tut-canvas')).toHaveCount(0);
+  await card.locator('.tut-ok').click();
+  // The values given by `unlockAll` bring their card, with the highest one.
+  await expect(card).toHaveAttribute('data-tip', 'value');
+  await expect(card.locator('.tut-text')).toContainText('Deposits of 80');
   await card.locator('.tut-ok').click();
   await expect(card).toHaveAttribute('data-tip', 'bridge');
   // A click on the backdrop closes it as well.
@@ -121,7 +125,7 @@ test('the Help menu replays any card already met', async ({ page }) => {
   await page.keyboard.press('Escape');
   await page.locator('.menu-card .menu-btn').nth(6).click(); // Help
   const tips = page.locator('.menu-card .help-tip');
-  await expect(tips).toHaveCount(10);
+  await expect(tips).toHaveCount(11); // the buildings, the features and the first value
   await tips.filter({ hasText: 'Divider' }).click();
   const card = page.locator('.tut-card');
   await expect(card).toHaveAttribute('data-tip', 'divider');

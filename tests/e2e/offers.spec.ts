@@ -429,3 +429,114 @@ test('after See the map, the next completed level opens the screen again', async
   await expect(screen.locator('.offer-kicker')).toHaveText('Niveau 3 terminé');
   await expect(screen.locator('.offer-count')).toHaveText('1 / 2');
 });
+
+test.describe('tutorial cards after a choice (PLAN-recompenses §4.3)', () => {
+  // The cards open by themselves here (no `tutorial=0`).
+  const TIPS_URL = './?debug=1&seed=42&pick=none';
+
+  /** Close the tutorial cards one after the other. */
+  const closeCards = async (page: Page): Promise<void> => {
+    const tutorial = page.locator('.tut-overlay');
+    await frames(page);
+    while (await tutorial.isVisible()) {
+      await page.locator('.tut-ok').click();
+      await frames(page);
+    }
+  };
+
+  /** Level 3 reached with the cards of levels 1 and 2 read, then `n` levels completed. */
+  const openOffers = async (page: Page, n: number): Promise<void> => {
+    await page.goto(TIPS_URL);
+    await page.evaluate(() => window.__sumflow?.setLevel(3));
+    await closeCards(page);
+    await completeLevels(page, n);
+    await expect(page.locator('.offer-overlay')).toBeVisible();
+  };
+
+  /** Force an offer on the open screen and click "Choose" under card `index`. */
+  const forceAndChoose = async (page: Page, cards: string[], index: number): Promise<void> => {
+    const screen = page.locator('.offer-overlay');
+    await page.evaluate((ids) => window.__sumflow?.forceOffer(ids), cards);
+    await expect(screen.locator('.offer-card').nth(index)).toHaveAttribute(
+      'data-card',
+      cards[index] ?? '',
+    );
+    const choose = screen.locator('.offer-choose').nth(index);
+    await expect(choose).toBeEnabled();
+    await choose.click();
+  };
+
+  test('the first value opens its card once the screen closes, the second one nothing', async ({
+    page,
+  }) => {
+    await openOffers(page, 1);
+    const screen = page.locator('.offer-overlay');
+    const card = page.locator('.tut-card');
+    await forceAndChoose(page, ['value', 'bridge'], 0);
+    await expect(screen).toBeHidden();
+    await expect(card).toHaveAttribute('data-tip', 'value');
+    await expect(card.locator('h2')).toHaveText('Nouvelle valeur');
+    await expect(card.locator('.tut-text')).toContainText('Les gisements de 2 sont maintenant');
+    // The value is drawn as on the reward card.
+    await expect(card.locator('canvas.tut-art')).toHaveCount(1);
+    await closeCards(page);
+
+    await completeLevels(page, 1);
+    await expect(screen).toBeVisible();
+    await forceAndChoose(page, ['value', 'bridge'], 0);
+    await expect(screen).toBeHidden();
+    await frames(page);
+    await expect(page.locator('.tut-overlay')).toBeHidden();
+    expect(await page.evaluate(() => window.__sumflow?.getState().maxExtraction)).toBe(3);
+  });
+
+  test('an edition card opens the card of its edition', async ({ page }) => {
+    await openOffers(page, 1);
+    await forceAndChoose(page, ['value', 'edition-legendaire'], 1);
+    await expect(page.locator('.offer-overlay')).toBeHidden();
+    const card = page.locator('.tut-card');
+    await expect(card).toHaveAttribute('data-tip', 'edition.legendaire');
+    await expect(card.locator('h2')).toHaveText('Édition légendaire');
+    await expect(card.locator('.tut-text')).toContainText('le démolir te la rend');
+  });
+
+  test('with two offers waiting, the card of the first choice comes before the second offer', async ({
+    page,
+  }) => {
+    await openOffers(page, 2);
+    const screen = page.locator('.offer-overlay');
+    await expect(screen.locator('.offer-count')).toHaveText('1 / 2');
+    // A choice made without the screen's button (debug) waits for its card as well.
+    await page.evaluate(() => {
+      window.__sumflow?.forceOffer(['value', 'edition-brillante']);
+      window.__sumflow?.choose(1);
+    });
+    await expect(screen).toBeHidden();
+    await expect(page.locator('.tut-card')).toHaveAttribute('data-tip', 'edition.brillante');
+    await closeCards(page);
+    await expect(screen).toBeVisible();
+    await expect(screen.locator('.offer-count')).toHaveText('2 / 2');
+  });
+
+  test('the Help menu lists the new cards once met, and replays them', async ({ page }) => {
+    await openOffers(page, 2);
+    await forceAndChoose(page, ['value', 'edition-brillante'], 0);
+    await closeCards(page);
+    await forceAndChoose(page, ['value', 'edition-brillante'], 1);
+    await closeCards(page);
+    await expect(page.locator('.offer-overlay')).toBeHidden();
+
+    await page.keyboard.press('Escape');
+    await page.locator('.menu-card .menu-btn').nth(6).click(); // Help
+    const tips = page.locator('.menu-card .help-tip');
+    await expect(tips.first()).toBeVisible();
+    const ids = await tips.evaluateAll((list) =>
+      list.map((b) => (b as HTMLElement).dataset['tip']),
+    );
+    expect(ids).toEqual(['start', 'adder', 'upgrades', 'value', 'edition.brillante']);
+    await page.locator('.menu-card .help-tip[data-tip="value"]').click();
+    const card = page.locator('.tut-card');
+    await expect(card).toHaveAttribute('data-tip', 'value');
+    await expect(card.locator('.tut-text')).toContainText('Les gisements de 2');
+  });
+});
