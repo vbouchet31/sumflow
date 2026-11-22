@@ -36,6 +36,7 @@ Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGR
 | Annuler / rétablir                               | `Ctrl+Z` / `Ctrl+Y` (ou `Ctrl+Shift+Z`)                                                                            |
 | Panneaux                                         | `U` améliorations, `L` niveaux, `N` nombres livrés                                                                 |
 | Menu (sauvegarde, export, import, options, aide) | `Échap` (sans outil actif)                                                                                         |
+| Écran de choix de récompense                     | clic, `Entrée` ou `Espace` sur une carte : la retourner ; « Choisir » ; `Échap` = voir la carte                    |
 | Pause                                            | `Espace`                                                                                                           |
 | Performances (FPS, temps de simulation, objets)  | `F3`                                                                                                               |
 
@@ -58,6 +59,7 @@ Le jeu se joue au doigt sur tablette et sur téléphone tenu en paysage (en port
 | Inspecter un objet              | le toucher sans outil                                |
 | Pivoter, copier, supprimer      | toucher le bâtiment, puis la bulle à côté de lui     |
 | Pipette                         | appui long sur un objet                              |
+| Récompense                      | toucher une carte la retourne, puis « Choisir »      |
 | Pause, annuler, panneaux, menu  | boutons en haut à droite                             |
 
 Le jeu peut être installé sur l'écran d'accueil (menu du navigateur, « Ajouter à l'écran d'accueil ») : il s'ouvre alors en plein écran. Sur iPhone et iPad, c'est aussi ce qui met la sauvegarde à l'abri : Safari peut effacer les données d'un site non installé resté quelques jours sans visite. Dans tous les cas, le menu permet d'exporter la partie.
@@ -92,7 +94,7 @@ Scénario de référence (`src/debug/reference.ts`) : 20 000 tuiles de tapis, 1 
 - **Rendu** : ouvrir le jeu avec `?debug=1`, lancer `__sumflow.loadReference()` dans la console d'une partie neuve, puis `F3` pour lire les FPS à différents zooms.
 - **Lighthouse** : `npm run build && npm run preview`, puis `npx lighthouse http://localhost:4173/ --only-categories=performance` (objectif : 90 ou plus).
 
-Outils de debug : `?debug=1` expose `window.__sumflow` (poser des bâtiments, avancer le temps, débloquer, etc.) et affiche un petit panneau (graine, ticks, curseur, zoom). `?tutorial=0` empêche les fiches tutoriel de s'ouvrir seules (tests e2e). `?pick=natural|first|random|none` choisit seul les récompenses en attente (`natural` par défaut tant que l'écran de choix n'existe pas) ; `__sumflow.offer()`, `forceOffer()`, `choose()` et `grant()` manipulent les offres.
+Outils de debug : `?debug=1` expose `window.__sumflow` (poser des bâtiments, avancer le temps, débloquer, etc.) et affiche un petit panneau (graine, ticks, curseur, zoom). `?tutorial=0` empêche les fiches tutoriel de s'ouvrir seules (tests e2e). `?pick=natural|first|random` choisit seul les récompenses en attente (tests e2e) ; sans ce paramètre (ou avec `none`), le joueur choisit à l'écran ; `__sumflow.offer()`, `forceOffer()`, `choose()` et `grant()` manipulent les offres.
 
 ## Déploiement
 
