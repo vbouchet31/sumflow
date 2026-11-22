@@ -7,7 +7,11 @@
 ## 0. Résumé
 
 - **Aujourd'hui**, chaque niveau donne une récompense fixe (PLAN §7.2). Toutes les parties suivent la même trame.
-- **Demain**, à la fin d'un niveau, le Hub propose **2 cartes** (3 avec la carte Éventail). Le joueur en prend une, sans coût. Les cartes sont tirées dans un **catalogue** décrit en configuration : poids par niveau, prérequis, éditions (base, brillante, légendaire).
+- **Demain**, à la fin d'un niveau, le Hub propose **2 cartes** (3 avec la carte Éventail). Le joueur en prend une, sans coût. Les cartes sont tirées dans un **catalogue** décrit en configuration : poids par niveau, prérequis, éditions.
+- **Trois sortes de récompenses** :
+  - les **déblocages** (valeurs, opérateurs, fonctions), sans limite, comme aujourd'hui ;
+  - les **bâtiments spéciaux**, en nombre limité, chacun avec son édition (base, brillante ou légendaire) ;
+  - les **cartes Édition**, qu'on applique sur n'importe quel bâtiment déjà posé.
 - **La trame actuelle reste la référence** : la carte « fil rouge » propose la prochaine récompense du tableau actuel. Un joueur qui la prend toujours retrouve le jeu d'aujourd'hui, déjà équilibré.
 - **Quatre phases** :
   1. Moteur et ergonomie, avec des objets factices (§5).
@@ -19,19 +23,23 @@
 
 ## 1. Décisions déjà prises
 
-| Sujet                         | Décision                                                                                                                                                                                |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Coût d'une carte              | Aucun. On prend 1 carte parmi N. Pas de monnaie.                                                                                                                                        |
-| Ouverture de l'écran de choix | Automatique en fin de niveau. Le jeu continue derrière (pas de pause).                                                                                                                  |
-| Forme d'une carte             | Recto : image de l'objet dans son édition, puis son nom. Un clic retourne la carte (explications). Un bouton « Choisir » sous chaque carte, retournée ou non : un seul clic suffit.     |
-| Fil rouge                     | Le premier élément du tableau actuel que le joueur n'a pas encore. Son poids baisse à chaque refus, sans descendre sous la courbe normale de la carte.                                  |
-| Fiches tutoriel               | Après le choix, seulement si le joueur obtient quelque chose de nouveau pour la première fois de la partie (une valeur, un bâtiment, une fonction, une édition, un exemplaire limité…). |
-| Dépendances                   | Une carte n'est proposée que si ses prérequis sont remplis : pas de 3 sans le 2, pas de − sans le ×, etc.                                                                               |
-| Valeurs extractibles          | Débloquées une par une, dans l'ordre (2, 3, … 9, 11, …). Le 10 reste interdit sur la carte.                                                                                             |
-| Probabilités                  | Calculées avant chaque tirage : courbes par niveau, ajustables (le système de boutique de Balatro sert de modèle).                                                                      |
-| Éditions                      | Base, brillante, légendaire, avec des taux de départ de 85 / 10 / 5 %.                                                                                                                  |
-| Sauvegardes existantes        | Pas de migration. Les anciennes sauvegardes sont refusées proprement.                                                                                                                   |
-| Contenu                       | Pas décidé maintenant. La phase 1 utilise des objets factices ; on ajoute ensuite les objets un par un.                                                                                 |
+| Sujet                                                        | Décision                                                                                                                                                                            |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Coût d'une carte                                             | Aucun. On prend 1 carte parmi N. Pas de monnaie.                                                                                                                                    |
+| Ouverture de l'écran de choix                                | Automatique en fin de niveau. Le jeu continue derrière (pas de pause).                                                                                                              |
+| Forme d'une carte                                            | Recto : image de l'objet dans son édition, puis son nom. Un clic retourne la carte (explications). Un bouton « Choisir » sous chaque carte, retournée ou non : un seul clic suffit. |
+| Fil rouge                                                    | Le premier élément du tableau actuel que le joueur n'a pas encore. Son poids baisse à chaque refus, sans descendre sous la courbe normale de la carte.                              |
+| Niveaux 1 et 2                                               | Fixes : + puis Améliorations, donnés d'office sans écran. Le premier écran de choix arrive à la fin du niveau 3.                                                                    |
+| Fiches tutoriel                                              | Après le choix, seulement si le joueur obtient quelque chose de nouveau pour la première fois de la partie (une valeur, un bâtiment, une fonction, une édition…).                   |
+| Dépendances                                                  | Une carte n'est proposée que si ses prérequis sont remplis : pas de 3 sans le 2, pas de − sans le ×, etc.                                                                           |
+| Valeurs extractibles                                         | Débloquées une par une, dans l'ordre (2, 3, … 9, 11, …). Le 10 reste interdit sur la carte.                                                                                         |
+| Probabilités                                                 | Calculées avant chaque tirage : courbes par niveau, ajustables (le système de boutique de Balatro sert de modèle).                                                                  |
+| Bâtiments sans limite (+, ×, −, ÷, ^, extracteur, stockage…) | Jamais proposés à l'unité, même avec une édition. On les débloque, c'est tout.                                                                                                      |
+| Cartes Édition                                               | Une carte Édition s'applique sur n'importe quel bâtiment posé qui accepte une édition. Si on démolit ce bâtiment, on récupère la carte Édition, à réappliquer ailleurs.             |
+| Bâtiments spéciaux                                           | Limités, obtenus avec leur édition (par exemple un Concaténateur doré). Le bâtiment et son édition ne se séparent pas : le démolir rend un Concaténateur doré.                      |
+| Taux d'édition des bâtiments spéciaux                        | Base, brillante, légendaire : 85 / 10 / 5 % au départ.                                                                                                                              |
+| Sauvegardes existantes                                       | Pas de migration. Les anciennes sauvegardes sont refusées proprement.                                                                                                               |
+| Contenu                                                      | Pas décidé maintenant. La phase 1 utilise des objets factices ; on ajoute ensuite les objets un par un.                                                                             |
 
 ---
 
@@ -39,10 +47,12 @@
 
 - **Offre** : l'ensemble des cartes proposées à la fin d'un niveau.
 - **Emplacement** : une place dans l'offre. Il y en a deux de départ, **Nombres** et **Atelier**. La carte Éventail en ajoute un troisième, **Joker**.
-- **Carte** : une entrée du catalogue (débloquer le ×, valeur suivante, 1 exemplaire du +, Éventail…).
+- **Carte** : une entrée du catalogue (débloquer le ×, valeur suivante, Édition légendaire, Éventail…).
 - **Fil rouge** : la suite des récompenses du tableau actuel (PLAN §7.2), dans l'ordre.
-- **Édition** : la qualité d'un exemplaire de bâtiment (base, brillante, légendaire).
-- **Exemplaire limité** : un bâtiment qu'on possède en nombre fini, par opposition à un bâtiment débloqué, qu'on pose sans limite.
+- **Bâtiment ordinaire** : un bâtiment qu'on débloque et qu'on pose sans limite (extracteur, opérateurs, stockage, tapis, pont).
+- **Bâtiment spécial** : un bâtiment qu'on possède en nombre limité (exemple prévu : le Concaténateur). Il a une **édition d'origine**, qui ne le quitte jamais.
+- **Édition** : la qualité d'un bâtiment (base, brillante, légendaire).
+- **Carte Édition** : une édition brillante ou légendaire à appliquer sur un bâtiment posé. Une fois appliquée, on parle d'**édition appliquée** ; elle revient au joueur si le bâtiment disparaît.
 - **Garde-fou** : une règle explicite qui modifie les poids dans une situation précise.
 
 ---
@@ -70,13 +80,14 @@ Chaque « valeur » du tableau correspond déjà à exactement une nouvelle vale
 
 Un seul fichier, `src/config/cards.ts`, décrit toutes les cartes. Aucune règle de jeu propre à une carte n'est écrite ailleurs que dans son effet.
 
-| Genre     | Effet                                                            | Éditions    | Exemple            |
-| --------- | ---------------------------------------------------------------- | ----------- | ------------------ |
-| `value`   | valeur extractible suivante (`maxExtraction` + 1, en sautant 10) | non         | Valeur 5           |
-| `unlock`  | débloque un bâtiment ou une fonction, sans limite                | non         | ×, Pont, Priorités |
-| `copies`  | donne N exemplaires d'un bâtiment                                | oui (tirée) | 1 + brillant       |
-| `passive` | règle globale permanente                                         | non         | opérateurs + 5 %   |
-| `meta`    | modifie les offres suivantes                                     | non         | Éventail           |
+| Genre     | Effet                                                            | Édition                        | Exemple            |
+| --------- | ---------------------------------------------------------------- | ------------------------------ | ------------------ |
+| `value`   | valeur extractible suivante (`maxExtraction` + 1, en sautant 10) | non                            | Valeur 5           |
+| `unlock`  | débloque un bâtiment ordinaire ou une fonction, sans limite      | non                            | ×, Pont, Priorités |
+| `special` | donne N exemplaires d'un bâtiment spécial                        | d'origine, tirée (85 / 10 / 5) | Concaténateur doré |
+| `edition` | donne une carte Édition à appliquer                              | fixée par la carte             | Édition légendaire |
+| `passive` | règle globale permanente                                         | non                            | opérateurs + 5 %   |
+| `meta`    | modifie les offres suivantes                                     | non                            | Éventail           |
 
 **Poids** : des poids relatifs, pas des pourcentages. Les cartes disponibles se partagent le tirage au prorata, donc ajouter une carte ne casse pas les autres. Un poids est une **courbe** : quelques points `(niveau, poids)`, interpolés linéairement ; avant le premier point, on prend la première valeur, après le dernier, la dernière.
 
@@ -86,20 +97,21 @@ Un seul fichier, `src/config/cards.ts`, décrit toutes les cartes. Aucune règle
 
 **Prérequis proposés pour l'existant** (à valider) :
 
-| Carte         | Prérequis                |
-| ------------- | ------------------------ |
-| Valeur k      | valeur précédente        |
-| +             | aucun (fixe au niveau 1) |
-| Améliorations | aucun (fixe au niveau 2) |
-| Pont          | aucun                    |
-| ×             | +                        |
-| Priorités     | Pont                     |
-| −             | ×                        |
-| ÷             | −                        |
-| ^             | ×                        |
-| Stockage      | niveau 12 ou plus        |
+| Carte                                 | Prérequis                                                                      |
+| ------------------------------------- | ------------------------------------------------------------------------------ |
+| Valeur k                              | valeur précédente                                                              |
+| +                                     | aucun (fixe au niveau 1)                                                       |
+| Améliorations                         | aucun (fixe au niveau 2)                                                       |
+| Pont                                  | aucun                                                                          |
+| ×                                     | +                                                                              |
+| Priorités                             | Pont                                                                           |
+| −                                     | ×                                                                              |
+| ÷                                     | −                                                                              |
+| ^                                     | ×                                                                              |
+| Stockage                              | niveau 12 ou plus                                                              |
+| Édition brillante, Édition légendaire | au moins un bâtiment qui accepte une édition (toujours vrai après le niveau 1) |
 
-Les **pistes d'amélioration** restent liées aux bâtiments débloqués (`isTrackUnlocked`). Un exemplaire limité d'un bâtiment non débloqué tourne à la vitesse de base de sa piste (niveau 1), multipliée par son édition.
+Les **pistes d'amélioration** restent liées aux bâtiments ordinaires débloqués (`isTrackUnlocked`). La piste d'un bâtiment spécial se décide dans sa fiche (§6.1) : une piste existante, une nouvelle, ou aucune.
 
 ### 3.3 Le tirage d'une offre
 
@@ -108,7 +120,7 @@ Les **pistes d'amélioration** restent liées aux bâtiments débloqués (`isTra
    1. lister les cartes disponibles de cet emplacement (Joker : toutes), sans celles déjà tirées dans cette offre ;
    2. calculer leur poids : courbe du niveau, poids du fil rouge, puis garde-fous, puis effets des cartes du joueur (par exemple une future Loupe) ;
    3. tirer une carte au prorata des poids ;
-   4. tirer son édition si elle en accepte.
+   4. pour une carte `special`, tirer son édition d'origine.
 3. **Le fil rouge** : la carte qui correspond au fil rouge prend le poids `max(sa courbe, courbe du fil rouge)` dans son emplacement et dans Joker.
 4. **Emplacement vide** : on tire dans l'autre emplacement. Nombres n'est jamais vide (la valeur suivante existe toujours), donc une offre a au moins une carte.
 5. **Hasard déterministe** : `mulberry32(hash2(seed ^ OFFER_SALT, niveau, indexEmplacement))`, sur le modèle de `levelDraw`. Une offre dépend de la graine, du niveau et de l'état au moment du tirage (cartes déjà prises).
@@ -118,24 +130,53 @@ Les **pistes d'amélioration** restent liées aux bâtiments débloqués (`isTra
 
 ### 3.4 Les éditions
 
-- **Taux** : `EDITIONS = { base: 85, brillante: 10, legendaire: 5 }`, éventuellement en courbes par niveau.
 - **Effet commun**, comme dans Balatro, pour que le joueur apprenne la règle une seule fois :
-  - brillante : vitesse × 1,25 (opérateurs : cycle ; extracteur : débit) ;
+  - brillante : vitesse × 1,25 ;
   - légendaire : vitesse × 1,5, plus l'effet propre du bâtiment s'il en a un.
-- **Exception par bâtiment** possible dans sa carte (`editionEffects`). Exemple pour le stockage : la capacité plutôt que la vitesse.
-- **Seules les cartes `copies` ont une édition.** Débloquer le × ou une valeur n'a pas d'édition.
-- **Rendu** : la base reste comme aujourd'hui ; la brillante est en craie nacrée avec un reflet ; la légendaire en craie dorée avec une petite étoile. Le même code couleur sert sur la carte de l'offre, dans la barre de construction, sur le fantôme et dans l'info-bulle.
+- **Ce que « vitesse » veut dire pour chaque bâtiment** (configuration `EDITION_EFFECTS`, par type) :
 
-### 3.5 Les exemplaires limités
+| Bâtiment                   | Brillante       | Légendaire     | Accepte une édition ? |
+| -------------------------- | --------------- | -------------- | --------------------- |
+| Opérateurs (+, ×, −, ÷, ^) | cycle × 1,25    | cycle × 1,5    | oui                   |
+| Extracteur                 | débit × 1,25    | débit × 1,5    | oui                   |
+| Stockage                   | capacité × 1,25 | capacité × 1,5 | oui                   |
+| Bâtiment spécial           | sa fiche        | sa fiche       | oui (voir §9)         |
+| Tapis, pont, Hub           |                 |                | non                   |
 
-- **On enregistre ce qu'on possède, on calcule ce qui reste.** L'état garde `owned["adder:brillante"] = 1`. Le nombre d'exemplaires disponibles vaut `possédés − posés`, recompté à partir des bâtiments du monde.
-  - Conséquence : démolir, couper, déplacer, annuler et rétablir restent justes **sans code spécial**. Le journal d'annulation (`journal.ts`, `history.ts`) ne connaît pas l'inventaire.
-  - La seule vérification se fait à la pose : refus si `posés ≥ possédés`.
-- **Un bâtiment débloqué** reste illimité en édition de base. Une édition est toujours limitée.
-- **Le bâtiment porte son édition** : `Building.edition?: 'brillante' | 'legendaire'` (absent = base), enregistrée dans la sauvegarde et dans les copies (`ClipBuilding.edition`).
-- **Coller ou rétablir sans exemplaire disponible** : on pose la version de base si le bâtiment est débloqué, sinon la pose est bloquée (fantôme rouge, comme un emplacement occupé). À valider (§9).
-- **Pose en rangée** (`planOperatorRow`) : la rangée s'arrête au dernier exemplaire disponible.
-- **Pipette** (`E`) : reprend le bâtiment avec son édition.
+- **Une seule édition par bâtiment.**
+- **Rendu** : la base reste comme aujourd'hui ; la brillante est en craie nacrée avec un reflet ; la légendaire en craie dorée avec une petite étoile. Le même code couleur sert sur la carte de l'offre, dans la barre de construction, sur le fantôme, dans l'info-bulle et sur la carte Édition elle-même (un bâton de craie nacrée ou dorée).
+- **Analogie Balatro** : la carte Édition joue le rôle des cartes qui ajoutent une édition à une carte choisie (comme la carte spectrale Aura), et le bâtiment spécial celui d'un joker vendu déjà avec son édition.
+
+### 3.5 Cartes Édition et bâtiments spéciaux : l'inventaire
+
+**Principe : on enregistre ce qu'on possède, on calcule ce qui reste.**
+
+- L'état garde :
+  - `editionCards = { brillante: 1, legendaire: 2 }` : les cartes Édition obtenues ;
+  - `specials = { "concat:legendaire": 1 }` : les bâtiments spéciaux obtenus, par type et édition d'origine.
+- Ce qui reste disponible se recompte à partir du monde :
+  - cartes Édition libres = obtenues − éditions appliquées sur des bâtiments posés ;
+  - bâtiments spéciaux libres = obtenus − posés.
+- **Conséquence** : démolir, couper, déplacer, annuler et rétablir restent justes **sans code d'inventaire**. Démolir un × doré libère la carte Édition légendaire, parce qu'il n'est plus compté. Démolir un Concaténateur doré libère un Concaténateur doré.
+- **Le bâtiment porte son édition** : `Building.edition?: 'brillante' | 'legendaire'` (absent = base) et `Building.editionApplied?: boolean` (vrai si elle vient d'une carte Édition, faux si c'est l'édition d'origine d'un bâtiment spécial). Les deux sont enregistrés dans la sauvegarde et dans l'instantané d'annulation (`BuildingSnap` dans `journal.ts`) : appliquer ou retirer une édition est donc une action qu'on peut annuler, comme une rotation.
+
+**Appliquer une carte Édition**
+
+- **Outil Édition** (touche `G`, visible dès qu'on possède une carte Édition) : on choisit Brillante ou Légendaire dans la rangée de variantes, puis on clique un bâtiment. Le fantôme montre le bâtiment recoloré ; un bâtiment qui n'accepte pas d'édition est marqué en rouge.
+- **Bulle de sélection** (`selectionBubble.ts`, qui propose déjà Pivoter, Copier, Supprimer) : un bouton ✦ « Édition » applique une carte libre sur le bâtiment sélectionné.
+- **Remplacer** : appliquer une carte sur un bâtiment qui a déjà une édition appliquée échange les deux. L'ancienne carte revient au joueur.
+- **Retirer sans démolir** : dans la bulle, « Retirer l'édition » rend la carte et remet le bâtiment en base. Une édition d'origine ne se retire pas.
+
+**Cas limites**
+
+| Situation                                                                    | Règle                                                                                                                                               |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Coller un bâtiment ordinaire qui avait une édition appliquée                 | Collé en base. Une édition appliquée ne se copie jamais : on ne dépense pas une carte précieuse sans le vouloir.                                    |
+| Coller un bâtiment spécial                                                   | Posé avec son édition d'origine s'il en reste un libre, sinon bloqué (fantôme rouge, comme une case occupée). Il n'existe pas de version illimitée. |
+| Déplacer                                                                     | Le bâtiment garde son édition, rien ne change dans l'inventaire.                                                                                    |
+| Annuler une démolition alors que la carte libérée a été réappliquée ailleurs | Le bâtiment revient en base. Pour un bâtiment spécial plus disponible, la restauration est bloquée, comme une case occupée.                         |
+| Pose en rangée d'un bâtiment spécial (`planOperatorRow`)                     | La rangée s'arrête au dernier exemplaire libre.                                                                                                     |
+| Pipette (`E`)                                                                | Un bâtiment ordinaire est repris en base ; un bâtiment spécial avec son édition d'origine.                                                          |
 
 ### 3.6 Les valeurs extractibles
 
@@ -164,10 +205,11 @@ Les **pistes d'amélioration** restent liées aux bâtiments débloqués (`isTra
 │                                                   │
 │   ┌─────────────┐   ┌─────────────┐               │
 │   │             │   │      ✦      │               │
-│   │   [image    │   │   [image    │               │
-│   │    du ×]    │   │  du + doré] │               │
+│   │   [image    │   │  [bâton de  │               │
+│   │    du ×]    │   │craie dorée] │               │
 │   │             │   │             │               │
-│   │Multiplicat. │   │ Additionneur│               │
+│   │Multiplicat. │   │  Édition    │               │
+│   │             │   │ légendaire  │               │
 │   └─────────────┘   └─────────────┘               │
 │     [ Choisir ]       [ Choisir ]                 │
 │                                                   │
@@ -177,21 +219,26 @@ Les **pistes d'amélioration** restent liées aux bâtiments débloqués (`isTra
 Carte retournée (après un clic sur la carte) :
    ┌─────────────┐
    │ ATELIER     │
-   │ Additionneur│
+   │ Édition     │
    │ légendaire  │
-   │ Exemplaire×1│
+   │ À appliquer │
+   │ sur un bâti-│
+   │ ment posé.  │
    │ Vitesse ×1,5│
-   │ Fait A + B. │
+   │ Démolir le  │
+   │ bâtiment la │
+   │ rend.       │
    │ [Nouveau]   │
    └─────────────┘
      [ Choisir ]
 ```
 
 - **Recto** : l'**image de l'objet dans son édition** et, en dessous, son **nom**. Rien d'autre, pour que la carte se lise d'un coup d'œil.
-  - Bâtiment : la même image que dans la barre de construction (`drawToolIcon`, `toolIcons.ts`), dans la bonne orientation, en craie nacrée ou dorée selon l'édition.
+  - Bâtiment : la même image que dans la barre de construction (`drawToolIcon`, `toolIcons.ts`), dans la bonne orientation ; un bâtiment spécial est dessiné dans son édition d'origine.
+  - Carte Édition : un bâton de craie nacrée ou dorée.
   - Valeur : le nombre entouré à la craie, dans sa couleur d'item (`ITEM_CHALKS`).
   - Fonction, passif, méta : une icône à la craie, comme les fiches tutoriel actuelles.
-- **Verso** (clic ou toucher sur la carte, qui se retourne) : l'emplacement, le nom complet avec l'édition, ce que la carte donne (débloqué sans limite, ou exemplaire × N), l'effet de l'édition, une ou deux phrases d'explication et les étiquettes (Nouveau, Unique, Suite classique). Un nouveau clic la remet au recto.
+- **Verso** (clic ou toucher sur la carte, qui se retourne) : l'emplacement, le nom complet avec l'édition, ce que la carte donne (débloqué sans limite, exemplaire × N, carte à appliquer), l'effet de l'édition, une ou deux phrases d'explication et les étiquettes (Nouveau, Unique, Suite classique). Un nouveau clic la remet au recto.
 - **Un bouton « Choisir » sous chaque carte**, retournée ou non. **Un seul clic suffit** pour qui connaît déjà le jeu ; retourner la carte reste facultatif.
 - **Clavier** :
   - `Tab` passe d'une carte à son bouton, puis à la carte suivante ;
@@ -205,24 +252,25 @@ Carte retournée (après un clic sur la carte) :
 - **Accessibilité** :
   - `role="dialog"`, focus piégé (`trapTab`, comme les fiches) ;
   - la carte est un bouton avec `aria-pressed` (retournée ou non), et son verso sert de description (`aria-describedby`), donc un lecteur d'écran lit l'explication sans retourner la carte ;
-  - chaque bouton « Choisir » nomme sa carte (« Choisir Additionneur légendaire »).
+  - chaque bouton « Choisir » nomme sa carte (« Choisir Édition légendaire »).
 - **Son** : l'arpège de fin de niveau existe déjà ; on ajoute un léger bruit de carte au retournement, et un son doux au choix.
 
 ### 4.3 Après le choix : les fiches tutoriel
 
-- La récompense s'applique, avec un toast « Obtenu : Additionneur brillant ».
+- La récompense s'applique, avec un toast « Obtenu : Édition légendaire ».
 - Les fiches utilisent le mécanisme actuel (`help.ts` : `when(state)` et `helpSeen`). Une carte prise rend son `when` vrai, donc la fiche passe en attente toute seule. **Rien n'est montré pour ce qu'on connaissait déjà.**
 - **Nouvelles fiches** :
 
-| Fiche                | S'affiche la 1re fois que…                                                       |
-| -------------------- | -------------------------------------------------------------------------------- |
-| `value`              | une valeur est obtenue par une carte (« Les gisements de 2 sont extractibles. ») |
-| `copies`             | on obtient un exemplaire limité (compteur, démolir le rend)                      |
-| `edition.brillante`  | on obtient une première édition brillante                                        |
-| `edition.legendaire` | on obtient une première édition légendaire                                       |
-| `passive`            | on obtient un premier passif                                                     |
-| `eventail`           | on prend Éventail                                                                |
+| Fiche                | S'affiche la 1re fois que…                                                                                                             |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`              | une valeur est obtenue par une carte (« Les gisements de 2 sont extractibles. »)                                                       |
+| `edition.brillante`  | on obtient une première carte Édition brillante, ou un bâtiment spécial brillant (avec une démo : outil Édition, clic sur un bâtiment) |
+| `edition.legendaire` | idem pour légendaire                                                                                                                   |
+| `special`            | on obtient un premier bâtiment spécial (compteur, démolir le rend)                                                                     |
+| `passive`            | on obtient un premier passif                                                                                                           |
+| `eventail`           | on prend Éventail                                                                                                                      |
 
+- Chaque bâtiment spécial a en plus sa propre fiche, comme les bâtiments ordinaires.
 - Les fiches des bâtiments et fonctions existants ne changent pas.
 - **Ordre** : choix → fiches de ce choix → offre suivante. `showPendingTip` (dans `main.ts`) attend aussi que l'écran de choix soit fermé, et l'écran de choix attend qu'aucune fiche ne soit en attente.
 
@@ -240,23 +288,22 @@ Le rattrapage après une absence (`catchUp.ts`, jusqu'à 10 minutes simulées) p
 
 ### 4.5 Barre de construction
 
-- **Un outil par type de bâtiment**, comme aujourd'hui. Un bâtiment non débloqué dont on possède un exemplaire apparaît dans la barre avec son compteur.
-- **Compteur** en pastille sur l'outil (`×1`). Rien ne s'affiche pour une version de base illimitée.
-- **Variantes** : si on possède des éditions d'un bâtiment, une petite rangée au-dessus de l'outil propose Base ∞ / Brillant ×1 / Légendaire ×1 (même emplacement que les boutons tactiles actuels). Au clavier, appuyer de nouveau sur la touche de l'outil fait défiler les variantes.
-- Arrivé à 0 exemplaire, la variante est grisée et l'outil revient à la version de base.
+- **Bâtiments ordinaires** : comme aujourd'hui, sans compteur.
+- **Bâtiments spéciaux** : un outil par type, avec un **compteur** en pastille (`×1`). Si on en possède plusieurs éditions, une rangée de variantes au-dessus de l'outil propose par exemple Base ×1 / Légendaire ×1 (même emplacement que les boutons tactiles actuels). Au clavier, appuyer de nouveau sur la touche de l'outil fait défiler les variantes. À 0, la variante est grisée ; l'outil disparaît quand il ne reste plus rien à poser.
+- **Outil Édition** (`G`) : apparaît dès la première carte Édition. Sa pastille montre les cartes libres (✦ 1 · ★ 2) ; ses variantes sont Brillante et Légendaire.
 
 ### 4.6 Hub, panneaux, info-bulle, écran de fin
 
 - **Hub** : l'icône de la prochaine récompense (`rewardIcon`) devient une icône « 2 cartes » (ou l'icône fixe pour les niveaux 1 et 2).
 - **Panneau Niveaux** : la colonne récompense affiche « Choix » (« Choix : 3 cartes » avec Éventail).
-- **Info-bulle** d'un bâtiment : l'édition et son effet.
+- **Info-bulle** d'un bâtiment : son édition, son effet, et si elle est appliquée (« Édition appliquée : démolir rend la carte ») ou d'origine.
 - **Écran de fin** : un récapitulatif « Tes choix », niveau par niveau. C'est ce qui rend chaque partie racontable (phase 1 si le temps le permet, sinon phase 2).
 
 ---
 
 ## 5. Phase 1 : moteur et ergonomie, avec des objets factices
 
-**But** : tout le système fonctionne de bout en bout, avec le contenu actuel et quelques objets factices qui couvrent chaque cas d'interface. Pas de nouveau bâtiment.
+**But** : tout le système fonctionne de bout en bout, avec le contenu actuel et quelques objets factices qui couvrent chaque cas d'interface. Un seul nouveau bâtiment, factice, pour tester l'inventaire des bâtiments spéciaux.
 
 ### 5.1 Modèle de données (indicatif)
 
@@ -264,6 +311,7 @@ Le rattrapage après une absence (`catchUp.ts`, jusqu'à 10 minutes simulées) p
 // src/config/cards.ts
 export type Slot = 'nombres' | 'atelier';
 export type Edition = 'base' | 'brillante' | 'legendaire';
+export type SpecialEdition = Exclude<Edition, 'base'>;
 export type CurvePoint = { level: number; w: number };
 
 export type Prereq =
@@ -277,7 +325,8 @@ export type CardEffect =
   | { kind: 'value' }
   | { kind: 'unlock'; building: PlaceableType }
   | { kind: 'feature'; feature: Feature }
-  | { kind: 'copies'; building: PlaceableType; count: number }
+  | { kind: 'special'; building: SpecialType; count: number }
+  | { kind: 'edition'; edition: SpecialEdition }
   | { kind: 'passive'; id: PassiveId }
   | { kind: 'meta'; id: MetaId };
 
@@ -290,9 +339,6 @@ export interface CardDef {
   /** 1 = carte unique ; absent = sans limite. */
   maxPicks?: number;
   weight: readonly CurvePoint[];
-  /** Les cartes `copies` seulement. */
-  editions?: boolean;
-  editionEffects?: Partial<Record<Exclude<Edition, 'base'>, EditionEffect>>;
   /** Fiche tutoriel montrée la première fois. */
   tip?: string;
   icon: string;
@@ -312,8 +358,10 @@ export const OFFERS = {
   ],
   naturalRefusalDecay: 0.7,
 };
-export const EDITIONS = { base: 85, brillante: 10, legendaire: 5 };
-export const EDITION_DEFAULTS = { brillante: { speed: 1.25 }, legendaire: { speed: 1.5 } };
+/** Édition d'origine d'un bâtiment spécial. */
+export const SPECIAL_EDITION_ODDS = { base: 85, brillante: 10, legendaire: 5 };
+/** Effet de chaque édition, par type de bâtiment (absent = n'accepte pas d'édition). */
+export const EDITION_EFFECTS: Partial<Record<BuildingType, Record<SpecialEdition, EditionEffect>>>;
 export const GUARDS: readonly Guard[] = [];
 ```
 
@@ -324,70 +372,82 @@ picks: { level: number; card: string; edition: Edition; tick: number }[];
 pendingLevels: number[];
 /** Offre tirée pour pendingLevels[0], enregistrée pour ne pas changer au rechargement. */
 currentOffer: { level: number; cards: { card: string; edition: Edition }[] } | null;
-/** Exemplaires possédés, par "type:édition". Les disponibles se calculent. */
-owned: Record<string, number>;
+/** Cartes Édition obtenues. Les libres se calculent (obtenues − appliquées). */
+editionCards: Record<SpecialEdition, number>;
+/** Bâtiments spéciaux obtenus, par "type:édition". Les libres se calculent (obtenus − posés). */
+specials: Record<string, number>;
 passives: PassiveId[];
 /** Refus de l'élément actuel du fil rouge (remis à 0 quand il est obtenu). */
 naturalRefusals: number;
+
+// Ajouts à Building (src/sim/entities.ts) et à BuildingSnap (src/sim/journal.ts)
+edition?: SpecialEdition;
+/** Vrai si l'édition vient d'une carte Édition (elle revient au joueur). */
+editionApplied?: boolean;
 ```
 
 Le type `Reward` actuel devient l'effet d'une carte (`CardEffect`). `rewardFor(n)` disparaît au profit de `naturalAt(state)` (fil rouge) et `drawOffer(state, level)`.
 
 ### 5.2 Fichiers touchés
 
-| Zone          | Fichiers                                                                                                                                                 | Changement                                                                        |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Configuration | `config/cards.ts` (nouveau), `config/balance.ts`                                                                                                         | catalogue, `OFFERS`, `EDITIONS`, fil rouge tiré de `LEVEL_TABLE`                  |
-| Tirage        | `sim/offers.ts` (nouveau)                                                                                                                                | disponibilité, poids, tirage, fil rouge, garde-fous (fonctions pures)             |
-| Progression   | `sim/progression.ts`, `sim/levels.ts`, `sim/state.ts`                                                                                                    | file d'attente, `chooseCard`, application des effets, `setLevel` par le fil rouge |
-| Éditions      | `sim/entities.ts`, `sim/operators.ts`, `sim/extractor.ts`                                                                                                | `Building.edition`, `cycleDuration(world, building)`, débit × édition             |
-| Exemplaires   | `build/placement.ts`, `build/clipboard.ts`, `build/move.ts`, `sim/clip.ts`                                                                               | contrôle à la pose, édition copiée et collée, version de base sinon               |
-| Sauvegarde    | `save/schema.ts`, `save/serialize.ts`, `save/migrations.ts`, `save/manager.ts`                                                                           | version 2, nouveaux champs, v1 refusée avec un message clair                      |
-| Interface     | `ui/offerScreen.ts` (nouveau), `ui/buildBar.ts`, `ui/topBar.ts`, `ui/hud.ts`, `ui/panels/levels.ts`, `ui/tooltip.ts`, `ui/endScreen.ts`, `ui/styles.css` | écran de choix, badge, compteurs, variantes, colonne « Choix », récapitulatif     |
-| Câblage       | `main.ts`                                                                                                                                                | ouverture automatique (§4.4), ordre fiches / offres, toasts                       |
-| Rendu         | `render/layers/buildings.ts`, `render/layers/ghosts.ts`, `render/layers/hub.ts`, `config/colors.ts`                                                      | craie nacrée et dorée, icône « cartes »                                           |
-| Fiches        | `ui/help.ts`, `tutorial/scenes.ts`                                                                                                                       | nouvelles fiches (§4.3)                                                           |
-| Textes        | `i18n/fr.ts`, `i18n/en.ts`                                                                                                                               | cartes, écran, fiches, toasts                                                     |
-| Debug         | `debug/debugApi.ts`, `ui/debugPanel.ts`                                                                                                                  | voir §5.4                                                                         |
+| Zone             | Fichiers                                                                                                                                                 | Changement                                                                                                          |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Configuration    | `config/cards.ts` (nouveau), `config/balance.ts`, `config/keymap.ts`                                                                                     | catalogue, `OFFERS`, `EDITION_EFFECTS`, fil rouge tiré de `LEVEL_TABLE`, touche `G`                                 |
+| Tirage           | `sim/offers.ts` (nouveau)                                                                                                                                | disponibilité, poids, tirage, fil rouge, garde-fous (fonctions pures)                                               |
+| Progression      | `sim/progression.ts`, `sim/levels.ts`, `sim/state.ts`                                                                                                    | file d'attente, `chooseCard`, application des effets, `setLevel` par le fil rouge                                   |
+| Éditions         | `sim/entities.ts`, `sim/journal.ts`, `sim/operators.ts`, `sim/extractor.ts`, `sim/storage.ts`                                                            | `edition` et `editionApplied`, `cycleDuration(world, building)`, débit et capacité × édition                        |
+| Inventaire       | `sim/inventory.ts` (nouveau), `build/placement.ts`, `build/clipboard.ts`, `build/move.ts`, `sim/clip.ts`                                                 | comptes libres, contrôle à la pose, éditions appliquées jamais copiées, bâtiments spéciaux copiés avec leur édition |
+| Outil Édition    | `build/tools.ts`, `ui/selectionBubble.ts`, `ui/toolActions.ts`                                                                                           | appliquer, échanger, retirer (actions annulables)                                                                   |
+| Bâtiment factice | `config/buildings.ts`, `sim/operators.ts`                                                                                                                | un bâtiment spécial au comportement d'additionneur (§5.3)                                                           |
+| Sauvegarde       | `save/schema.ts`, `save/serialize.ts`, `save/migrations.ts`, `save/manager.ts`                                                                           | version 2, nouveaux champs, v1 refusée avec un message clair                                                        |
+| Interface        | `ui/offerScreen.ts` (nouveau), `ui/buildBar.ts`, `ui/topBar.ts`, `ui/hud.ts`, `ui/panels/levels.ts`, `ui/tooltip.ts`, `ui/endScreen.ts`, `ui/styles.css` | écran de choix, badge, compteurs, variantes, outil Édition, colonne « Choix », récapitulatif                        |
+| Câblage          | `main.ts`                                                                                                                                                | ouverture automatique (§4.4), ordre fiches / offres, toasts                                                         |
+| Rendu            | `render/layers/buildings.ts`, `render/layers/ghosts.ts`, `render/layers/hub.ts`, `render/toolIcons.ts`, `config/colors.ts`                               | craie nacrée et dorée, bâton de craie, icône « cartes »                                                             |
+| Fiches           | `ui/help.ts`, `tutorial/scenes.ts`                                                                                                                       | nouvelles fiches (§4.3)                                                                                             |
+| Textes           | `i18n/fr.ts`, `i18n/en.ts`                                                                                                                               | cartes, écran, outil, fiches, toasts                                                                                |
+| Debug            | `debug/debugApi.ts`, `ui/debugPanel.ts`                                                                                                                  | voir §5.4                                                                                                           |
 
 ### 5.3 Objets factices
 
 Chacun couvre un cas d'interface précis. Ceux marqués « réel » sont jouables pour de bon et peuvent rester après la phase 1.
 
-| Carte                                                                        | Genre          | Ce qu'elle teste                                            | Statut                  |
-| ---------------------------------------------------------------------------- | -------------- | ----------------------------------------------------------- | ----------------------- |
-| Déblocages actuels (+, ×, −, ÷, ^, Pont, Priorités, Stockage, Améliorations) | `unlock`       | fil rouge, prérequis, fiches existantes                     | réel                    |
-| Valeur suivante                                                              | `value`        | carte sans édition, nouvelle fiche `value`                  | réel                    |
-| 1 exemplaire de + (édition tirée)                                            | `copies`       | compteur, variantes, craie nacrée et dorée, démolir le rend | réel                    |
-| 1 exemplaire d'extracteur (édition tirée)                                    | `copies`       | effet sur le débit, pose aimantée                           | réel                    |
-| 1 exemplaire de × (édition tirée), avant que le × soit débloqué              | `copies`       | bâtiment possédé mais pas débloqué                          | factice (à décider, §9) |
-| Opérateurs + 5 %                                                             | `passive`      | carte sans bâtiment, liste des effets actifs                | factice                 |
-| Éventail                                                                     | `meta`, unique | 3e emplacement, sortie du tirage après la prise             | réel                    |
-| Garde-fou factice                                                            | règle          | mécanisme des garde-fous, visible dans le panneau debug     | factice                 |
+| Carte                                                                        | Genre          | Ce qu'elle teste                                                                                                                  | Statut                                                             |
+| ---------------------------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Déblocages actuels (+, ×, −, ÷, ^, Pont, Priorités, Stockage, Améliorations) | `unlock`       | fil rouge, prérequis, fiches existantes                                                                                           | réel                                                               |
+| Valeur suivante                                                              | `value`        | carte sans édition, nouvelle fiche `value`                                                                                        | réel                                                               |
+| Édition brillante, Édition légendaire                                        | `edition`      | outil Édition, bulle, échange, retrait, démolir rend la carte, craie nacrée et dorée, effets sur opérateurs, extracteur, stockage | réel                                                               |
+| « Additionneur ancien » (édition d'origine tirée)                            | `special`      | compteur, variantes, collage bloqué, démolir le rend, édition inséparable                                                         | factice (bâtiment au comportement d'additionneur, image distincte) |
+| Opérateurs + 5 %                                                             | `passive`      | carte sans bâtiment, liste des effets actifs                                                                                      | factice                                                            |
+| Éventail                                                                     | `meta`, unique | 3e emplacement, sortie du tirage après la prise                                                                                   | réel                                                               |
+| Garde-fou factice                                                            | règle          | mécanisme des garde-fous, visible dans le panneau debug                                                                           | factice                                                            |
 
 ### 5.4 Debug et tests automatisés
 
 - **URL** : `?pick=natural|first|random` choisit tout seul (comme `?tutorial=0`). Les tests de bout en bout existants (`levels.spec`, `finish.spec`, `upgrades.spec`, `play.spec`) passent en `?pick=natural` et restent verts.
 - **API** (`window.__sumflow`) :
   - `offer()` : l'offre courante et les poids de chaque carte disponible ;
-  - `forceOffer(['mult', 'copies-adder'], edition?)` ;
+  - `forceOffer(['mult', 'edition-legendaire'])` ;
   - `choose(index)` ;
   - `grant(cardId, edition?)` ;
   - `setLevel(n)` : accorde le fil rouge des niveaux précédents.
-- **Panneau debug** : un tableau des cartes disponibles, avec leur poids brut, le facteur de chaque garde-fou et leur probabilité finale.
+- **Panneau debug** : un tableau des cartes disponibles, avec leur poids brut, le facteur de chaque garde-fou et leur probabilité finale ; l'inventaire (obtenu, posé ou appliqué, libre).
 
 ### 5.5 Tests
 
 - **Unitaires** :
-  - validation du catalogue : identifiants uniques, prérequis existants, pas de boucle de dépendances, poids ≥ 0, `editions` seulement sur `copies` ;
+  - validation du catalogue : identifiants uniques, prérequis existants, pas de boucle de dépendances, poids ≥ 0, aucun bâtiment ordinaire en carte `special` ;
   - tirage déterministe (même état donne la même offre) ;
   - aucune carte en double dans une offre ;
   - prorata exact sur un grand nombre de tirages ;
   - emplacement vide qui bascule sur l'autre ;
   - le fil rouge suivi de bout en bout redonne exactement l'ordre de `LEVEL_TABLE` ;
   - valeurs 9 → 11 ;
-  - répartition des éditions ;
-  - exemplaires : pose refusée à 0 ; démolir, annuler, rétablir et coller gardent le compte juste ;
+  - répartition des éditions d'origine ;
+  - cartes Édition : appliquer, échanger, retirer, démolir rend la carte, annuler et rétablir chaque action, refus sur un tapis ou un pont ;
+  - bâtiments spéciaux : pose refusée à 0, démolir le rend avec son édition, collage bloqué sans exemplaire libre ;
+  - collage d'un bâtiment ordinaire à édition appliquée : collé en base ;
+  - annuler une démolition quand la carte a été réappliquée ailleurs : bâtiment restauré en base ;
+  - effets : cycle, débit et capacité multipliés par l'édition ;
   - sauvegarde aller-retour avec les nouveaux champs, v1 refusée.
 - **De bout en bout** :
   - l'écran s'ouvre en fin de niveau 3 et pas aux niveaux 1 et 2 ;
@@ -399,26 +459,27 @@ Chacun couvre un cas d'interface précis. Ceux marqués « réel » sont jouable
   - une fiche après une nouveauté, aucune sinon ;
   - rattrapage avec 2 niveaux terminés, donc « 1 / 2 » ;
   - recharger garde l'offre ;
-  - compteur de la barre de construction ;
+  - outil Édition et bulle : appliquer sur un ×, démolir, la pastille remonte ;
+  - compteur d'un bâtiment spécial dans la barre de construction ;
   - craie dorée visible (contrôle de pixels, comme `pixels.ts`).
 
 ### 5.6 Jalons
 
-| Jalon                               | Contenu                                                                                                                      | Jouable ?                          |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| **R1** Catalogue et tirage          | `cards.ts`, `offers.ts`, tests unitaires. Aucune interface.                                                                  | non (code seul)                    |
-| **R2** Progression et sauvegarde    | file d'attente, `chooseCard`, valeurs une par une, sauvegarde v2, API debug, `?pick=`                                        | oui, choix automatique             |
-| **R3** Écran de choix               | `offerScreen.ts`, règles d'ouverture, Voir la carte et badge, clavier, tactile, toasts, Hub, panneau Niveaux, textes FR/EN   | **oui, première version à tester** |
-| **R4** Fiches après le choix        | nouvelles fiches, ordre fiches / offres                                                                                      | oui                                |
-| **R5** Éditions et exemplaires      | `Building.edition`, possédés / posés, pose, collage, déplacement, compteurs, variantes, craie, info-bulle, effets de vitesse | oui                                |
-| **R6** Objets factices et finitions | passif et garde-fou factices, panneau des poids, récapitulatif de fin, tests de bout en bout restants                        | oui                                |
+| Jalon                                        | Contenu                                                                                                                                                | Jouable ?                          |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| **R1** Catalogue et tirage                   | `cards.ts`, `offers.ts`, tests unitaires. Aucune interface.                                                                                            | non (code seul)                    |
+| **R2** Progression et sauvegarde             | file d'attente, `chooseCard`, valeurs une par une, sauvegarde v2, API debug, `?pick=`                                                                  | oui, choix automatique             |
+| **R3** Écran de choix                        | `offerScreen.ts`, règles d'ouverture, Voir la carte et badge, clavier, tactile, toasts, Hub, panneau Niveaux, textes FR/EN                             | **oui, première version à tester** |
+| **R4** Fiches après le choix                 | nouvelles fiches, ordre fiches / offres                                                                                                                | oui                                |
+| **R5** Éditions                              | `edition` et `editionApplied`, effets, inventaire calculé, outil Édition, bulle, échange, retrait, annulation, collage, craie, info-bulle              | oui                                |
+| **R6** Bâtiment spécial factice et finitions | « Additionneur ancien », compteurs et variantes, passif et garde-fou factices, panneau des poids, récapitulatif de fin, tests de bout en bout restants | oui                                |
 
 Chaque jalon se termine par `npm run lint`, `npm test`, `npm run build` et `npm run test:e2e`, puis une mise à jour de `docs/PROGRESS.md` et `docs/DECISIONS.md`.
 
 ### 5.7 Fin de la phase 1
 
 - Une partie se joue du niveau 1 à la fin en ne prenant que le fil rouge, avec le même ordre de déblocage qu'aujourd'hui (test automatique).
-- Chaque genre de carte (`value`, `unlock`, `copies`, `passive`, `meta`) existe au moins une fois, avec son rendu, sa fiche et ses tests.
+- Chaque genre de carte (`value`, `unlock`, `special`, `edition`, `passive`, `meta`) existe au moins une fois, avec son rendu, sa fiche et ses tests.
 - L'écran est utilisable à la souris, au clavier, au doigt, sur ordinateur, tablette et téléphone en paysage.
 
 ---
@@ -427,29 +488,32 @@ Chaque jalon se termine par `npm run lint`, `npm test`, `npm run build` et `npm 
 
 ### 6.1 Fiche d'un objet (modèle à remplir pour chaque ajout)
 
-| Champ                     | Contenu                                                                                                           |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Identité                  | id, nom FR/EN, icône, couleur de craie                                                                            |
-| Carte                     | genre, emplacement, nombre d'exemplaires, `maxPicks`, prérequis, `minLevel`, courbe de poids                      |
-| Bâtiment (s'il y en a un) | empreinte, ports (rôles et faces, comme PLAN §6.3), règle de calcul, piste d'amélioration (existante ou nouvelle) |
-| Éditions                  | effet brillant, effet légendaire (ou les effets communs)                                                          |
-| Fiche tutoriel            | titre, texte, scène de démo                                                                                       |
-| Tests                     | règle de calcul, ports, sauvegarde, rendu                                                                         |
+| Champ                     | Contenu                                                                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Identité                  | id, nom FR/EN, icône, couleur de craie                                                                                    |
+| Carte                     | genre, emplacement, nombre d'exemplaires, `maxPicks`, prérequis, `minLevel`, courbe de poids                              |
+| Bâtiment (s'il y en a un) | empreinte, ports (rôles et faces, comme PLAN §6.3), règle de calcul, piste d'amélioration (existante, nouvelle ou aucune) |
+| Éditions                  | effet brillant, effet légendaire (ou les effets communs)                                                                  |
+| Fiche tutoriel            | titre, texte, scène de démo                                                                                               |
+| Tests                     | règle de calcul, ports, sauvegarde, rendu                                                                                 |
 
 ### 6.2 Candidats (2 ou 3, à choisir au début de la phase)
 
-- **Concaténateur `‖`** : `A ‖ B` colle les chiffres (`1 ‖ 1 = 11`, `47 ‖ 0 = 470`). Points à fixer : le signe (celui de A), un B négatif, la saturation (`INT_MAX`), sa piste de vitesse. C'est un opérateur de croissance, concurrent du ×.
-- **Relais du Hub** : un petit point de livraison, à poser loin du Hub, qui compte comme le Hub. Il change la disposition de l'usine. Effet légendaire possible : chaque livraison compte double.
-- **Extracteur de prospection** : extrait une seule valeur au-dessus du plafond (le gisement choisi à la pose).
+- **Concaténateur `‖`** (bâtiment spécial) : `A ‖ B` colle les chiffres (`1 ‖ 1 = 11`, `47 ‖ 0 = 470`). Points à fixer : le signe (celui de A), un B négatif, la saturation (`INT_MAX`), sa piste de vitesse. C'est un opérateur de croissance, concurrent du ×.
+- **Relais du Hub** (bâtiment spécial) : un petit point de livraison, à poser loin du Hub, qui compte comme le Hub. Il change la disposition de l'usine. Effet légendaire possible : chaque livraison compte double.
+- **Extracteur de prospection** (bâtiment spécial) : extrait une seule valeur au-dessus du plafond (le gisement choisi à la pose).
+- **Effets légendaires propres aux bâtiments ordinaires** : par exemple le × légendaire qui sort son résultat des deux côtés. Une carte Édition légendaire garde ainsi de la valeur en fin de partie, quand un seul bâtiment × 1,5 pèse peu parmi des centaines.
+
+Le « Additionneur ancien » factice est retiré une fois le premier vrai bâtiment spécial en place.
 
 ### 6.3 Simulateur de tirages
 
 - **Commande** : `npm run sim:offers`, avec un mode Vitest dédié, sur le modèle de `npm run bench` (`vite.config.ts`). Il n'utilise que les fonctions pures de `offers.ts`.
-- **Stratégies de joueur simulées** : toujours le fil rouge ; au hasard ; toujours une nouveauté ; minimaliste (refuse les valeurs) ; collectionneur (prend les exemplaires).
+- **Stratégies de joueur simulées** : toujours le fil rouge ; au hasard ; toujours une nouveauté ; minimaliste (refuse les valeurs) ; collectionneur (prend les éditions et les bâtiments spéciaux).
 - **Sorties**, niveau par niveau, sur 10 000 graines :
   - probabilité qu'une carte soit **proposée**, puis **prise** ;
   - probabilité que le fil rouge soit présent dans une offre ;
-  - nombre d'éditions vues et obtenues ;
+  - nombre de cartes Édition et de bâtiments spéciaux vus et obtenus, par édition ;
   - emplacements vides ;
   - cartes jamais vues.
 - **Format** : un tableau Markdown dans le terminal, plus un CSV pour aller plus loin. Une page HTML de graphiques pourra venir en phase 3.
@@ -460,7 +524,7 @@ Chaque jalon se termine par `npm run lint`, `npm test`, `npm run build` et `npm 
 
 **Limite assumée** : on ne simule pas une vraie usine. On estime un **coût relatif** par niveau, comparé à la partie de référence (le fil rouge).
 
-1. **Coût d'un nombre** avec un jeu d'outils (valeurs, opérateurs, éditions) : le nombre minimal d'opérations et d'items bruts pour fabriquer la cible.
+1. **Coût d'un nombre** avec un jeu d'outils (valeurs, opérateurs, bâtiments spéciaux) : le nombre minimal d'opérations et d'items bruts pour fabriquer la cible.
    - Jusqu'à environ 10⁶ : plus court chemin sur les nombres (Dijkstra : chaque opération disponible relie deux nombres déjà atteints).
    - Au-delà : décompositions heuristiques (facteurs pour le ×, chiffres pour le ‖, base k pour × et +).
 2. **Débit estimé** : vitesse des opérateurs selon les améliorations probables à ce niveau, multipliée par les éditions possédées.
@@ -495,8 +559,8 @@ Pour chaque nouvel objet :
 
 ---
 
-## 9. Questions ouvertes (à trancher avant ou pendant R3)
+## 9. Questions ouvertes (à trancher avant ou pendant R5)
 
-1. **Exemplaire d'un bâtiment pas encore débloqué** (par exemple 1 × brillant au niveau 4) : autorisé ou non ?
-2. **Coller sans exemplaire disponible** : version de base (proposé) ou pose bloquée ?
+1. **Carte Édition sur un bâtiment spécial de base** (un Concaténateur obtenu en base, puis une carte Édition légendaire dessus) : autorisé, avec la carte qui revient au joueur quand on démolit (proposé : « ce qui vient d'une carte Édition redevient une carte Édition ») ? Ou interdit ?
+2. **Retirer une édition sans démolir** (bouton de la bulle) : oui (proposé) ou non ?
 3. **Prérequis du §3.2** : la liste proposée convient-elle (Priorités après le Pont, ^ après le ×, Stockage à partir du niveau 12) ?
