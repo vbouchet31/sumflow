@@ -137,6 +137,15 @@ export function serialize(world: World, camera: CameraState, savedAt = ''): Save
     markers: markers.map((m) => ({ x: m.x, y: m.y, text: m.text })),
     clipboard: structuredClone(s.clipboard),
     helpSeen: [...s.helpSeen],
+    picks: s.picks.map((p) => ({ ...p })),
+    pendingLevels: [...s.pendingLevels],
+    currentOffer: s.currentOffer
+      ? { level: s.currentOffer.level, cards: s.currentOffer.cards.map((c) => ({ ...c })) }
+      : null,
+    editionCards: { ...s.editionCards },
+    specials: Object.fromEntries(Object.entries(s.specials).sort(([a], [b]) => (a < b ? -1 : 1))),
+    passives: [...s.passives],
+    naturalRefusals: s.naturalRefusals,
     camera: { x: camera.x, y: camera.y, zoom: camera.zoom },
   };
 }
@@ -163,6 +172,15 @@ export function deserialize(data: SaveData): { state: GameState; camera: CameraS
   state.nextBuildingId = data.nextBuildingId;
   state.helpSeen = [...data.helpSeen];
   state.clipboard = structuredClone(data.clipboard);
+  state.picks = data.picks.map((p) => ({ ...p }));
+  state.pendingLevels = [...data.pendingLevels];
+  state.currentOffer = data.currentOffer
+    ? { level: data.currentOffer.level, cards: data.currentOffer.cards.map((c) => ({ ...c })) }
+    : null;
+  state.editionCards = { ...data.editionCards };
+  state.specials = { ...data.specials };
+  state.passives = [...data.passives];
+  state.naturalRefusals = data.naturalRefusals;
 
   const occupied = new Set<number>();
   const claim = (x: number, y: number, path: string): void => {

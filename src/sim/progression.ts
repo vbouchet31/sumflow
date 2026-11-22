@@ -1,11 +1,18 @@
-import { type Reward, type Track, TRACKS } from '../config/balance';
-import { rewardFor } from './levels';
-import { type GameState, requirementFor } from './state';
-import { buyUpgrade, isUpgradeReady, syncUpgradeRequirements } from './upgrades';
+import { type Track, TRACKS } from '../config/balance';
+import type { Edition } from '../config/cards';
+import { drawOffer, fixedReward, isNaturalOwned, naturalStep, type OfferCard } from './offers';
+import { grantCard, obtainCard, offerContext } from './rewards';
+import { type GameState, requirementFor, type StoredOffer } from './state';
+import { buyUpgrade, isUpgradeReady } from './upgrades';
 
 export type ProgressionEvents = {
   delivered: { value: number };
-  levelCompleted: { level: number; reward: Reward | null; final: boolean };
+  /** `reward`: the card of a fixed level (1 and 2); null when the level gives an offer. */
+  levelCompleted: { level: number; reward: OfferCard | null; final: boolean };
+  /** An offer was drawn for `level`; `pending` counts the offers waiting, this one included. */
+  offerReady: { level: number; cards: OfferCard[]; pending: number };
+  /** A card of the offer of `level` was taken. `final`: that level was the last one. */
+  cardChosen: { level: number; card: string; edition: Edition; value?: number; final: boolean };
   upgradeReady: { track: Track };
   upgradeBought: { track: Track; level: number };
 };
@@ -59,31 +66,18 @@ export function setAutoBuy(state: GameState, on: boolean, emit?: Emit): void {
   for (const track of TRACKS) if (isUpgradeReady(state, track)) purchase(state, track, emit);
 }
 
-/** Apply a level reward (PLAN §7.2, §7.4). Idempotent. */
-export function applyReward(state: GameState, reward: Reward | null): void {
-  if (!reward) return;
-  switch (reward.kind) {
-    case 'extraction':
-      state.maxExtraction = Math.max(state.maxExtraction, reward.max);
-      break;
-    case 'building':
-      if (!state.unlockedBuildings.includes(reward.building))
-        state.unlockedBuildings.push(reward.building);
-      break;
-    case 'feature':
-      if (!state.unlockedFeatures.includes(reward.feature))
-        state.unlockedFeatures.push(reward.feature);
-      break;
-  }
-  syncUpgradeRequirements(state);
-}
-
-/** Finish the current level: reward, then next level or end of the game (free play). */
+/**
+ * Finish the current level (PLAN-recompenses §4.1): levels 1 and 2 give their fixed card at
+ * once; every later level, the final one included, joins the queue of pending offers. The
+ * next level starts immediately; after the final one the game switches to free play.
+ */
 export function completeLevel(state: GameState, emit?: Emit): void {
   const done = state.level;
   const def = state.levels[done - 1];
-  const reward = rewardFor(done);
-  applyReward(state, reward);
+  const fixed = fixedReward(done);
+  let reward: OfferCard | null = null;
+  if (fixed) reward = grantCard(state, fixed.card, 'base', done) ?? null;
+  else state.pendingLevels.push(done);
   const final = def?.final ?? false;
   if (final) {
     state.levelRequirement = null;
@@ -95,10 +89,60 @@ export function completeLevel(state: GameState, emit?: Emit): void {
   emit?.('levelCompleted', { level: done, reward, final });
 }
 
-/** Debug: jump to `level`, granting every reward of the levels before it. */
+/**
+ * The offer of the first pending level, drawn now if it is not yet (PLAN-recompenses §4.4):
+ * drawn late so it accounts for the earlier choices, stored so a reload shows the same
+ * cards. Null when no offer is pending.
+ */
+export function ensureOffer(state: GameState, emit?: Emit): StoredOffer | null {
+  const level = state.pendingLevels[0];
+  if (level === undefined) {
+    state.currentOffer = null;
+    return null;
+  }
+  if (state.currentOffer?.level === level) return state.currentOffer;
+  const offer = drawOffer(offerContext(state, level));
+  state.currentOffer = { level, cards: offer.cards };
+  emit?.('offerReady', {
+    level,
+    cards: offer.cards.map((c) => ({ ...c })),
+    pending: state.pendingLevels.length,
+  });
+  return state.currentOffer;
+}
+
+/**
+ * Take card `index` of the current offer (drawn first if needed): apply it, record it, update
+ * the refusal counter, then move on to the next pending level. False if there is no such card.
+ */
+export function chooseCard(state: GameState, index: number, emit?: Emit): boolean {
+  const offer = ensureOffer(state, emit);
+  const card = offer?.cards[index];
+  if (!offer || !card) return false;
+  const obtained = obtainCard(state, card, offer.level, offer.cards);
+  state.pendingLevels.shift();
+  state.currentOffer = null;
+  emit?.('cardChosen', {
+    level: offer.level,
+    ...obtained,
+    final: state.levels[offer.level - 1]?.final ?? false,
+  });
+  return true;
+}
+
+/**
+ * Debug: jump to `level`, granting the natural card of every level before it (those not
+ * obtained yet), and dropping the pending offers.
+ */
 export function setLevel(state: GameState, level: number): void {
   const target = Math.max(1, Math.floor(level));
-  for (let n = 1; n < target; n++) applyReward(state, rewardFor(n));
+  for (let n = 1; n < target; n++) {
+    const step = naturalStep(n);
+    if (!isNaturalOwned(step, offerContext(state, n))) grantCard(state, step.card, 'base', n);
+  }
+  state.pendingLevels = [];
+  state.currentOffer = null;
+  state.naturalRefusals = 0;
   state.level = target;
   state.finishedAtTick = null;
   state.levelRequirement = requirementFor(state, target);

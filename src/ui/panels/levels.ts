@@ -1,10 +1,10 @@
 import { LEVELS } from '../../config/balance';
 import { formatFull } from '../../core/format';
 import { getLocale, t } from '../../i18n';
-import { ensureLevels, rewardFor } from '../../sim/levels';
+import { ensureLevels } from '../../sim/levels';
 import type { World } from '../../sim/world';
 import { el } from '../dom';
-import { rewardLabel } from '../labels';
+import { nextRewardLabel } from '../labels';
 import { Panel } from './panel';
 
 /** Levels panel (PLAN §7.2): the current level and the next ones (12 in total). */
@@ -32,7 +32,7 @@ export class LevelsPanel extends Panel {
     if (!force && !this.isOpen) return;
     const { state } = this.world;
     const loc = getLocale();
-    const key = `${state.level}|${state.levelRequirement === null}|${loc}`;
+    const key = `${state.level}|${state.picks.length}|${state.levelRequirement === null}|${loc}`;
     if (!force && key === this.key) return;
     this.key = key;
     ensureLevels(state.seed, state.levels, state.level + LEVELS.lookahead);
@@ -54,7 +54,7 @@ export class LevelsPanel extends Panel {
             el('td', undefined, `${n}${tag}`),
             el('td', 'num', formatFull(def.target, loc)),
             el('td', 'num', formatFull(def.quantity, loc)),
-            el('td', undefined, def.final ? t('reward.none') : rewardLabel(rewardFor(n))),
+            el('td', undefined, nextRewardLabel(state, n)),
           ),
         );
         if (def.final) break;

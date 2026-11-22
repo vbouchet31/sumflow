@@ -163,7 +163,35 @@ export function naturalSequence(cat: Catalogue = DEFAULT_CATALOGUE): readonly Na
   return steps;
 }
 
+/**
+ * The natural step of `level`: its LEVEL_TABLE reward as a card, then "value" for every
+ * infinite level, the k-th value step giving the k-th extractable value.
+ */
+export function naturalStep(level: number, cat: Catalogue = DEFAULT_CATALOGUE): NaturalStep {
+  const seq = naturalSequence(cat);
+  const step = seq[level - 1];
+  if (step) return step;
+  const value = cat.cards.find((c) => c.effect.kind === 'value');
+  if (!value) throw new Error('The catalogue has no value card');
+  let max = START_MAX_EXTRACTION;
+  for (const s of seq) if (s.value !== undefined) max = s.value;
+  for (let n = seq.length; n < level; n++) max = nextValue(max);
+  return { card: value.id, value: max };
+}
+
 /** Has the player already obtained this natural step? */
+export function isNaturalOwned(
+  step: NaturalStep,
+  ctx: OfferContext,
+  cat: Catalogue = DEFAULT_CATALOGUE,
+): boolean {
+  return isStepOwned(
+    step,
+    cat.cards.find((c) => c.id === step.card),
+    ctx,
+  );
+}
+
 function isStepOwned(step: NaturalStep, card: CardDef | undefined, ctx: OfferContext): boolean {
   if (step.value !== undefined) return ctx.maxExtraction >= step.value;
   if (!card) return false;

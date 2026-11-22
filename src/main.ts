@@ -24,7 +24,7 @@ import { PerfOverlay } from './ui/perfOverlay';
 import { DebugPanel } from './ui/debugPanel';
 import { EndScreen } from './ui/endScreen';
 import { Hud } from './ui/hud';
-import { rewardLabel } from './ui/labels';
+import { cardLabel } from './ui/labels';
 import { watchLayout } from './ui/layout';
 import { LevelsPanel } from './ui/panels/levels';
 import { Toasts } from './ui/toasts';
@@ -41,6 +41,7 @@ import { describeTile, Tooltip } from './ui/tooltip';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
 import { setAutoBuy } from './sim/progression';
+import { parsePickMode, resolvePending } from './sim/autoPick';
 import type { GameState } from './sim/state';
 import { SaveManager } from './save/manager';
 import {
@@ -54,6 +55,7 @@ import {
   SAVE_KEY,
   writeStorage,
 } from './save/persist';
+import { SaveError } from './save/schema';
 import { type CameraState, deserialize, serialize } from './save/serialize';
 import { defaultSettings, loadSettings, storeSettings } from './save/settings';
 import { knownTips, markSeen, pendingTips } from './ui/help';
@@ -76,7 +78,9 @@ function initialSeed(search: string): number {
   return (param === null ? null : parseSeed(param)) ?? toSeed(Math.random() * 2 ** 32);
 }
 
-type Loaded = { state: GameState; camera: CameraState | null; error: boolean };
+/** Why the saved game could not be loaded, if it could not. */
+type LoadError = 'invalid' | 'outdated' | null;
+type Loaded = { state: GameState; camera: CameraState | null; error: LoadError };
 
 /** The saved game if there is a readable one, else a new game (PLAN §11.3). */
 async function loadGame(search: string): Promise<Loaded> {
@@ -84,14 +88,15 @@ async function loadGame(search: string): Promise<Loaded> {
   if (text) {
     try {
       const { state, camera } = deserialize(await decodeSave(text));
-      return { state, camera, error: false };
-    } catch {
-      // Keep the unreadable save aside rather than overwrite it.
+      return { state, camera, error: null };
+    } catch (e) {
+      // Keep the unreadable (or too old) save aside rather than overwrite it.
       writeStorage(CORRUPT_KEY, text);
-      return { state: createInitialState(initialSeed(search)), camera: null, error: true };
+      const error = e instanceof SaveError && e.reason === 'outdated' ? 'outdated' : 'invalid';
+      return { state: createInitialState(initialSeed(search)), camera: null, error };
     }
   }
-  return { state: createInitialState(initialSeed(search)), camera: null, error: false };
+  return { state: createInitialState(initialSeed(search)), camera: null, error: null };
 }
 
 async function bootstrap(): Promise<void> {
@@ -231,6 +236,9 @@ async function bootstrap(): Promise<void> {
   };
   // `?tutorial=0` keeps the cards from opening by themselves (end-to-end tests).
   const autoTutorials = new URLSearchParams(location.search).get('tutorial') !== '0';
+  // `?pick=natural|first|random|none` chooses the pending offers by itself, until the choice
+  // screen exists (natural by default, see DEFAULT_PICK_MODE).
+  const pickMode = parsePickMode(new URLSearchParams(location.search).get('pick'));
   /** Cards shown one after the other: position in the series and its length. */
   const series = { index: 0, total: 0 };
   /** Open the next pending card when nothing else is on screen. Cheap: call every frame. */
@@ -293,9 +301,10 @@ async function bootstrap(): Promise<void> {
         .text()
         .then((text) => importSave(text))
         .then(() => reloadWith(null))
-        .catch(() => {
+        .catch((e: unknown) => {
           sfx.error();
-          toasts.show(t('toast.importError'));
+          const outdated = e instanceof SaveError && e.reason === 'outdated';
+          toasts.show(t(outdated ? 'toast.importOutdated' : 'toast.importError'));
         });
     },
     settings: () => settings,
@@ -346,20 +355,26 @@ async function bootstrap(): Promise<void> {
   // Mobile browsers often skip `beforeunload` and may kill the tab before the async save
   // of `visibilitychange` ends: `pagehide` writes synchronously.
   window.addEventListener('pagehide', () => saves.saveSync());
-  if (loaded.error) toasts.show(t('toast.loadError'));
+  if (loaded.error === 'outdated') toasts.show(t('toast.loadOutdated'));
+  else if (loaded.error) toasts.show(t('toast.loadError'));
   // Soft click on every UI button (PLAN §12).
   uiRoot.addEventListener('click', (e) => {
     if (e.target instanceof Element && e.target.closest('button')) sfx.click();
   });
 
-  world.events.on('levelCompleted', ({ level, reward, final }) => {
+  world.events.on('levelCompleted', ({ level, reward }) => {
     renderer.waveStart = performance.now();
     sfx.levelComplete();
+    // Levels 1 and 2 name their fixed card; later ones get theirs once chosen.
     toasts.show(
       t('toast.levelDone', { n: level }),
-      reward ? t('toast.unlocked', { reward: rewardLabel(reward) }) : undefined,
+      reward ? t('toast.unlocked', { reward: cardLabel(reward) }) : undefined,
     );
-    if (final) endScreen.show(world.state);
+  });
+  world.events.on('cardChosen', (card) => {
+    toasts.show(t('toast.obtained', { reward: cardLabel(card) }));
+    // The end screen opens once the offer of the final level is chosen.
+    if (card.final) endScreen.show(world.state);
   });
   world.events.on('upgradeReady', ({ track }) => {
     if (state.autoBuyUpgrades) return;
@@ -495,6 +510,7 @@ async function bootstrap(): Promise<void> {
         buildings: state.buildings.size - 1,
       });
     }
+    resolvePending(state, pickMode, world.emit);
     hud.update(world);
     for (const p of panels) p.update();
     topBar.setVisible('upgrades', upgradesAvailable());

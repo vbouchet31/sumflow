@@ -1,8 +1,9 @@
-import { HUB, type Reward } from '../../config/balance';
+import { HUB } from '../../config/balance';
 import { BUILDING_COLORS, COLORS, FONT_NUM, FONT_UI, HUB_COLORS } from '../../config/colors';
 import { formatCompact } from '../../core/format';
 import { t } from '../../i18n';
-import { rewardFor } from '../../sim/levels';
+import { fixedReward, type NaturalStep, offerSlots } from '../../sim/offers';
+import { cardDef, offerContext } from '../../sim/rewards';
 import type { GameState } from '../../sim/state';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
@@ -16,18 +17,40 @@ const OPERATOR_SYMBOLS: Partial<Record<string, string>> = {
   exponent: '^',
 };
 
-/** Glyph and colour of the reward icon drawn on the hub. */
-export function rewardIcon(reward: Reward): { glyph: string; color: string } {
-  switch (reward.kind) {
-    case 'building':
+/** Glyph and colour of the icon of a fixed reward (levels 1 and 2) drawn on the hub. */
+export function rewardIcon(step: NaturalStep): { glyph: string; color: string } {
+  const e = cardDef(step.card)?.effect;
+  switch (e?.kind) {
+    case 'unlock':
       return {
-        glyph: OPERATOR_SYMBOLS[reward.building] ?? reward.building.charAt(0).toUpperCase(),
-        color: BUILDING_COLORS[reward.building],
+        glyph: OPERATOR_SYMBOLS[e.building] ?? e.building.charAt(0).toUpperCase(),
+        color: BUILDING_COLORS[e.building],
       };
-    case 'extraction':
-      return { glyph: String(reward.max), color: HUB_COLORS.rewardExtraction };
+    case 'value':
+      return { glyph: String(step.value ?? ''), color: HUB_COLORS.rewardExtraction };
     case 'feature':
-      return { glyph: reward.feature === 'upgrades' ? '↑' : '◆', color: HUB_COLORS.rewardFeature };
+      return { glyph: e.feature === 'upgrades' ? '↑' : '◆', color: HUB_COLORS.rewardFeature };
+    default:
+      return { glyph: '?', color: HUB_COLORS.rewardFeature };
+  }
+}
+
+/** Provisional "cards" glyph of an offer: `n` card outlines fanned out around (x, y). */
+function drawCardsGlyph(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, n: number) {
+  const w = 0.62 * r;
+  const h = 0.9 * r;
+  ctx.strokeStyle = COLORS.text;
+  ctx.fillStyle = HUB_COLORS.rewardChoice;
+  ctx.lineWidth = Math.max(1, 0.12 * r);
+  for (let i = 0; i < n; i++) {
+    const k = i - (n - 1) / 2;
+    ctx.save();
+    ctx.translate(x + k * 0.38 * r, y + Math.abs(k) * 0.1 * r);
+    ctx.rotate(k * 0.3);
+    roundRect(ctx, -w / 2, -h / 2, w, h, 0.12 * r);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
   }
 }
 
@@ -99,17 +122,17 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
     ctx.fill();
   }
 
-  // Next reward icon.
-  const reward = rewardFor(state.level);
-  if (reward) {
-    const icon = rewardIcon(reward);
-    const r = 0.38 * s;
-    const iy = y + w - 0.7 * s;
-    ctx.fillStyle = HUB_COLORS.textMuted;
-    ctx.font = `500 ${0.36 * s}px ${FONT_UI}`;
-    ctx.textAlign = 'right';
-    ctx.fillText(t('hub.nextReward'), cx + 0.15 * s, iy);
-    const ix = cx + 0.25 * s + r;
+  // Next reward icon: the fixed card, or the cards of an offer.
+  const r = 0.38 * s;
+  const iy = y + w - 0.7 * s;
+  ctx.fillStyle = HUB_COLORS.textMuted;
+  ctx.font = `500 ${0.36 * s}px ${FONT_UI}`;
+  ctx.textAlign = 'right';
+  ctx.fillText(t('hub.nextReward'), cx + 0.15 * s, iy);
+  const ix = cx + 0.25 * s + r;
+  const fixed = fixedReward(state.level);
+  if (fixed) {
+    const icon = rewardIcon(fixed);
     ctx.fillStyle = icon.color;
     roundRect(ctx, ix - r, iy - r, 2 * r, 2 * r, 0.25 * r);
     ctx.fill();
@@ -117,5 +140,7 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
     ctx.textAlign = 'center';
     ctx.font = `700 ${0.55 * s}px ${FONT_NUM}`;
     ctx.fillText(icon.glyph, ix, iy + 0.03 * s);
+  } else {
+    drawCardsGlyph(ctx, ix, iy, r, offerSlots(offerContext(state, state.level)).length);
   }
 }

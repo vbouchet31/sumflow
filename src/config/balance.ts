@@ -77,8 +77,6 @@ export const LEVELS = {
   quantityBase: 14_000,
   quantityStep: 200,
   quantityCap: 20_000,
-  /** Reward of infinite level n: Extraction (n - extractionOffset). */
-  extractionOffset: 7,
   /** The first level whose target would exceed this becomes the last one. */
   maxTarget: 2_000_000_000,
   /** Levels generated ahead of the current one (kept in the save). */

@@ -94,6 +94,8 @@ export const HUB_COLORS = {
   /** Behind the reward icons. */
   rewardExtraction: '#5f7166',
   rewardFeature: '#3a8f8a',
+  /** Behind the "cards" icon of a level that ends with an offer (provisional). */
+  rewardChoice: '#7d6a94',
 } as const;
 
 export const FONT_NUM = '"Patrick Hand", cursive';

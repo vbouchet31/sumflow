@@ -1,11 +1,22 @@
 import type { Feature, PlaceableType, Track } from '../config/balance';
 import { TRACKS } from '../config/balance';
 import type { BuildingType } from '../config/buildings';
+import {
+  CARDS,
+  type Edition,
+  EDITIONS,
+  PASSIVE_EFFECTS,
+  type PassiveId,
+  type SpecialEdition,
+} from '../config/cards';
 import { COORD_MAX, COORD_MIN, type Dir, type Rot } from '../core/grid';
 import type { Clip } from '../sim/clip';
 
-/** Current save format version (PLAN §11.3). Bump it with a migration (§11.4). */
-export const SAVE_VERSION = 1;
+/**
+ * Current save format version (PLAN §11.3). Bump it with a migration (§11.4). Version 2
+ * adds the reward cards (PLAN-recompenses §5.1); version 1 saves are refused.
+ */
+export const SAVE_VERSION = 2;
 
 /** An item on a belt or lane: value, progress, entry side. */
 export type SavedItem = [value: number, progress: number, from: Dir | null];
@@ -61,7 +72,23 @@ export interface SavedRequirement {
   delivered: number;
 }
 
-/** Version 1 of the save (PLAN §11.3). Deposits are never saved (rebuilt from the seed). */
+/** A card obtained (see `CardPick`). */
+export interface SavedPick {
+  level: number;
+  card: string;
+  edition: Edition;
+  value?: number;
+  tick: number;
+}
+
+/** A card of an offer (see `OfferCard`). */
+export interface SavedOfferCard {
+  card: string;
+  edition: Edition;
+  value?: number;
+}
+
+/** Version 2 of the save (PLAN §11.3). Deposits are never saved (rebuilt from the seed). */
 export interface SaveData {
   version: number;
   seed: number;
@@ -88,13 +115,28 @@ export interface SaveData {
   markers: { x: number; y: number; text: string }[];
   clipboard: Clip[];
   helpSeen: string[];
+  picks: SavedPick[];
+  pendingLevels: number[];
+  currentOffer: { level: number; cards: SavedOfferCard[] } | null;
+  editionCards: Record<SpecialEdition, number>;
+  specials: Record<string, number>;
+  passives: PassiveId[];
+  naturalRefusals: number;
   camera: { x: number; y: number; zoom: number };
 }
 
+/** Why a save is refused: invalid data, or a format this build no longer reads. */
+export type SaveErrorReason = 'invalid' | 'outdated';
+
 /** Raised when a save does not match the schema. Nothing is overwritten in that case. */
 export class SaveError extends Error {
-  constructor(readonly path: string) {
-    super(`Invalid save at ${path}`);
+  constructor(
+    readonly path: string,
+    readonly reason: SaveErrorReason = 'invalid',
+  ) {
+    super(
+      reason === 'outdated' ? `Unsupported save version at ${path}` : `Invalid save at ${path}`,
+    );
   }
 }
 
@@ -170,6 +212,52 @@ const BUILDING_TYPES: readonly BuildingType[] = [
   'exponent',
   'storage',
 ];
+
+const CARD_IDS: readonly string[] = CARDS.map((c) => c.id);
+const PASSIVES = Object.keys(PASSIVE_EFFECTS) as PassiveId[];
+/** Keys of `specials`: `"type:edition"` for every special building of the catalogue. */
+const SPECIAL_KEYS: readonly string[] = CARDS.flatMap(({ effect }) => {
+  if (effect.kind !== 'special') return [];
+  const type = effect.building;
+  return EDITIONS.map((e) => `${type}:${e}`);
+});
+
+/** A card with its edition and optional value (offers and picks). */
+function offerCard(v: unknown, path: string): SavedOfferCard {
+  const o = obj(v, path);
+  const c: SavedOfferCard = {
+    card: oneOf(o['card'], CARD_IDS, `${path}.card`),
+    edition: oneOf(o['edition'], EDITIONS, `${path}.edition`),
+  };
+  if (o['value'] !== undefined) c.value = int(o['value'], `${path}.value`, 1, 2 ** 31 - 1);
+  return c;
+}
+
+function pick(v: unknown, path: string): SavedPick {
+  const o = obj(v, path);
+  return {
+    level: int(o['level'], `${path}.level`, 0),
+    ...offerCard(o, path),
+    tick: int(o['tick'], `${path}.tick`, 0),
+  };
+}
+
+function counts<K extends string>(
+  v: unknown,
+  keys: readonly K[],
+  path: string,
+  required: boolean,
+): Record<K, number> {
+  const o = obj(v, path);
+  const out = {} as Record<K, number>;
+  for (const k of Object.keys(o))
+    if (!(keys as readonly string[]).includes(k)) fail(`${path}.${k}`);
+  for (const k of keys) {
+    if (o[k] === undefined && !required) continue;
+    out[k] = int(o[k], `${path}.${k}`, 0);
+  }
+  return out;
+}
 
 function item(v: unknown, path: string): SavedItem | null {
   if (v === null) return null;
@@ -284,6 +372,14 @@ function clip(v: unknown, path: string): Clip {
   };
 }
 
+function savedOffer(v: unknown, path: string): { level: number; cards: SavedOfferCard[] } {
+  const o = obj(v, path);
+  return {
+    level: int(o['level'], `${path}.level`, 1),
+    cards: arr(o['cards'], `${path}.cards`).map((x, i) => offerCard(x, `${path}.cards[${i}]`)),
+  };
+}
+
 /**
  * Check that `raw` is a valid save of the current version and return a clean copy
  * (unknown fields dropped). Throws `SaveError` with the path of the first problem.
@@ -366,6 +462,18 @@ export function validateSave(raw: unknown): SaveData {
     }),
     clipboard: arr(o['clipboard'], '$.clipboard').map((x, i) => clip(x, `$.clipboard[${i}]`)),
     helpSeen: arr(o['helpSeen'], '$.helpSeen').map((x, i) => str(x, `$.helpSeen[${i}]`)),
+    picks: arr(o['picks'], '$.picks').map((x, i) => pick(x, `$.picks[${i}]`)),
+    pendingLevels: arr(o['pendingLevels'], '$.pendingLevels').map((x, i) =>
+      int(x, `$.pendingLevels[${i}]`, 1),
+    ),
+    currentOffer:
+      o['currentOffer'] === null ? null : savedOffer(o['currentOffer'], '$.currentOffer'),
+    editionCards: counts(o['editionCards'], ['brillante', 'legendaire'], '$.editionCards', true),
+    specials: counts(o['specials'], SPECIAL_KEYS, '$.specials', false),
+    passives: arr(o['passives'], '$.passives').map((x, i) =>
+      oneOf(x, PASSIVES, `$.passives[${i}]`),
+    ),
+    naturalRefusals: int(o['naturalRefusals'], '$.naturalRefusals', 0),
     camera: {
       x: num(cam['x'], '$.camera.x'),
       y: num(cam['y'], '$.camera.y'),
@@ -378,5 +486,10 @@ export function validateSave(raw: unknown): SaveData {
   const ids = new Set(data.buildings.map((b) => b.id));
   if (ids.size !== data.buildings.length) fail('$.buildings (ids)');
   if (data.buildings.some((b) => b.id >= data.nextBuildingId)) fail('$.nextBuildingId');
+  // Pending offers: completed levels, in order; the stored offer is the first one's.
+  const pending = data.pendingLevels;
+  if (pending.some((n, i) => n >= data.level + 1 || (i > 0 && n <= (pending[i - 1] ?? 0))))
+    fail('$.pendingLevels');
+  if (data.currentOffer && data.currentOffer.level !== pending[0]) fail('$.currentOffer.level');
   return data;
 }

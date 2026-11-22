@@ -1,8 +1,10 @@
 import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT, type Track } from '../config/balance';
+import { PASSIVE_EFFECTS } from '../config/cards';
 import { add, divmod, mul, pow, sub } from '../core/intmath';
 import { EPS } from './belts';
 import { type Building, isOperator, type OperatorType } from './entities';
 import { outputGroup, pushOut } from './outputs';
+import type { GameState } from './state';
 import type { World } from './world';
 
 /** Upgrade track driving each operator's speed (PLAN §7.3). */
@@ -36,10 +38,17 @@ export function compute(
   }
 }
 
-/** Seconds per operation for a building, from its track's upgrade level. */
+/** Seconds per operation for a building, from its track's upgrade level and the passives. */
 export function cycleDuration(world: World, type: OperatorType): number {
   const track = OPERATOR_TRACK[type];
-  return 1 / operatorSpeed(track, world.state.upgrades[track]);
+  return 1 / (operatorSpeed(track, world.state.upgrades[track]) * passiveSpeed(world.state));
+}
+
+/** Operator speed factor of the passive cards owned (PLAN-recompenses §5.3, placeholder). */
+export function passiveSpeed(state: GameState): number {
+  let factor = 1;
+  for (const id of state.passives) factor *= PASSIVE_EFFECTS[id].operatorSpeed;
+  return factor;
 }
 
 function hasRoom(buf: number[] | undefined): boolean {
