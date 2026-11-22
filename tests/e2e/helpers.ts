@@ -156,3 +156,12 @@ export function tileCentre(page: Page, tx: number, ty: number): Point {
   if (!viewport) throw new Error('no viewport');
   return [viewport.width / 2 + tx * 32 + 16, viewport.height / 2 + ty * 32 + 16];
 }
+
+/**
+ * URL of a test game (debug API, seed 42, no tutorial card). Specs that complete levels
+ * without testing the choice screen take the natural card by themselves (`pick=natural`):
+ * the screen would wait for a choice. `extra` is appended as is (`&seed=7`, `&pick=none`…).
+ */
+export function gameUrl(extra = '', pick: 'natural' | 'none' = 'natural'): string {
+  return `./?debug=1&seed=42&tutorial=0&pick=${pick}${extra}`;
+}

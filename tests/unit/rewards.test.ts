@@ -3,7 +3,12 @@ import { PASSIVE_EFFECTS } from '../../src/config/cards';
 import { decodeSave, encodeSave, encodeSaveSync, importSave } from '../../src/save/persist';
 import { SAVE_VERSION, SaveError } from '../../src/save/schema';
 import { deserialize, serialize, stateHash } from '../../src/save/serialize';
-import { autoPickIndex, parsePickMode, resolvePending } from '../../src/sim/autoPick';
+import {
+  autoPickIndex,
+  DEFAULT_PICK_MODE,
+  parsePickMode,
+  resolvePending,
+} from '../../src/sim/autoPick';
 import { ensureLevels } from '../../src/sim/levels';
 import { drawOffer, naturalAt } from '../../src/sim/offers';
 import { cycleDuration } from '../../src/sim/operators';
@@ -386,9 +391,11 @@ describe('infinite and final levels', () => {
 });
 
 describe('automatic choice (?pick=)', () => {
-  it('parses the mode, natural by default', () => {
-    expect(parsePickMode(null)).toBe('natural');
-    expect(parsePickMode('bogus')).toBe('natural');
+  it('parses the mode; without one, the player chooses on the screen', () => {
+    expect(DEFAULT_PICK_MODE).toBe('none');
+    expect(parsePickMode(null)).toBe('none');
+    expect(parsePickMode('bogus')).toBe('none');
+    expect(parsePickMode('natural')).toBe('natural');
     expect(parsePickMode('first')).toBe('first');
     expect(parsePickMode('random')).toBe('random');
     expect(parsePickMode('none')).toBe('none');

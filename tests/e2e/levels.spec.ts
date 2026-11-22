@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { gameUrl } from './helpers';
 
 test('HUD, levels panel and level-complete toast', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto('./?debug=1&seed=42&tutorial=0');
+  await page.goto(gameUrl());
 
   await expect(page.locator('.hud-target')).toHaveText('1');
   await expect(page.locator('.hud-count')).toHaveText('0 / 10');
@@ -27,12 +28,12 @@ test('HUD, levels panel and level-complete toast', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('from level 3 an offer waits; ?pick=none keeps it across a reload, then a choice takes it', async ({
+test('from level 3 an offer waits across a reload; a debug choice takes it and the screen follows', async ({
   page,
 }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto('./?debug=1&seed=42&tutorial=0&pick=none');
+  await page.goto(gameUrl('', 'none'));
   const offer = await page.evaluate(() => {
     const api = window.__sumflow;
     if (!api) throw new Error('debug API missing');
@@ -50,7 +51,10 @@ test('from level 3 an offer waits; ?pick=none keeps it across a reload, then a c
   await page.reload();
   const after = await page.evaluate(() => window.__sumflow?.offer());
   expect(after?.current).toEqual(offer.current);
+  const screen = page.locator('.offer-overlay');
+  await expect(screen).toBeVisible();
   expect(await page.evaluate(() => window.__sumflow?.choose(0))).toBe(true);
+  await expect(screen).toBeHidden();
   await expect(page.locator('.toast', { hasText: /Obtained|Obtenu/ })).toBeVisible();
   const state = await page.evaluate(() => window.__sumflow?.getState());
   expect(state?.pendingLevels).toEqual([]);
@@ -58,8 +62,10 @@ test('from level 3 an offer waits; ?pick=none keeps it across a reload, then a c
   expect(errors).toEqual([]);
 });
 
-test('without ?pick= the natural card is taken by itself', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42&tutorial=0');
+test('with ?pick=natural the natural card is taken by itself, without the screen', async ({
+  page,
+}) => {
+  await page.goto(gameUrl());
   await page.evaluate(() => {
     const api = window.__sumflow;
     api?.deliver(1, 10);
@@ -72,4 +78,5 @@ test('without ?pick= the natural card is taken by itself', async ({ page }) => {
   const state = await page.evaluate(() => window.__sumflow?.getState());
   expect(state?.picks).toBe(3);
   expect(state?.level).toBe(4);
+  await expect(page.locator('.offer-overlay')).toBeHidden();
 });

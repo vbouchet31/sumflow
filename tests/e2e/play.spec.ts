@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { gameUrl } from './helpers';
 
 test('extractor + belts via the debug API complete level 1', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto('./?debug=1&seed=42&tutorial=0');
+  await page.goto(gameUrl());
 
   const result = await page.evaluate(() => {
     const api = window.__sumflow;
@@ -31,7 +32,7 @@ test('extractor + belts via the debug API complete level 1', async ({ page }) =>
 });
 
 test('drawing a belt with the mouse places an L-shaped path', async ({ page }) => {
-  await page.goto('./?debug=1&seed=42&tutorial=0');
+  await page.goto(gameUrl());
   const viewport = page.viewportSize();
   if (!viewport) throw new Error('no viewport');
   // Hub is centred; draw well to the right of it (tiles are 32 px at zoom 1).
