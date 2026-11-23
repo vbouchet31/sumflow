@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { contrastIssues } from './helpers';
+import { contrastIssues, gameUrl } from './helpers';
 
 test('DOM text keeps a contrast of at least 4.5:1 in every screen (PLAN §9.5)', async ({
   page,
 }) => {
-  await page.goto('./?debug=1&seed=42&tutorial=0');
+  await page.goto(gameUrl());
   await page.evaluate(() => {
     const api = window.__sumflow;
     if (!api) throw new Error('debug API missing');
@@ -40,4 +40,27 @@ test('DOM text keeps a contrast of at least 4.5:1 in every screen (PLAN §9.5)',
     await page.keyboard.press('Escape');
     await expect(menu.locator('.menu-btn').first()).toBeVisible();
   }
+});
+
+test('the reward choice screen keeps the same contrast, both faces of its cards', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1600, height: 900 }); // the badge shows its label
+  await page.goto(gameUrl('', 'none'));
+  await page.evaluate(() => {
+    const api = window.__sumflow;
+    if (!api) throw new Error('debug API missing');
+    api.setLevel(8);
+    const r = api.getState().levelRequirement;
+    if (r) api.deliver(r.value, r.required);
+    api.forceOffer(['value', 'edition-legendaire', 'eventail']);
+  });
+  const screen = page.locator('.offer-overlay');
+  await expect(screen.locator('.offer-choose').first()).toBeEnabled();
+  expect(await contrastIssues(page), 'fronts').toEqual([]);
+  for (const card of await screen.locator('.offer-card').all()) await card.click();
+  expect(await contrastIssues(page), 'backs').toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.top-reward-label')).toBeVisible();
+  expect(await contrastIssues(page), 'badge').toEqual([]);
 });

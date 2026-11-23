@@ -1,4 +1,5 @@
-import { BUILDINGS } from '../config/buildings';
+import { BUILDINGS, isSpecial } from '../config/buildings';
+import type { SpecialEdition } from '../config/cards';
 import {
   BELT_COLORS,
   BUILDING_COLORS,
@@ -6,17 +7,19 @@ import {
   COLORS,
   FONT_NUM,
   HUB_COLORS,
+  SPECIAL_ORNAMENT,
 } from '../config/colors';
 import { type Rot, transformLocal } from '../core/grid';
-import { buildingSize, type OperatorType } from '../sim/entities';
+import { buildingSize, OPERATOR_TYPES, type OperatorType } from '../sim/entities';
 import type { Camera } from './camera';
 import { chalkLine, chalkSquare, shade } from './chalk';
+import { editionFrame } from './editions';
 import { drawOperator, OPERATOR_SYMBOL } from './layers/operators';
 
-/** Tools drawn as a picture of what they build in the build bar. */
+/** Tools drawn as a picture of what they build in the build bar (special buildings too). */
 export type IconTool = 'belt' | 'extractor' | OperatorType | 'storage' | 'bridge' | 'priority';
 
-const OPERATORS: readonly string[] = ['adder', 'multiplier', 'subtractor', 'divider', 'exponent'];
+const OPERATORS: readonly string[] = OPERATOR_TYPES;
 
 export function isIconTool(tool: string): tool is IconTool {
   return (
@@ -45,7 +48,8 @@ const CHEVRON_PERIOD_S = 0.7;
 /**
  * Draw `tool` as it will be built, facing `rot`, in a `size` × `size` square at the origin
  * of `ctx` (CSS pixels). The square never changes with the rotation: a 3 × 1 multiplier
- * turned upright stays in the same slot. `time` (seconds) moves the belt chevrons.
+ * turned upright stays in the same slot. `time` (seconds) moves the belt chevrons. A
+ * building in an `edition` keeps its colours and gets the edition frame, as on the map.
  */
 export function drawToolIcon(
   ctx: CanvasRenderingContext2D,
@@ -53,15 +57,16 @@ export function drawToolIcon(
   rot: Rot,
   size: number,
   time = 0,
+  edition?: SpecialEdition,
 ): void {
   ctx.clearRect(0, 0, size, size);
   const phase = (time / CHEVRON_PERIOD_S) % 1;
   if (tool === 'belt') drawBelt(ctx, rot, size, phase);
   else if (tool === 'bridge') drawBridge(ctx, rot, size, phase);
-  else if (tool === 'extractor') drawExtractor(ctx, size);
-  else if (tool === 'storage') drawStorage(ctx, size);
+  else if (tool === 'extractor') drawExtractor(ctx, size, edition);
+  else if (tool === 'storage') drawStorage(ctx, size, edition);
   else if (tool === 'priority') drawPriority(ctx, size);
-  else drawOperatorIcon(ctx, tool, rot, size);
+  else drawOperatorIcon(ctx, tool, rot, size, edition);
 }
 
 /** A camera that maps tile `(0, 0)` to `(ox, oy)` with `s` pixels per tile. */
@@ -85,6 +90,7 @@ function drawOperatorIcon(
   type: OperatorType,
   rot: Rot,
   size: number,
+  edition?: SpecialEdition,
 ): void {
   const def = BUILDINGS[type];
   const pad = 1;
@@ -93,7 +99,7 @@ function drawOperatorIcon(
   const box = buildingSize(type, rot);
   const ox = (size - box.w * s) / 2;
   const oy = (size - box.h * s) / 2;
-  drawOperator(ctx, iconCamera(s, ox, oy), type, 0, 0, rot);
+  drawOperator(ctx, iconCamera(s, ox, oy), type, 0, 0, rot, { edition });
 
   const at = (x: number, y: number): { x: number; y: number } => ({ x: ox + x * s, y: oy + y * s });
   let centre = at(box.w / 2, box.h / 2);
@@ -120,6 +126,14 @@ function drawOperatorIcon(
   ctx.beginPath();
   ctx.arc(centre.x, centre.y, Math.max(6, 0.4 * s), 0, Math.PI * 2);
   ctx.fill();
+  if (isSpecial(type)) {
+    // The ring of a special building's symbol, as on the map.
+    ctx.strokeStyle = SPECIAL_ORNAMENT;
+    ctx.lineWidth = Math.max(1, 0.06 * s);
+    ctx.beginPath();
+    ctx.arc(centre.x, centre.y, Math.max(7.5, 0.5 * s), 0, Math.PI * 2);
+    ctx.stroke();
+  }
   ctx.fillStyle = COLORS.text;
   ctx.font = `700 ${Math.max(11, 0.66 * s)}px ${FONT_NUM}`;
   ctx.fillText(OPERATOR_SYMBOL[type], centre.x, centre.y + 1);
@@ -141,7 +155,11 @@ function outerNotches(ctx: CanvasRenderingContext2D, x: number, y: number, s: nu
 }
 
 /** Extractor: the plain extractor chalk (no value yet), its notches and an `n`. */
-function drawExtractor(ctx: CanvasRenderingContext2D, size: number): void {
+function drawExtractor(
+  ctx: CanvasRenderingContext2D,
+  size: number,
+  edition?: SpecialEdition,
+): void {
   const s = (size - 2) / 3;
   const base = BUILDING_COLORS.extractor;
   const inset = 0.1 * s;
@@ -154,6 +172,8 @@ function drawExtractor(ctx: CanvasRenderingContext2D, size: number): void {
     { wash: base, hatch: shade(base, 0.35), outline: shade(base, 0.65) },
     { hatch: Math.max(1, 0.09 * s), outline: Math.max(1.5, 0.12 * s) },
   );
+  if (edition)
+    editionFrame(ctx, edition, [{ x: 1 + inset, y: 1 + inset, s: 3 * s - 2 * inset, seed: 7 }], s);
   outerNotches(ctx, 1, 1, s);
   ctx.fillStyle = COLORS.text;
   ctx.textAlign = 'center';
@@ -163,7 +183,7 @@ function drawExtractor(ctx: CanvasRenderingContext2D, size: number): void {
 }
 
 /** Storage: the grey block with a few items above a half-full bar. */
-function drawStorage(ctx: CanvasRenderingContext2D, size: number): void {
+function drawStorage(ctx: CanvasRenderingContext2D, size: number, edition?: SpecialEdition): void {
   const s = (size - 2) / 3;
   const base = BUILDING_COLORS.storage;
   const inset = 0.1 * s;
@@ -176,6 +196,9 @@ function drawStorage(ctx: CanvasRenderingContext2D, size: number): void {
     { wash: base, hatch: shade(base, -0.25), outline: shade(base, 0.5) },
     { hatch: Math.max(1, 0.09 * s), outline: Math.max(1.5, 0.12 * s) },
   );
+  if (edition) {
+    editionFrame(ctx, edition, [{ x: 1 + inset, y: 1 + inset, s: 3 * s - 2 * inset, seed: 11 }], s);
+  }
   ctx.fillStyle = COLORS.text;
   const r = 0.2 * s;
   for (let i = 0; i < 3; i++) {

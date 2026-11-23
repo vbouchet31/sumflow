@@ -6,7 +6,8 @@ import {
   TRACKS,
   UPGRADE_SEQUENCES,
 } from '../../src/config/balance';
-import { applyReward, deliver, setAutoBuy } from '../../src/sim/progression';
+import { deliver, setAutoBuy } from '../../src/sim/progression';
+import { grantCard } from '../../src/sim/rewards';
 import { createInitialState, type GameState } from '../../src/sim/state';
 import {
   buildUpgradeRequirements,
@@ -21,7 +22,7 @@ import {
 
 function withUpgrades(seed = 42): GameState {
   const s = createInitialState(seed);
-  applyReward(s, { kind: 'feature', feature: 'upgrades' });
+  grantCard(s, 'upgrades');
   return s;
 }
 
@@ -119,10 +120,10 @@ describe('upgrade requirements', () => {
     const s = createInitialState(1);
     expect(isTrackUnlocked(s, 'belt')).toBe(false);
     expect(s.upgradeReqs.belt).toEqual([]);
-    applyReward(s, { kind: 'feature', feature: 'upgrades' });
+    grantCard(s, 'upgrades');
     expect(isTrackUnlocked(s, 'adder')).toBe(true);
     expect(isTrackUnlocked(s, 'multiplier')).toBe(false);
-    applyReward(s, { kind: 'building', building: 'multiplier' });
+    grantCard(s, 'mult');
     expect(s.upgradeReqs.multiplier.length).toBe(1);
     expect(buildUpgradeRequirements(s, 'exponent')).toEqual([]);
   });

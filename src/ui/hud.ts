@@ -1,9 +1,8 @@
 import { formatFull } from '../core/format';
 import { getLocale, t } from '../i18n';
-import { rewardFor } from '../sim/levels';
 import type { World } from '../sim/world';
 import { el } from './dom';
-import { rewardLabel } from './labels';
+import { nextRewardLabel } from './labels';
 
 /** Top-left HUD (PLAN §9.1): level, target, progress, next reward, current target rate. */
 export class Hud {
@@ -58,7 +57,7 @@ export class Hud {
     const req = state.levelRequirement;
     const loc = getLocale();
     const rate = req ? world.stats.rate(req.value) : 0;
-    const key = `${state.level}|${req?.value}|${req?.delivered}|${req?.required}|${rate.toFixed(2)}|${loc}`;
+    const key = `${state.level}|${state.picks.length}|${req?.value}|${req?.delivered}|${req?.required}|${rate.toFixed(2)}|${loc}`;
     if (key === this.last) return;
     this.last = key;
     this.level.textContent = t('hud.level', { n: state.level });
@@ -80,6 +79,6 @@ export class Hud {
     this.rate.textContent = t('hud.rate', {
       rate: rate.toLocaleString(loc, { maximumFractionDigits: 2 }),
     });
-    this.reward.textContent = t('hud.nextReward', { reward: rewardLabel(rewardFor(state.level)) });
+    this.reward.textContent = t('hud.nextReward', { reward: nextRewardLabel(state, state.level) });
   }
 }

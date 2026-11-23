@@ -1,4 +1,5 @@
 import type { BuildingType } from '../config/buildings';
+import type { SpecialEdition } from '../config/cards';
 import { buildingSize } from '../sim/entities';
 import type { BuildingSnap, Change, TileSnap } from '../sim/journal';
 import { unkey } from '../core/grid';
@@ -13,6 +14,8 @@ export interface Footprint {
   type: BuildingType | 'belt' | 'bridge';
   /** Extractor: value of its deposit (its chalk colour). */
   value?: number;
+  /** Edition of a building (the colour of its dust). */
+  edition?: SpecialEdition;
 }
 
 /**
@@ -32,12 +35,22 @@ function buildingFootprint(b: BuildingSnap): Footprint {
   const { w, h } = buildingSize(b.type, b.rot);
   const f: Footprint = { x: b.x, y: b.y, w, h, type: b.type };
   if (b.extractValue !== null) f.value = b.extractValue;
+  if (b.edition !== null) f.edition = b.edition;
   return f;
 }
 
-/** The building was put somewhere else (moved, turned, mirrored), not only re-prioritised. */
-function buildingMoved(a: BuildingSnap, b: BuildingSnap): boolean {
-  return a.x !== b.x || a.y !== b.y || a.rot !== b.rot || a.mirror !== b.mirror;
+/**
+ * The building was drawn anew: put somewhere else (moved, turned, mirrored) or given another
+ * edition, not only re-prioritised.
+ */
+function buildingRedrawn(a: BuildingSnap, b: BuildingSnap): boolean {
+  return (
+    a.x !== b.x ||
+    a.y !== b.y ||
+    a.rot !== b.rot ||
+    a.mirror !== b.mirror ||
+    a.edition !== b.edition
+  );
 }
 
 /** The tile was drawn anew: a new object, or new belt directions or bridge lanes. */
@@ -59,7 +72,7 @@ export function touchedBy(change: Change, side: 'before' | 'after'): Touched {
     side === 'after' ? [s.before, s.after] : [s.after, s.before];
   for (const slot of change.buildings.values()) {
     const [from, to] = ends(slot);
-    if (to && (!from || buildingMoved(from, to))) touched.placed.push(buildingFootprint(to));
+    if (to && (!from || buildingRedrawn(from, to))) touched.placed.push(buildingFootprint(to));
     else if (from && !to) touched.removed.push(buildingFootprint(from));
   }
   for (const [k, slot] of change.tiles) {

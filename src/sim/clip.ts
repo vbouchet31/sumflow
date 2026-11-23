@@ -1,4 +1,5 @@
 import type { BuildingType } from '../config/buildings';
+import type { SpecialEdition } from '../config/cards';
 import type { Dir, Rot } from '../core/grid';
 
 /**
@@ -36,6 +37,11 @@ export interface ClipBuilding {
   mirror: boolean;
   /** Prioritised output face, as a building tile relative to the clip box and a face. */
   priority: { x: number; y: number; face: Dir } | null;
+  /**
+   * Native edition of a special building (absent = base). An edition applied from a card is
+   * never copied (PLAN-recompenses §3.5): ordinary buildings are always pasted in base.
+   */
+  edition?: SpecialEdition;
 }
 
 /** A text marker on a tile (PLAN §8.2). */

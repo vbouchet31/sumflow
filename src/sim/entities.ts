@@ -1,4 +1,14 @@
-import { BUILDINGS, type BuildingType, type PortRole } from '../config/buildings';
+import {
+  type BaseOperatorType,
+  BUILDINGS,
+  type BuildingType,
+  isSpecial,
+  type PortRole,
+  SPECIAL_BUILDINGS,
+  SPECIAL_TYPES,
+  type SpecialType,
+} from '../config/buildings';
+import type { SpecialEdition } from '../config/cards';
 import {
   type Dir,
   DX,
@@ -97,17 +107,32 @@ export interface Building {
   /** Storage: stored value (null when empty) and count (PLAN §6.3). */
   storeValue?: number | null;
   storeCount?: number;
+  /** Edition (PLAN-recompenses §3.4); absent = base. */
+  edition?: SpecialEdition;
+  /**
+   * True when the edition comes from an edition card (it goes back to the player), false
+   * or absent for the native edition of a special building (it never leaves it).
+   */
+  editionApplied?: boolean;
 }
 
-export type OperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent';
+/** Buildings that compute: the ordinary operators and the special buildings imitating one. */
+export type OperatorType = BaseOperatorType | SpecialType;
 
-export const OPERATOR_TYPES: readonly OperatorType[] = [
+export const BASE_OPERATORS: readonly BaseOperatorType[] = [
   'adder',
   'multiplier',
   'subtractor',
   'divider',
   'exponent',
 ];
+
+export const OPERATOR_TYPES: readonly OperatorType[] = [...BASE_OPERATORS, ...SPECIAL_TYPES];
+
+/** The ordinary operator `type` computes like (itself, or the one a special imitates). */
+export function baseOperator(type: OperatorType): BaseOperatorType {
+  return isSpecial(type) ? SPECIAL_BUILDINGS[type].like : type;
+}
 
 export function isOperator(type: string): type is OperatorType {
   return (OPERATOR_TYPES as readonly string[]).includes(type);

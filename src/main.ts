@@ -1,7 +1,8 @@
 import './ui/styles.css';
 import { Sfx } from './audio/sfx';
 import { ToolController } from './build/tools';
-import { CATCH_UP } from './config/balance';
+import { CATCH_UP, HUB } from './config/balance';
+import { isSpecial } from './config/buildings';
 import { FONT_NUM } from './config/colors';
 import { CAMERA } from './config/keymap';
 import { toSeed } from './core/rng';
@@ -16,6 +17,7 @@ import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
 import { effectEvents } from './render/layers/effects';
 import { SimLoop } from './sim/loop';
+import { hasEditionCards } from './sim/inventory';
 import { createInitialState } from './sim/state';
 import { World } from './sim/world';
 import { BuildBar } from './ui/buildBar';
@@ -24,7 +26,7 @@ import { PerfOverlay } from './ui/perfOverlay';
 import { DebugPanel } from './ui/debugPanel';
 import { EndScreen } from './ui/endScreen';
 import { Hud } from './ui/hud';
-import { rewardLabel } from './ui/labels';
+import { cardLabel } from './ui/labels';
 import { watchLayout } from './ui/layout';
 import { LevelsPanel } from './ui/panels/levels';
 import { Toasts } from './ui/toasts';
@@ -40,8 +42,9 @@ import { SelectionBubble } from './ui/selectionBubble';
 import { describeTile, Tooltip } from './ui/tooltip';
 import { t } from './i18n';
 import { DepositMap } from './world/chunks';
-import { setAutoBuy } from './sim/progression';
-import type { GameState } from './sim/state';
+import { chooseCard, ensureOffer, setAutoBuy } from './sim/progression';
+import { parsePickMode, resolvePending } from './sim/autoPick';
+import type { GameState, StoredOffer } from './sim/state';
 import { SaveManager } from './save/manager';
 import {
   decodeSave,
@@ -54,10 +57,13 @@ import {
   SAVE_KEY,
   writeStorage,
 } from './save/persist';
+import { SaveError } from './save/schema';
 import { type CameraState, deserialize, serialize } from './save/serialize';
 import { defaultSettings, loadSettings, storeSettings } from './save/settings';
-import { knownTips, markSeen, pendingTips } from './ui/help';
+import { knownTips, markSeen, pendingTips, tipContent } from './ui/help';
 import { TutorialCard } from './ui/tutorial';
+import { OfferScreen } from './ui/offerScreen';
+import { canOpenOffer, OFFER_INTRO_ID, OfferSeries, offerView } from './ui/offerInfo';
 import { GameMenu } from './ui/menu';
 
 /** Longest frame delta honoured, in seconds (avoids a jump after a hitch). */
@@ -76,7 +82,9 @@ function initialSeed(search: string): number {
   return (param === null ? null : parseSeed(param)) ?? toSeed(Math.random() * 2 ** 32);
 }
 
-type Loaded = { state: GameState; camera: CameraState | null; error: boolean };
+/** Why the saved game could not be loaded, if it could not. */
+type LoadError = 'invalid' | 'outdated' | null;
+type Loaded = { state: GameState; camera: CameraState | null; error: LoadError };
 
 /** The saved game if there is a readable one, else a new game (PLAN §11.3). */
 async function loadGame(search: string): Promise<Loaded> {
@@ -84,14 +92,15 @@ async function loadGame(search: string): Promise<Loaded> {
   if (text) {
     try {
       const { state, camera } = deserialize(await decodeSave(text));
-      return { state, camera, error: false };
-    } catch {
-      // Keep the unreadable save aside rather than overwrite it.
+      return { state, camera, error: null };
+    } catch (e) {
+      // Keep the unreadable (or too old) save aside rather than overwrite it.
       writeStorage(CORRUPT_KEY, text);
-      return { state: createInitialState(initialSeed(search)), camera: null, error: true };
+      const error = e instanceof SaveError && e.reason === 'outdated' ? 'outdated' : 'invalid';
+      return { state: createInitialState(initialSeed(search)), camera: null, error };
     }
   }
-  return { state: createInitialState(initialSeed(search)), camera: null, error: false };
+  return { state: createInitialState(initialSeed(search)), camera: null, error: null };
 }
 
 async function bootstrap(): Promise<void> {
@@ -198,6 +207,7 @@ async function bootstrap(): Promise<void> {
     levels: () => levelsPanel.toggle(),
     upgrades: toggleUpgrades,
     menu: () => menu.toggle(),
+    reward: () => reopenOffer(),
   });
   const tooltip = new Tooltip(uiRoot);
   const buildBar = new BuildBar(uiRoot, tools);
@@ -227,15 +237,21 @@ async function bootstrap(): Promise<void> {
   const openTutorial: TutorialCard['show'] = (tip, options) => {
     tutorial.touch = usesTouch();
     tutorial.still = settings.reduceMotion;
-    tutorial.show(tip, options);
+    // Picture and text parameters read from the game when the card opens (value, editions…).
+    tutorial.show(tip, { ...options, ...tipContent(tip, state) });
   };
   // `?tutorial=0` keeps the cards from opening by themselves (end-to-end tests).
   const autoTutorials = new URLSearchParams(location.search).get('tutorial') !== '0';
+  // `?pick=natural|first|random` chooses the pending offers by itself (end-to-end tests);
+  // without it (or with `none`) the player chooses on the screen.
+  const pickMode = parsePickMode(new URLSearchParams(location.search).get('pick'));
+  const choiceScreen = pickMode === 'none';
   /** Cards shown one after the other: position in the series and its length. */
   const series = { index: 0, total: 0 };
   /** Open the next pending card when nothing else is on screen. Cheap: call every frame. */
   const showPendingTip = (): void => {
     if (!autoTutorials || tutorial.isOpen || menu.isOpen || endScreen.isOpen) return;
+    if (offerScreen.isOpen) return;
     if (markerEditor?.isOpen) return;
     const pending = pendingTips(state);
     const tip = pending[0];
@@ -256,6 +272,78 @@ async function bootstrap(): Promise<void> {
       },
     });
   };
+
+  // ---- Reward choice screen (PLAN-recompenses §4.2, §4.4) ----
+  /**
+   * Newest waiting level when the screen was closed with "See the map": those offers wait
+   * for the badge or the hub, the next completed level opens the screen again.
+   */
+  let minimizedLevel: number | null = null;
+  /** Offer on screen (identity: a forced or re-drawn offer is a new object). */
+  let shownOffer: StoredOffer | null = null;
+  const offerSeries = new OfferSeries();
+  /** Show the first pending offer (drawn now if needed), or close the screen if none. */
+  const showOffer = (): void => {
+    const offer = ensureOffer(state, world.emit);
+    shownOffer = offer;
+    if (!offer) {
+      offerScreen.close();
+      return;
+    }
+    const position = offerSeries.position(offer.level, state.pendingLevels.length);
+    offerScreen.show(offerView(state, offer, position));
+    markSeen(state, OFFER_INTRO_ID);
+  };
+  /** The badge (top bar or hub): open the waiting offer again, whatever was closed. */
+  const reopenOffer = (): void => {
+    if (!choiceScreen || state.pendingLevels.length === 0 || offerScreen.isOpen) return;
+    minimizedLevel = null;
+    showOffer();
+  };
+  /** Whether the screen may open by itself now (§4.4). */
+  const offerMayOpen = (): boolean =>
+    canOpenOffer({
+      newest: state.pendingLevels.at(-1) ?? null,
+      minimized: minimizedLevel,
+      modal: menu.isOpen || tutorial.isOpen || endScreen.isOpen || (markerEditor?.isOpen ?? false),
+      gesture: pointer.pressed || tools.gesturing,
+      catchingUp: loop.catchUpProgress !== null,
+      tipPending: autoTutorials && pendingTips(state).length > 0,
+    });
+  /** Every frame: open the screen when allowed, follow the offer while it is open. */
+  const syncOffer = (): void => {
+    if (!choiceScreen) return;
+    if (state.pendingLevels.length === 0) {
+      offerSeries.reset();
+      minimizedLevel = null;
+      shownOffer = null;
+      offerScreen.close();
+      return;
+    }
+    if (offerScreen.isOpen) {
+      // The offer changed under the screen (debug choice or forced offer): show the new one,
+      // unless that choice brought tutorial cards. They come first, as after a click (§4.3).
+      if (state.currentOffer === shownOffer) return;
+      if (autoTutorials && pendingTips(state).length > 0) offerScreen.close();
+      else showOffer();
+    } else if (offerMayOpen()) showOffer();
+  };
+  const offerScreen = new OfferScreen(uiRoot, {
+    choose: (index) => {
+      if (!chooseCard(state, index, world.emit)) return;
+      sfx.cardChosen();
+      // Next offer at once, unless the choice brought a tutorial card or the end screen:
+      // they come first, and the screen opens again after them.
+      if (state.pendingLevels.length > 0 && offerMayOpen()) showOffer();
+      else offerScreen.close();
+    },
+    later: () => {
+      minimizedLevel = state.pendingLevels.at(-1) ?? null;
+      offerScreen.close();
+    },
+    flip: () => sfx.cardFlip(),
+  });
+
   const catchUpBar = new CatchUpBar(uiRoot);
   const perfOverlay = new PerfOverlay(uiRoot);
   const perf = new PerfMeter();
@@ -293,9 +381,10 @@ async function bootstrap(): Promise<void> {
         .text()
         .then((text) => importSave(text))
         .then(() => reloadWith(null))
-        .catch(() => {
+        .catch((e: unknown) => {
           sfx.error();
-          toasts.show(t('toast.importError'));
+          const outdated = e instanceof SaveError && e.reason === 'outdated';
+          toasts.show(t(outdated ? 'toast.importOutdated' : 'toast.importError'));
         });
     },
     settings: () => settings,
@@ -346,20 +435,26 @@ async function bootstrap(): Promise<void> {
   // Mobile browsers often skip `beforeunload` and may kill the tab before the async save
   // of `visibilitychange` ends: `pagehide` writes synchronously.
   window.addEventListener('pagehide', () => saves.saveSync());
-  if (loaded.error) toasts.show(t('toast.loadError'));
-  // Soft click on every UI button (PLAN §12).
+  if (loaded.error === 'outdated') toasts.show(t('toast.loadOutdated'));
+  else if (loaded.error) toasts.show(t('toast.loadError'));
+  // Soft click on every UI button (PLAN §12), but those with a sound of their own.
   uiRoot.addEventListener('click', (e) => {
-    if (e.target instanceof Element && e.target.closest('button')) sfx.click();
+    if (e.target instanceof Element && e.target.closest('button:not([data-silent])')) sfx.click();
   });
 
-  world.events.on('levelCompleted', ({ level, reward, final }) => {
+  world.events.on('levelCompleted', ({ level, reward }) => {
     renderer.waveStart = performance.now();
     sfx.levelComplete();
+    // Levels 1 and 2 name their fixed card; later ones get theirs once chosen.
     toasts.show(
       t('toast.levelDone', { n: level }),
-      reward ? t('toast.unlocked', { reward: rewardLabel(reward) }) : undefined,
+      reward ? t('toast.unlocked', { reward: cardLabel(reward) }) : undefined,
     );
-    if (final) endScreen.show(world.state);
+  });
+  world.events.on('cardChosen', (card) => {
+    toasts.show(t('toast.obtained', { reward: cardLabel(card) }));
+    // The end screen opens once the offer of the final level is chosen.
+    if (card.final) endScreen.show(world.state);
   });
   world.events.on('upgradeReady', ({ track }) => {
     if (state.autoBuyUpgrades) return;
@@ -386,7 +481,10 @@ async function bootstrap(): Promise<void> {
       onDelivered: () => deliveredPanel.toggle(),
       onTogglePerf: () => perfOverlay.toggle(),
       onTool: (tool) => {
-        if (tool === 'paste' && !tools.isAvailable('paste')) sfx.error();
+        // A special building's key: its tool, then its next native edition.
+        if (isSpecial(tool)) {
+          if (!tools.specialKey(tool)) sfx.error();
+        } else if (tool === 'paste' && !tools.isAvailable('paste')) sfx.error();
         // Ctrl+C / Ctrl+X on a selected zone or building copy it at once.
         else if ((tool === 'copy' || tool === 'cut') && tools.copyTarget) {
           tools.copyTargetRect(tool === 'cut');
@@ -394,6 +492,9 @@ async function bootstrap(): Promise<void> {
       },
       onRotate: (delta) => tools.rotate(delta),
       onMirror: () => tools.mirror(),
+      onEdition: () => {
+        if (!tools.editionKey()) sfx.error();
+      },
       onPick: () => tools.pick(),
       onUndo: undo,
       onRedo: redo,
@@ -409,12 +510,28 @@ async function bootstrap(): Promise<void> {
       onQuickDemolish: () => tools.deletePressed(),
       onTogglePause: togglePause,
     },
-    () => menu.isOpen || endScreen.isOpen || tutorial.isOpen || (markerEditor?.isOpen ?? false),
+    () =>
+      menu.isOpen ||
+      endScreen.isOpen ||
+      tutorial.isOpen ||
+      offerScreen.isOpen ||
+      (markerEditor?.isOpen ?? false),
   );
+  /** A press without a tool that starts and ends on the hub reopens a waiting offer. */
+  let hubPress = false;
+  const onHub = (x: number, y: number): boolean =>
+    x >= HUB.x && x < HUB.x + HUB.size && y >= HUB.y && y < HUB.y + HUB.size;
   const pointer = new PointerInput(canvas, camera, {
-    onDown: (x, y, mods) => tools.pointerDown(x, y, mods),
+    onDown: (x, y, mods) => {
+      hubPress = tools.tool === 'none' && onHub(x, y);
+      tools.pointerDown(x, y, mods);
+    },
     onMove: (x, y, mods) => tools.pointerMove(x, y, mods),
-    onUp: (x, y, mods) => tools.pointerUp(x, y, mods),
+    onUp: (x, y, mods) => {
+      tools.pointerUp(x, y, mods);
+      if (hubPress && onHub(x, y)) reopenOffer();
+      hubPress = false;
+    },
     onCancel: () => tools.pointerCancel(),
     onLeave: () => tools.clearHover(),
     // Touch: a tap without a tool selects the object (in `pointerUp`, as a click does). A
@@ -444,7 +561,7 @@ async function bootstrap(): Promise<void> {
 
   let wheelAcc = 0;
   const debug = isDebugEnabled(location.search);
-  const debugPanel = debug ? new DebugPanel(uiRoot) : null;
+  const debugPanel = debug ? new DebugPanel(uiRoot, () => world.state) : null;
   if (debug)
     installDebugApi({ world, camera, loop, tools, saves, perf, effects: renderer.effects });
 
@@ -495,14 +612,16 @@ async function bootstrap(): Promise<void> {
         buildings: state.buildings.size - 1,
       });
     }
+    resolvePending(state, pickMode, world.emit);
     hud.update(world);
     for (const p of panels) p.update();
     topBar.setVisible('upgrades', upgradesAvailable());
+    topBar.setReward(choiceScreen && !offerScreen.isOpen ? state.pendingLevels.length : 0);
     topBar.setBadge(
       'upgrades',
       TRACKS.some((tr) => isUpgradeReady(state, tr)),
     );
-    const barKey = `${state.unlockedBuildings.length}|${state.unlockedFeatures.length}|${state.clipboard.length}`;
+    const barKey = `${state.unlockedBuildings.length}|${state.unlockedFeatures.length}|${state.clipboard.length}|${hasEditionCards(state)}|${Object.keys(state.specials).length}`;
     if (barKey !== unlockedKey) {
       unlockedKey = barKey;
       buildBar.refresh();
@@ -516,6 +635,7 @@ async function bootstrap(): Promise<void> {
     toolActions.update();
     selectionBubble.update();
     showPendingTip();
+    syncOffer();
     saves.update();
     statusBar.update(
       saves.lastSavedAt === null ? null : now - saves.lastSavedAt,

@@ -1,12 +1,16 @@
 import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT, type Track } from '../config/balance';
+import { PASSIVE_EFFECTS, type SpecialEdition } from '../config/cards';
 import { add, divmod, mul, pow, sub } from '../core/intmath';
 import { EPS } from './belts';
-import { type Building, isOperator, type OperatorType } from './entities';
+import { baseOperator, type Building, isOperator, type OperatorType } from './entities';
+import type { BaseOperatorType } from '../config/buildings';
+import { editionEffect } from './inventory';
 import { outputGroup, pushOut } from './outputs';
+import type { GameState } from './state';
 import type { World } from './world';
 
-/** Upgrade track driving each operator's speed (PLAN §7.3). */
-export const OPERATOR_TRACK: Record<OperatorType, Track> = {
+/** Upgrade track driving each operator's speed (PLAN §7.3). Specials use their model's. */
+export const OPERATOR_TRACK: Record<BaseOperatorType, Track> = {
   adder: 'adder',
   multiplier: 'multiplier',
   subtractor: 'subdiv',
@@ -20,7 +24,7 @@ export function compute(
   a: number,
   b: number,
 ): { o?: number; q?: number; r?: number } {
-  switch (type) {
+  switch (baseOperator(type)) {
     case 'adder':
       return { o: add(a, b) };
     case 'multiplier':
@@ -36,10 +40,24 @@ export function compute(
   }
 }
 
-/** Seconds per operation for a building, from its track's upgrade level. */
-export function cycleDuration(world: World, type: OperatorType): number {
-  const track = OPERATOR_TRACK[type];
-  return 1 / operatorSpeed(track, world.state.upgrades[track]);
+/**
+ * Seconds per operation of an operator: its track's upgrade level, the passives and its own
+ * edition (PLAN-recompenses §3.4), all speed factors multiplied.
+ */
+export function cycleDuration(
+  world: World,
+  b: { type: OperatorType; edition?: SpecialEdition | undefined },
+): number {
+  const track = OPERATOR_TRACK[baseOperator(b.type)];
+  const speed = operatorSpeed(track, world.state.upgrades[track]) * passiveSpeed(world.state);
+  return 1 / (speed * (editionEffect(b).speed ?? 1));
+}
+
+/** Operator speed factor of the passive cards owned (PLAN-recompenses §5.3, placeholder). */
+export function passiveSpeed(state: GameState): number {
+  let factor = 1;
+  for (const id of state.passives) factor *= PASSIVE_EFFECTS[id].operatorSpeed;
+  return factor;
 }
 
 function hasRoom(buf: number[] | undefined): boolean {
@@ -48,7 +66,9 @@ function hasRoom(buf: number[] | undefined): boolean {
 
 function canStart(b: Building): boolean {
   if (!b.inA?.length || !b.inB?.length) return false;
-  if (b.type === 'divider') return hasRoom(b.outQ) && hasRoom(b.outR);
+  if (isOperator(b.type) && baseOperator(b.type) === 'divider') {
+    return hasRoom(b.outQ) && hasRoom(b.outR);
+  }
   return hasRoom(b.out);
 }
 
@@ -96,7 +116,7 @@ export function stepOperators(world: World): void {
     let cycle = b.cycle ?? -1;
     if (cycle < 0) {
       if (!canStart(b)) continue;
-      cycle = cycleDuration(world, type);
+      cycle = cycleDuration(world, { type, edition: b.edition });
     }
     cycle -= TICK_DT;
     while (cycle <= EPS) {
@@ -105,7 +125,7 @@ export function stepOperators(world: World): void {
         cycle = -1;
         break;
       }
-      cycle += cycleDuration(world, type);
+      cycle += cycleDuration(world, { type, edition: b.edition });
     }
     b.cycle = cycle;
   }

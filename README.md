@@ -21,23 +21,26 @@ Spécification complète dans [`PLAN.md`](PLAN.md), avancement dans [`docs/PROGR
 
 ## Commandes
 
-| Action                                           | Entrée                                                                                                             |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| Déplacer la caméra                               | `W A S D` (touches physiques, donc `Z Q S D` en AZERTY) ou flèches ; `Shift` = ×3                                  |
-| Déplacer à la souris                             | clic droit ou molette maintenus + glisser                                                                          |
-| Zoom                                             | molette, centré sur le curseur                                                                                     |
-| Retour au Hub                                    | `H`                                                                                                                |
-| Bâtiments                                        | `1` à `9` (tapis, extracteur, opérateurs, stockage, pont), `P` priorité, `R` / `Shift+R` pivoter                   |
-| Démolir / vider                                  | `X` / `C` puis glisser une zone (clic = un objet) ; `Suppr` = démolir l'objet survolé                              |
-| Copier / couper / coller                         | `Ctrl+C` / `Ctrl+X` puis glisser ; `Ctrl+V` : clic ou glisser, `R` pivoter, `F` miroir, `Shift+molette` historique |
-| Sélection d'une zone                             | outil Sélection puis glisser : Copier et Couper apparaissent au-dessus de la barre (ou `Ctrl+C` / `Ctrl+X`)        |
-| Marqueur, pipette                                | `B` puis clic ; `E` sur un objet                                                                                   |
-| Bâtiment sélectionné                             | clic sans outil : une bulle à côté propose Pivoter, Copier (même orientation) et Supprimer                         |
-| Annuler / rétablir                               | `Ctrl+Z` / `Ctrl+Y` (ou `Ctrl+Shift+Z`)                                                                            |
-| Panneaux                                         | `U` améliorations, `L` niveaux, `N` nombres livrés                                                                 |
-| Menu (sauvegarde, export, import, options, aide) | `Échap` (sans outil actif)                                                                                         |
-| Pause                                            | `Espace`                                                                                                           |
-| Performances (FPS, temps de simulation, objets)  | `F3`                                                                                                               |
+| Action                                           | Entrée                                                                                                                             |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Déplacer la caméra                               | `W A S D` (touches physiques, donc `Z Q S D` en AZERTY) ou flèches ; `Shift` = ×3                                                  |
+| Déplacer à la souris                             | clic droit ou molette maintenus + glisser                                                                                          |
+| Zoom                                             | molette, centré sur le curseur                                                                                                     |
+| Retour au Hub                                    | `H`                                                                                                                                |
+| Bâtiments                                        | `1` à `9` (tapis, extracteur, opérateurs, stockage, pont), `P` priorité, `R` / `Shift+R` pivoter                                   |
+| Bâtiment spécial                                 | `0` (dès le premier exemplaire, pastille = exemplaires libres) ; `0` de nouveau : l'édition suivante (Base, Brillante, Légendaire) |
+| Démolir / vider                                  | `X` / `C` puis glisser une zone (clic = un objet) ; `Suppr` = démolir l'objet survolé                                              |
+| Copier / couper / coller                         | `Ctrl+C` / `Ctrl+X` puis glisser ; `Ctrl+V` : clic ou glisser, `R` pivoter, `F` miroir, `Shift+molette` historique                 |
+| Sélection d'une zone                             | outil Sélection puis glisser : Copier et Couper apparaissent au-dessus de la barre (ou `Ctrl+C` / `Ctrl+X`)                        |
+| Marqueur, pipette                                | `B` puis clic ; `E` sur un objet                                                                                                   |
+| Éditions                                         | `G` (dès la première carte Édition) puis clic sur un bâtiment ; `G` de nouveau : l'autre variante (Brillante, Légendaire)          |
+| Bâtiment sélectionné                             | clic sans outil : une bulle à côté propose Pivoter, Copier (même orientation), les éditions libres, Retirer l'édition et Supprimer |
+| Annuler / rétablir                               | `Ctrl+Z` / `Ctrl+Y` (ou `Ctrl+Shift+Z`)                                                                                            |
+| Panneaux                                         | `U` améliorations, `L` niveaux, `N` nombres livrés                                                                                 |
+| Menu (sauvegarde, export, import, options, aide) | `Échap` (sans outil actif)                                                                                                         |
+| Écran de choix de récompense                     | clic, `Entrée` ou `Espace` sur une carte : la retourner ; « Choisir » ; `Échap` = voir la carte                                    |
+| Pause                                            | `Espace`                                                                                                                           |
+| Performances (FPS, temps de simulation, objets)  | `F3`                                                                                                                               |
 
 Les panneaux et le menu s'utilisent aussi au clavier seul : `Tab`, `Entrée`, `Échap`.
 
@@ -45,20 +48,22 @@ Les panneaux et le menu s'utilisent aussi au clavier seul : `Tab`, `Entrée`, `�
 
 Le jeu se joue au doigt sur tablette et sur téléphone tenu en paysage (en portrait, il reste utilisable). Une souris branchée garde les commandes ci-dessus.
 
-| Action                          | Geste                                                |
-| ------------------------------- | ---------------------------------------------------- |
-| Déplacer la carte               | glisser à un doigt sans outil, ou à deux doigts      |
-| Zoom                            | pincer à deux doigts                                 |
-| Construire                      | choisir un outil, puis toucher ou glisser à un doigt |
-| Tracer plus loin que l'écran    | amener le doigt près du bord : la carte défile       |
-| Abandonner un tracé             | poser un deuxième doigt                              |
-| Pivoter, miroir, coude, quitter | boutons au-dessus de la barre de construction        |
-| Copier, couper une zone         | outil Sélection, glisser, puis Copier ou Couper      |
-| Coller                          | toucher pour déplacer l'aperçu, puis « Poser »       |
-| Inspecter un objet              | le toucher sans outil                                |
-| Pivoter, copier, supprimer      | toucher le bâtiment, puis la bulle à côté de lui     |
-| Pipette                         | appui long sur un objet                              |
-| Pause, annuler, panneaux, menu  | boutons en haut à droite                             |
+| Action                          | Geste                                                                                |
+| ------------------------------- | ------------------------------------------------------------------------------------ |
+| Déplacer la carte               | glisser à un doigt sans outil, ou à deux doigts                                      |
+| Zoom                            | pincer à deux doigts                                                                 |
+| Construire                      | choisir un outil, puis toucher ou glisser à un doigt                                 |
+| Tracer plus loin que l'écran    | amener le doigt près du bord : la carte défile                                       |
+| Abandonner un tracé             | poser un deuxième doigt                                                              |
+| Pivoter, miroir, coude, quitter | boutons au-dessus de la barre de construction                                        |
+| Copier, couper une zone         | outil Sélection, glisser, puis Copier ou Couper                                      |
+| Coller                          | toucher pour déplacer l'aperçu, puis « Poser »                                       |
+| Inspecter un objet              | le toucher sans outil                                                                |
+| Pivoter, copier, supprimer      | toucher le bâtiment, puis la bulle à côté de lui                                     |
+| Appliquer une édition           | outil Édition puis toucher le bâtiment, ou sa bulle (Brillante, Légendaire, Retirer) |
+| Pipette                         | appui long sur un objet                                                              |
+| Récompense                      | toucher une carte la retourne, puis « Choisir »                                      |
+| Pause, annuler, panneaux, menu  | boutons en haut à droite                                                             |
 
 Le jeu peut être installé sur l'écran d'accueil (menu du navigateur, « Ajouter à l'écran d'accueil ») : il s'ouvre alors en plein écran. Sur iPhone et iPad, c'est aussi ce qui met la sauvegarde à l'abri : Safari peut effacer les données d'un site non installé resté quelques jours sans visite. Dans tous les cas, le menu permet d'exporter la partie.
 
@@ -92,7 +97,7 @@ Scénario de référence (`src/debug/reference.ts`) : 20 000 tuiles de tapis, 1 
 - **Rendu** : ouvrir le jeu avec `?debug=1`, lancer `__sumflow.loadReference()` dans la console d'une partie neuve, puis `F3` pour lire les FPS à différents zooms.
 - **Lighthouse** : `npm run build && npm run preview`, puis `npx lighthouse http://localhost:4173/ --only-categories=performance` (objectif : 90 ou plus).
 
-Outils de debug : `?debug=1` expose `window.__sumflow` (poser des bâtiments, avancer le temps, débloquer, etc.) et affiche un petit panneau (graine, ticks, curseur, zoom). `?tutorial=0` empêche les fiches tutoriel de s'ouvrir seules (tests e2e).
+Outils de debug : `?debug=1` expose `window.__sumflow` (poser des bâtiments, avancer le temps, débloquer, etc.) et affiche un petit panneau (graine, ticks, curseur, zoom). `?tutorial=0` empêche les fiches tutoriel de s'ouvrir seules (tests e2e). `?pick=natural|first|random` choisit seul les récompenses en attente (tests e2e) ; sans ce paramètre (ou avec `none`), le joueur choisit à l'écran ; `__sumflow.offer()`, `forceOffer()`, `choose()` et `grant()` manipulent les offres.
 
 ## Déploiement
 

@@ -2,7 +2,16 @@ import { type MessageKey, t } from '../i18n';
 import { el } from './dom';
 
 export type TopAction =
-  'pause' | 'undo' | 'redo' | 'home' | 'marker' | 'delivered' | 'levels' | 'upgrades' | 'menu';
+  | 'pause'
+  | 'undo'
+  | 'redo'
+  | 'home'
+  | 'marker'
+  | 'delivered'
+  | 'levels'
+  | 'upgrades'
+  | 'menu'
+  | 'reward';
 
 /** Buttons folded behind the "more" button on a narrow screen. */
 const FOLDED: readonly TopAction[] = ['marker', 'delivered', 'levels'];
@@ -14,9 +23,25 @@ const RESUME_ICON = '▶\uFE0E';
 /** Top-right buttons (PLAN §9.1). */
 export class TopBar {
   private readonly buttons = new Map<TopAction, HTMLButtonElement>();
+  /** "Reward to choose": shown while an offer waits, a press reopens the choice screen. */
+  private readonly reward: HTMLButtonElement;
+  private readonly rewardLabel = el('span', 'top-reward-label');
+  private rewardCount = -1;
 
   constructor(root: HTMLElement, actions: Record<TopAction, () => void>) {
     const bar = el('nav', 'top-bar');
+    const cards = el('span', 'top-reward-icon');
+    cards.setAttribute('aria-hidden', 'true');
+    this.reward = el('button', 'top-btn top-reward', cards, this.rewardLabel);
+    this.reward.type = 'button';
+    this.reward.dataset['action'] = 'reward';
+    this.reward.hidden = true;
+    this.reward.addEventListener('click', (e) => {
+      actions.reward();
+      if (e.detail > 0) this.reward.blur();
+    });
+    bar.append(this.reward);
+    this.buttons.set('reward', this.reward);
     const folded = el('div', 'top-more');
     const more = el('button', 'top-btn top-more-btn', '⋯');
     const setOpen = (open: boolean): void => {
@@ -88,6 +113,17 @@ export class TopBar {
   /** Pressed state (toggle buttons such as the marker tool). */
   setPressed(id: TopAction, pressed: boolean): void {
     this.buttons.get(id)?.setAttribute('aria-pressed', String(pressed));
+  }
+
+  /** The "Reward to choose" button, for `pending` offers waiting (hidden at 0). */
+  setReward(pending: number): void {
+    if (pending === this.rewardCount) return;
+    this.rewardCount = pending;
+    this.reward.hidden = pending === 0;
+    const label = pending > 1 ? t('btn.rewardCount', { n: pending }) : t('btn.reward');
+    this.rewardLabel.textContent = label;
+    this.reward.title = label;
+    this.reward.setAttribute('aria-label', label);
   }
 
   /** Green badge (an upgrade is ready, PLAN §7.3). */

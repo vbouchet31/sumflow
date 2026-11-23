@@ -67,6 +67,8 @@ function saveBuilding(b: Building): SavedBuilding {
   if (b.cycle !== undefined) s.cycle = b.cycle;
   if (b.storeValue !== undefined) s.storeValue = b.storeValue;
   if (b.storeCount !== undefined) s.storeCount = b.storeCount;
+  if (b.edition !== undefined) s.edition = b.edition;
+  if (b.editionApplied === true) s.editionApplied = true;
   return s;
 }
 
@@ -90,6 +92,8 @@ function loadBuilding(s: SavedBuilding): Building {
   if (s.cycle !== undefined) b.cycle = s.cycle;
   if (s.storeValue !== undefined) b.storeValue = s.storeValue;
   if (s.storeCount !== undefined) b.storeCount = s.storeCount;
+  if (s.edition !== undefined) b.edition = s.edition;
+  if (s.editionApplied === true) b.editionApplied = true;
   return b;
 }
 
@@ -137,6 +141,16 @@ export function serialize(world: World, camera: CameraState, savedAt = ''): Save
     markers: markers.map((m) => ({ x: m.x, y: m.y, text: m.text })),
     clipboard: structuredClone(s.clipboard),
     helpSeen: [...s.helpSeen],
+    picks: s.picks.map((p) => ({ ...p })),
+    pendingLevels: [...s.pendingLevels],
+    currentOffer: s.currentOffer
+      ? { level: s.currentOffer.level, cards: s.currentOffer.cards.map((c) => ({ ...c })) }
+      : null,
+    editionCards: { ...s.editionCards },
+    editionsLost: { ...s.editionsLost },
+    specials: Object.fromEntries(Object.entries(s.specials).sort(([a], [b]) => (a < b ? -1 : 1))),
+    passives: [...s.passives],
+    naturalRefusals: s.naturalRefusals,
     camera: { x: camera.x, y: camera.y, zoom: camera.zoom },
   };
 }
@@ -163,6 +177,16 @@ export function deserialize(data: SaveData): { state: GameState; camera: CameraS
   state.nextBuildingId = data.nextBuildingId;
   state.helpSeen = [...data.helpSeen];
   state.clipboard = structuredClone(data.clipboard);
+  state.picks = data.picks.map((p) => ({ ...p }));
+  state.pendingLevels = [...data.pendingLevels];
+  state.currentOffer = data.currentOffer
+    ? { level: data.currentOffer.level, cards: data.currentOffer.cards.map((c) => ({ ...c })) }
+    : null;
+  state.editionCards = { ...data.editionCards };
+  state.editionsLost = { ...data.editionsLost };
+  state.specials = { ...data.specials };
+  state.passives = [...data.passives];
+  state.naturalRefusals = data.naturalRefusals;
 
   const occupied = new Set<number>();
   const claim = (x: number, y: number, path: string): void => {

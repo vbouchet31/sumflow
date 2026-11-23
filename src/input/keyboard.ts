@@ -27,6 +27,7 @@ export interface KeyboardHandlers {
   onRedo: () => void;
   onPick: () => void;
   onMirror: () => void;
+  onEdition: () => void;
   onRotate: (delta: 1 | -1) => void;
   onCancel: () => void;
   onQuickDemolish: () => void;
@@ -128,6 +129,9 @@ export class Keyboard {
         break;
       case ACTION_KEYS.mirror:
         this.handlers.onMirror();
+        break;
+      case ACTION_KEYS.edition:
+        this.handlers.onEdition();
         break;
       case SPECIAL_KEYS.quickDemolish.toLowerCase():
         this.handlers.onQuickDemolish();

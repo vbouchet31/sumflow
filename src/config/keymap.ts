@@ -21,6 +21,8 @@ export const ACTION_KEYS = {
   marker: 'b',
   pick: 'e',
   mirror: 'f',
+  /** Edition tool (PLAN-recompenses §3.5); pressed again, the other variant. */
+  edition: 'g',
 } as const;
 
 /** Letters combined with Ctrl (or Cmd), by event.key (PLAN §8.2). */
@@ -43,6 +45,11 @@ export const TOOL_CODES = {
   Digit7: 'exponent',
   Digit8: 'storage',
   Digit9: 'bridge',
+  /**
+   * The special building (PLAN-recompenses §4.5): pressed again, its next native edition.
+   * Only one special type exists (a placeholder); a second one would need a key of its own.
+   */
+  Digit0: 'ancientAdder',
 } as const;
 
 /** Keys by event.key. */

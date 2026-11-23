@@ -3,12 +3,24 @@ import { formatFull } from '../core/format';
 import { getLocale, t } from '../i18n';
 import type { GameState } from '../sim/state';
 import { el, releaseFocus, trapTab } from './dom';
-import { formatDuration } from './labels';
+import { cardLabel, formatDuration } from './labels';
 
-/** "Game complete" overlay (PLAN §7.2) with play time and items delivered. */
+/**
+ * "Your picks" (PLAN-recompenses §4.6): every card obtained, level by level, with its
+ * edition and value, as items of a list. A card given outside an offer (debug) says so.
+ */
+export function picksRecap(state: GameState): { level: string; card: string }[] {
+  return state.picks.map((p) => ({
+    level: p.level > 0 ? t('end.pickLevel', { n: p.level }) : t('end.pickGranted'),
+    card: cardLabel(p),
+  }));
+}
+
+/** "Game complete" overlay (PLAN §7.2) with play time, items delivered and the picks. */
 export class EndScreen {
   private readonly overlay: HTMLElement;
   private readonly stats = el('div', 'end-stats');
+  private readonly picks = el('ol', 'end-picks');
   private readonly button: HTMLButtonElement;
 
   constructor(root: HTMLElement) {
@@ -17,10 +29,21 @@ export class EndScreen {
     this.button.addEventListener('click', () => this.hide());
     const title = el('h2', undefined, t('end.title'));
     title.id = 'end-title';
+    const picksTitle = el('h3', 'end-picks-title', t('end.picks'));
+    picksTitle.id = 'end-picks-title';
     this.overlay = el(
       'div',
       'overlay',
-      el('section', 'end-card', title, el('p', undefined, t('end.body')), this.stats, this.button),
+      el(
+        'section',
+        'end-card',
+        title,
+        el('p', undefined, t('end.body')),
+        this.stats,
+        picksTitle,
+        this.picks,
+        this.button,
+      ),
     );
     this.overlay.setAttribute('role', 'dialog');
     this.overlay.setAttribute('aria-modal', 'true');
@@ -42,7 +65,24 @@ export class EndScreen {
       el('div', undefined, t('end.playTime', { time: formatDuration(ms) })),
       el('div', undefined, t('end.items', { n: formatFull(state.totalDelivered, getLocale()) })),
     );
+    const recap = picksRecap(state);
+    this.picks.replaceChildren(
+      ...(recap.length === 0
+        ? [el('li', 'end-pick-none', t('end.noPicks'))]
+        : recap.map((p) =>
+            el(
+              'li',
+              'end-pick',
+              el('span', 'end-pick-level', p.level),
+              el('span', 'end-pick-card', p.card),
+            ),
+          )),
+    );
+    // Scrollable with the keyboard too when it is long.
+    this.picks.tabIndex = 0;
+    this.picks.setAttribute('aria-labelledby', 'end-picks-title');
     this.overlay.hidden = false;
+    this.picks.scrollTop = 0;
     this.button.focus();
   }
 

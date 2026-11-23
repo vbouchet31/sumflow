@@ -1,4 +1,4 @@
-import { migrate } from './migrations';
+import { isOutdated, migrate } from './migrations';
 import { type SaveData, SaveError, validateSave } from './schema';
 import { deserialize } from './serialize';
 
@@ -54,7 +54,8 @@ export function encodeSaveSync(data: SaveData): string {
 
 /**
  * Parse a save in either format, migrate it to the current version and validate it.
- * Throws `SaveError` on any problem; never touches storage.
+ * Throws `SaveError` on any problem (reason `outdated` for a format too old to read, such as
+ * version 1); never touches storage.
  */
 export async function decodeSave(text: string): Promise<SaveData> {
   const trimmed = text.trim();
@@ -79,6 +80,7 @@ export async function decodeSave(text: string): Promise<SaveData> {
   } catch {
     throw new SaveError('$ (not JSON)');
   }
+  if (isOutdated(raw)) throw new SaveError('$.version', 'outdated');
   const migrated = migrate(raw);
   if (!migrated) throw new SaveError('$.version');
   const data = validateSave(migrated);

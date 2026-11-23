@@ -7,15 +7,33 @@ import {
   START_MAX_EXTRACTION,
   type Track,
 } from '../config/balance';
+import type { Edition, PassiveId, SpecialEdition } from '../config/cards';
 import { toSeed } from '../core/rng';
 import type { Clip, Marker } from './clip';
 import type { Belt, Bridge, Building } from './entities';
 import { ensureLevels, type GeneratedLevel } from './levels';
+import type { OfferCard } from './offers';
 
 export interface Requirement {
   value: number;
   required: number;
   delivered: number;
+}
+
+/** A card obtained (PLAN-recompenses §5.1). `level` 0 = granted outside an offer (debug). */
+export interface CardPick {
+  level: number;
+  card: string;
+  edition: Edition;
+  /** Value obtained by a value card. */
+  value?: number;
+  tick: number;
+}
+
+/** The offer drawn for `pendingLevels[0]`, stored so a reload shows the same cards. */
+export interface StoredOffer {
+  level: number;
+  cards: OfferCard[];
 }
 
 export interface GameState {
@@ -56,6 +74,24 @@ export interface GameState {
   helpSeen: string[];
   /** Clipboard history, most recent first, at most `EDIT.clipboardSize` entries (PLAN §8.2). */
   clipboard: Clip[];
+  /** Cards obtained, in order (fixed levels, offers, debug grants). */
+  picks: CardPick[];
+  /** Completed levels whose offer is not chosen yet, in order. */
+  pendingLevels: number[];
+  /** Offer drawn for `pendingLevels[0]`, or null until it is drawn (lazily). */
+  currentOffer: StoredOffer | null;
+  /** Edition cards obtained. Free ones are computed (obtained minus applied, `sim/inventory`). */
+  editionCards: Record<SpecialEdition, number>;
+  /**
+   * Edition cards lost for good: permanent editions (`EDITION_RULES` false) demolished or
+   * swapped away. Always 0 with the default rules. Undo / redo adjust it (`Change.lost`).
+   */
+  editionsLost: Record<SpecialEdition, number>;
+  /** Special buildings obtained, by `"type:edition"`. Free ones are computed. */
+  specials: Record<string, number>;
+  passives: PassiveId[];
+  /** Refusals of the current natural item (reset to 0 when it is obtained). */
+  naturalRefusals: number;
 }
 
 export const HUB_ID = 0;
@@ -101,6 +137,14 @@ export function createInitialState(seed: number): GameState {
     markers: new Map(),
     helpSeen: [],
     clipboard: [],
+    picks: [],
+    pendingLevels: [],
+    currentOffer: null,
+    editionCards: { brillante: 0, legendaire: 0 },
+    editionsLost: { brillante: 0, legendaire: 0 },
+    specials: {},
+    passives: [],
+    naturalRefusals: 0,
   };
   state.levelRequirement = requirementFor(state, 1);
   return state;

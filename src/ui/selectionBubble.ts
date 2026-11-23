@@ -3,7 +3,8 @@ import { type MessageKey, t } from '../i18n';
 import type { Camera } from '../render/camera';
 import { el } from './dom';
 
-type BubbleAction = 'rotate' | 'copy' | 'delete';
+type BubbleAction =
+  'rotate' | 'copy' | 'editionBrillante' | 'editionLegendaire' | 'removeEdition' | 'delete';
 
 interface BubbleDef {
   id: BubbleAction;
@@ -13,7 +14,13 @@ interface BubbleDef {
   run: (tools: ToolController) => void;
   shown: (tools: ToolController) => boolean;
   danger?: boolean;
+  /** Extra class (the chalk colour of an edition). */
+  className?: string;
 }
+
+/** Four-pointed sparkle (brillante) and five-pointed star (légendaire), as on their cards. */
+const SPARKLE = 'M12 3c.7 4.6 2.4 6.3 7 7-4.6.7-6.3 2.4-7 7-.7-4.6-2.4-6.3-7-7 4.6-.7 6.3-2.4 7-7z';
+const STAR = 'M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z';
 
 const ACTIONS: readonly BubbleDef[] = [
   {
@@ -32,6 +39,31 @@ const ACTIONS: readonly BubbleDef[] = [
     ],
     run: (tools) => tools.copySelection(),
     shown: (tools) => tools.canCopySelection,
+  },
+  // Edition cards (PLAN-recompenses §3.5): one button per edition with a free card that the
+  // building can take (swapping its own), and taking an applied edition back.
+  {
+    id: 'editionBrillante',
+    label: 'act.editionBrillante',
+    icon: [SPARKLE],
+    run: (tools) => tools.editionSelection('brillante'),
+    shown: (tools) => tools.canEditionSelection('brillante'),
+    className: 'sel-bubble-brillante',
+  },
+  {
+    id: 'editionLegendaire',
+    label: 'act.editionLegendaire',
+    icon: [STAR],
+    run: (tools) => tools.editionSelection('legendaire'),
+    shown: (tools) => tools.canEditionSelection('legendaire'),
+    className: 'sel-bubble-legendaire',
+  },
+  {
+    id: 'removeEdition',
+    label: 'act.removeEdition',
+    icon: [STAR, 'M4 4l16 16'],
+    run: (tools) => tools.removeSelectionEdition(),
+    shown: (tools) => tools.canRemoveSelectionEdition,
   },
   {
     id: 'delete',
@@ -62,7 +94,7 @@ const GAP = 12;
 const MARGIN = 8;
 
 /**
- * Floating bubble next to the selected building: rotate, copy, delete. Drawn above the
+ * Floating bubble next to the selected building: rotate, copy, editions, delete. Drawn above the
  * building, or below it when there is no room; kept inside the screen and clear of the
  * bars at the bottom. It follows the camera every frame. Belts and bridges have none:
  * their actions stay in the action bar.
@@ -94,6 +126,7 @@ export class SelectionBubble {
       btn.type = 'button';
       btn.dataset['action'] = def.id;
       if (def.danger) btn.classList.add('sel-bubble-danger');
+      if (def.className) btn.classList.add(def.className);
       btn.title = t(`${def.label}Title` as MessageKey);
       btn.addEventListener('click', (e) => {
         def.run(tools);

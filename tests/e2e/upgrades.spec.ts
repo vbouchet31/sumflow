@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { gameUrl } from './helpers';
 
 test('upgrades panel: badge, purchase and effect; delivered panel with units', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto('./?debug=1&seed=42&tutorial=0');
+  await page.goto(gameUrl());
 
   const upgradesBtn = page.locator('.top-btn[data-action="upgrades"]');
   await expect(upgradesBtn).toBeHidden();

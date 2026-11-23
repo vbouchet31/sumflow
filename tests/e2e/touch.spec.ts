@@ -539,7 +539,7 @@ test('the tutorial card plays a finger demo and closes with a tap, on the card o
   await page.evaluate(() => window.__sumflow?.unlockAll());
   const next = page.locator('.tut-card[data-tip="adder"]');
   await expect(next).toBeVisible();
-  await expect(next.locator('.tut-count')).toHaveText('1 / 9');
+  await expect(next.locator('.tut-count')).toHaveText('1 / 10');
   await touch.tap([4, 4]);
   await expect(page.locator('.tut-card[data-tip="upgrades"]')).toBeVisible();
 });

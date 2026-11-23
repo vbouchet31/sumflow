@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { gameUrl } from './helpers';
 
 test('storage unlocks at level 23 and can be placed with key 8', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto('./?debug=1&seed=42&tutorial=0');
+  await page.goto(gameUrl());
   const btn = page.locator('.build-btn[data-tool="storage"]');
   await expect(btn).toBeHidden();
   await page.evaluate(() => window.__sumflow?.setLevel(23));

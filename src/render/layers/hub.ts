@@ -1,11 +1,13 @@
-import { HUB, type Reward } from '../../config/balance';
+import { HUB } from '../../config/balance';
 import { BUILDING_COLORS, COLORS, FONT_NUM, FONT_UI, HUB_COLORS } from '../../config/colors';
 import { formatCompact } from '../../core/format';
 import { t } from '../../i18n';
-import { rewardFor } from '../../sim/levels';
+import { fixedReward, type NaturalStep, offerSlots } from '../../sim/offers';
+import { cardDef, offerContext } from '../../sim/rewards';
 import type { GameState } from '../../sim/state';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
+import { drawCardFan } from '../cardArt';
 import { roundRect } from '../shapes';
 
 const OPERATOR_SYMBOLS: Partial<Record<string, string>> = {
@@ -16,19 +18,56 @@ const OPERATOR_SYMBOLS: Partial<Record<string, string>> = {
   exponent: '^',
 };
 
-/** Glyph and colour of the reward icon drawn on the hub. */
-export function rewardIcon(reward: Reward): { glyph: string; color: string } {
-  switch (reward.kind) {
-    case 'building':
+/** Glyph and colour of the icon of a fixed reward (levels 1 and 2) drawn on the hub. */
+export function rewardIcon(step: NaturalStep): { glyph: string; color: string } {
+  const e = cardDef(step.card)?.effect;
+  switch (e?.kind) {
+    case 'unlock':
       return {
-        glyph: OPERATOR_SYMBOLS[reward.building] ?? reward.building.charAt(0).toUpperCase(),
-        color: BUILDING_COLORS[reward.building],
+        glyph: OPERATOR_SYMBOLS[e.building] ?? e.building.charAt(0).toUpperCase(),
+        color: BUILDING_COLORS[e.building],
       };
-    case 'extraction':
-      return { glyph: String(reward.max), color: HUB_COLORS.rewardExtraction };
+    case 'value':
+      return { glyph: String(step.value ?? ''), color: HUB_COLORS.rewardExtraction };
     case 'feature':
-      return { glyph: reward.feature === 'upgrades' ? '↑' : '◆', color: HUB_COLORS.rewardFeature };
+      return { glyph: e.feature === 'upgrades' ? '↑' : '◆', color: HUB_COLORS.rewardFeature };
+    default:
+      return { glyph: '?', color: HUB_COLORS.rewardFeature };
   }
+}
+
+/**
+ * Tag on the top edge of the frame while offers wait to be chosen ("Récompense à choisir",
+ * with their count): from far away, a yellow dot.
+ */
+function drawPendingTag(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  x: number,
+  y: number,
+  w: number,
+  pending: number,
+): void {
+  const s = cam.scale;
+  ctx.fillStyle = HUB_COLORS.pending;
+  if (cam.zoom < LOD.buildingText) {
+    const r = Math.max(3, 0.6 * s);
+    ctx.beginPath();
+    ctx.arc(x + w, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+  const text = pending > 1 ? t('hub.pendingCount', { n: pending }) : t('hub.pending');
+  ctx.font = `700 ${0.42 * s}px ${FONT_UI}`;
+  const tw = ctx.measureText(text).width + 0.7 * s;
+  const th = 0.72 * s;
+  const tx = x + w / 2 - tw / 2;
+  roundRect(ctx, tx, y - th / 2, tw, th, th / 2);
+  ctx.fill();
+  ctx.fillStyle = HUB_COLORS.pendingText;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + w / 2, y + 0.03 * s);
 }
 
 export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameState): void {
@@ -50,6 +89,8 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
   ctx.strokeStyle = HUB_COLORS.innerFrame;
   ctx.lineWidth = Math.max(1, 0.05 * s);
   ctx.stroke();
+  const pending = state.pendingLevels.length;
+  if (pending > 0) drawPendingTag(ctx, cam, x, y, w, pending);
 
   if (cam.zoom < LOD.buildingText) return;
 
@@ -99,17 +140,17 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
     ctx.fill();
   }
 
-  // Next reward icon.
-  const reward = rewardFor(state.level);
-  if (reward) {
-    const icon = rewardIcon(reward);
-    const r = 0.38 * s;
-    const iy = y + w - 0.7 * s;
-    ctx.fillStyle = HUB_COLORS.textMuted;
-    ctx.font = `500 ${0.36 * s}px ${FONT_UI}`;
-    ctx.textAlign = 'right';
-    ctx.fillText(t('hub.nextReward'), cx + 0.15 * s, iy);
-    const ix = cx + 0.25 * s + r;
+  // Next reward icon: the fixed card, or the cards of an offer.
+  const r = 0.38 * s;
+  const iy = y + w - 0.7 * s;
+  ctx.fillStyle = HUB_COLORS.textMuted;
+  ctx.font = `500 ${0.36 * s}px ${FONT_UI}`;
+  ctx.textAlign = 'right';
+  ctx.fillText(t('hub.nextReward'), cx + 0.15 * s, iy);
+  const ix = cx + 0.25 * s + r;
+  const fixed = fixedReward(state.level);
+  if (fixed) {
+    const icon = rewardIcon(fixed);
     ctx.fillStyle = icon.color;
     roundRect(ctx, ix - r, iy - r, 2 * r, 2 * r, 0.25 * r);
     ctx.fill();
@@ -117,5 +158,8 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
     ctx.textAlign = 'center';
     ctx.font = `700 ${0.55 * s}px ${FONT_NUM}`;
     ctx.fillText(icon.glyph, ix, iy + 0.03 * s);
+  } else {
+    const n = offerSlots(offerContext(state, state.level)).length;
+    drawCardFan(ctx, ix + 0.1 * s, iy, 0.68 * r, n, state.level);
   }
 }

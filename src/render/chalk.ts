@@ -136,14 +136,14 @@ const CORNERS = [
  * Hand-drawn rectangle: each side is a slightly bent line that overshoots the corners, drawn
  * twice with a different wobble, like a player sketching with chalk.
  */
-function sketchRect(
+export function sketchRect(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   w: number,
   h: number,
   seed: number,
-  color: string,
+  color: string | CanvasGradient,
   lw: number,
 ): void {
   const r = rng(seed);

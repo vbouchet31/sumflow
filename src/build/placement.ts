@@ -1,8 +1,9 @@
-import type { BuildingType } from '../config/buildings';
+import { type BuildingType, isSpecial } from '../config/buildings';
+import type { SpecialEdition } from '../config/cards';
 import { isInBounds, key, type Rot } from '../core/grid';
 import { buildingSize, footprintTiles, type FreeBuildingType } from '../sim/entities';
 import type { Building } from '../sim/entities';
-import { isBuildingUnlocked } from '../sim/state';
+import { canPlaceType, freeSpecials, specialKey } from '../sim/inventory';
 import { HUB_ID } from '../sim/state';
 import type { World } from '../sim/world';
 import { isExtractable } from '../world/deposits';
@@ -17,6 +18,11 @@ export interface BuildingPlan {
   ok: boolean;
   /** Extractor only: value of the deposit it covers. */
   value?: number;
+  /**
+   * Edition it is drawn with (a building being moved keeps its own). For a special building
+   * being placed, its native edition (absent = base): it is placed with it.
+   */
+  edition?: SpecialEdition;
 }
 
 /**
@@ -45,24 +51,32 @@ export function centredOrigin(
   return { x: tx - Math.floor((size.w - 1) / 2), y: ty - Math.floor((size.h - 1) / 2) };
 }
 
-/** Operator or storage ghost at origin `(x, y)`: valid if unlocked, in bounds and free of buildings. */
+/**
+ * Operator, storage or special building ghost at origin `(x, y)`: valid if it may be placed
+ * (unlocked, or a free copy of a special building in its native `edition`), in bounds and
+ * free of buildings.
+ */
 export function planOperator(
   world: World,
   type: FreeBuildingType,
   x: number,
   y: number,
   rot: Rot,
+  edition?: SpecialEdition,
 ): BuildingPlan {
   const ok =
-    isBuildingUnlocked(world.state, type) &&
+    canPlaceType(world.state, type, edition ?? 'base') &&
     footprintTiles(type, x, y, rot).every((t) => isInBounds(t.x, t.y)) &&
     world.isFootprintFree(type, x, y, rot);
-  return { type, x, y, rot, ok };
+  const plan: BuildingPlan = { type, x, y, rot, ok };
+  if (edition !== undefined && isSpecial(type)) plan.edition = edition;
+  return plan;
 }
 
 /**
  * Dragging a building lays a row of copies spaced by its size along the dominant axis
- * (PLAN §8.2). Returns plans in order; overlapping or blocked ones are marked not ok.
+ * (PLAN §8.2). Returns plans in order; overlapping or blocked ones are marked not ok. A row
+ * of special buildings stops at the last free copy: the copies after it are blocked.
  */
 export function planOperatorRow(
   world: World,
@@ -70,6 +84,7 @@ export function planOperatorRow(
   from: { x: number; y: number },
   to: { x: number; y: number },
   rot: Rot,
+  edition?: SpecialEdition,
 ): BuildingPlan[] {
   const size = buildingSize(type, rot);
   const start = centredOrigin(type, from.x, from.y, rot);
@@ -81,20 +96,34 @@ export function planOperatorRow(
   const count = Math.floor(Math.abs(dist) / step) + 1;
   const sign = dist < 0 ? -1 : 1;
   const plans: BuildingPlan[] = [];
+  let free = isSpecial(type)
+    ? freeSpecials(world.state, specialKey(type, edition ?? 'base'))
+    : Infinity;
   for (let i = 0; i < count; i++) {
     const x = start.x + (horizontal ? sign * step * i : 0);
     const y = start.y + (horizontal ? 0 : sign * step * i);
-    plans.push(planOperator(world, type, x, y, rot));
+    const plan = planOperator(world, type, x, y, rot, edition);
+    if (plan.ok && free <= 0) plan.ok = false;
+    if (plan.ok) free -= 1;
+    plans.push(plan);
   }
   return plans;
 }
 
-/** Place a planned building if valid. */
+/**
+ * Place a planned building if valid. A special building is placed with its native edition,
+ * only while a copy of it is free (checked again: a row may have used the last one).
+ */
 export function applyBuildingPlan(world: World, plan: BuildingPlan): Building | null {
   if (!plan.ok) return null;
   if (plan.type === 'extractor') {
     if (plan.value === undefined) return null;
     return world.addBuilding('extractor', plan.x, plan.y, 0, { extractValue: plan.value });
+  }
+  if (isSpecial(plan.type)) {
+    if (!canPlaceType(world.state, plan.type, plan.edition ?? 'base')) return null;
+    const extra = plan.edition ? { native: plan.edition } : {};
+    return world.addBuilding(plan.type, plan.x, plan.y, plan.rot, extra);
   }
   return world.addBuilding(plan.type, plan.x, plan.y, plan.rot);
 }

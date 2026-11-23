@@ -1,4 +1,6 @@
 import { AREA_COLORS, COLORS, GHOST_COLORS, LINE_TINTS } from '../../config/colors';
+import { drawBuilding } from './buildings';
+import { editionGradient } from '../editions';
 import { DX, DY } from '../../core/grid';
 import type { Ghost } from '../../build/tools';
 import { buildingSize, isOperator } from '../../sim/entities';
@@ -65,7 +67,11 @@ export function drawGhosts(ctx: CanvasRenderingContext2D, cam: Camera, ghost: Gh
     if (isOperator(g.type)) {
       // Real look, translucent, so ports and letters are visible before placing.
       const mirror = g.mirror === true;
-      drawOperator(ctx, cam, g.type, g.x, g.y, g.rot, { alpha: g.ok ? 0.75 : 0.35, mirror });
+      drawOperator(ctx, cam, g.type, g.x, g.y, g.rot, {
+        alpha: g.ok ? 0.75 : 0.35,
+        mirror,
+        edition: g.edition,
+      });
       if (!g.ok) {
         drawOperator(ctx, cam, g.type, g.x, g.y, g.rot, { tint: GHOST_COLORS.blocked, mirror });
       }
@@ -74,6 +80,11 @@ export function drawGhosts(ctx: CanvasRenderingContext2D, cam: Camera, ghost: Gh
     const size = buildingSize(g.type, g.rot);
     const p = cam.worldToScreen(g.x, g.y);
     ctx.fillStyle = g.ok ? GHOST_COLORS.new : GHOST_COLORS.blocked;
+    if (g.ok && g.edition) {
+      // A storage being moved keeps its edition: its ghost is washed in that chalk.
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = editionGradient(ctx, g.edition, p.x, p.y, size.w * s, size.h * s);
+    }
     ctx.beginPath();
     ctx.roundRect(
       p.x + 0.1 * s,
@@ -83,7 +94,10 @@ export function drawGhosts(ctx: CanvasRenderingContext2D, cam: Camera, ghost: Gh
       0.4 * s,
     );
     ctx.fill();
+    ctx.globalAlpha = 1;
   }
+  // Edition tool: the hovered building drawn again over itself, in its new edition.
+  if (ghost.preview) drawBuilding(ctx, cam, ghost.preview);
   if (ghost.area) {
     const { rect, kind } = ghost.area;
     const p = cam.worldToScreen(rect.x0, rect.y0);

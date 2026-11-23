@@ -28,6 +28,21 @@ Cible : tablette et téléphone en paysage d'abord. Branche `dev-mobile`.
 | T4 Confort                       | ✅ terminé |
 | T5 Installation                  | ✅ terminé |
 
+## Choix de récompense au Hub (PLAN-recompenses.md)
+
+Branche `claude/hub-objectives-reward-choices-kdavx9`. **Phase 1 terminée** (moteur et ergonomie, objets factices) ; la phase 2 commence par le choix des premiers vrais objets.
+
+| Jalon                                         | État       |
+| --------------------------------------------- | ---------- |
+| R1 Catalogue et tirage                        | ✅ terminé |
+| R2 Progression et sauvegarde                  | ✅ terminé |
+| R3 Écran de choix                             | ✅ terminé |
+| R4 Fiches après le choix                      | ✅ terminé |
+| R5 Éditions et exemplaires                    | ✅ terminé |
+| R6 Objets factices et finitions               | ✅ terminé |
+| Phase 2 Premiers objets, simulateur de tirage | ⏳ à faire |
+| Phase 3 Simulateur de rythme, équilibrage     | ⏳ à faire |
+
 ## Direction artistique « Tableau noir »
 
 - [x] Palette ardoise et craie (canvas et variables CSS), cadres en bois, polices manuscrites embarquées.

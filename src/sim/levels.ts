@@ -1,4 +1,4 @@
-import { LEVEL_TABLE, LEVELS, type Reward } from '../config/balance';
+import { LEVEL_TABLE, LEVELS } from '../config/balance';
 import { hash2, mulberry32 } from '../core/rng';
 
 /** A generated level (PLAN §7.2). Stored in the save up to current level + lookahead. */
@@ -15,13 +15,6 @@ const LEVEL_SALT = 0x4c45564c; // "LEVL"
 /** One uniform draw for level `n`, independent of how many levels were generated before. */
 function levelDraw(seed: number, n: number): number {
   return mulberry32(hash2(seed, LEVEL_SALT, n))();
-}
-
-/** Reward for completing level `n`, or null for the last level of the game. */
-export function rewardFor(n: number): Reward | null {
-  const def = LEVEL_TABLE[n - 1];
-  if (def) return def.reward;
-  return { kind: 'extraction', max: n - LEVELS.extractionOffset };
 }
 
 /** Quantity required at level `n`. */

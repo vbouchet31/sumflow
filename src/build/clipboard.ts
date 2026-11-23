@@ -1,4 +1,5 @@
-import { BUILDINGS } from '../config/buildings';
+import { BUILDINGS, isSpecial } from '../config/buildings';
+import type { SpecialEdition } from '../config/cards';
 import { EDIT } from '../config/balance';
 import {
   type Dir,
@@ -13,6 +14,7 @@ import {
 } from '../core/grid';
 import type { Clip, ClipBuilding } from '../sim/clip';
 import { axisOf, buildingSize, footprintTiles } from '../sim/entities';
+import { canPlaceType, freeSpecials, nativeEdition, specialKey } from '../sim/inventory';
 import { isBuildingUnlocked } from '../sim/state';
 import { singleOutput, type World } from '../sim/world';
 import { isExtractable } from '../world/deposits';
@@ -72,14 +74,17 @@ export function copyArea(world: World, r: Rect): Clip | null {
       const p = unkey(Math.floor(b.priority / 4));
       priority = { x: p.x - minX, y: p.y - minY, face: (b.priority % 4) as Dir };
     }
-    clip.buildings.push({
+    const entry: ClipBuilding = {
       type: b.type,
       x: b.x - minX,
       y: b.y - minY,
       rot: b.rot,
       mirror: b.mirror === true,
       priority,
-    });
+    };
+    const native = nativeEdition(b);
+    if (isSpecial(b.type) && native !== 'base') entry.edition = native;
+    clip.buildings.push(entry);
   }
   return clip;
 }
@@ -124,7 +129,7 @@ export function transformClip(clip: Clip, rot: number, mirror: boolean): Clip {
       // Orientation (mirror first, then rotate) composed with the paste transform.
       const bRot: Rot = def.rotatable ? normalizeRot(mirror ? r - b.rot : r + b.rot) : 0;
       const bMirror = def.rotatable ? b.mirror !== mirror : false;
-      return {
+      const out: ClipBuilding = {
         type: b.type,
         x: Math.min(c0.x, c1.x),
         y: Math.min(c0.y, c1.y),
@@ -134,6 +139,8 @@ export function transformClip(clip: Clip, rot: number, mirror: boolean): Clip {
           ? { ...tf(b.priority.x, b.priority.y), face: transformDir(b.priority.face, r, mirror) }
           : null,
       };
+      if (b.edition) out.edition = b.edition;
+      return out;
     }),
   };
 }
@@ -154,16 +161,30 @@ export interface PastePlan {
     ok: boolean;
     /** Extractor: value of the deposit it lands on. */
     value?: number;
+    /** Native edition of a special building (absent = base). */
+    edition?: SpecialEdition;
   }[];
 }
 
 /**
- * Plan a paste of `clip` with its top-left corner at `(ox, oy)` (PLAN §8.2). Objects in
- * conflict (a building in the way, out of bounds, locked, or an extractor not exactly on
- * an extractable deposit) are marked blocked; the others are placed. Pasted belts and
- * bridges replace existing ones.
+ * Free copies of special buildings left for a paste, by `"type:edition"`: shared by the
+ * copies of a row so that it stops at the last free one. Read from the map when first asked.
  */
-export function planPaste(world: World, clip: Clip, ox: number, oy: number): PastePlan {
+export type SpecialBudget = Map<string, number>;
+
+/**
+ * Plan a paste of `clip` with its top-left corner at `(ox, oy)` (PLAN §8.2). Objects in
+ * conflict (a building in the way, out of bounds, locked, an extractor not exactly on an
+ * extractable deposit, or a special building without a free copy left in `budget`) are
+ * marked blocked; the others are placed. Pasted belts and bridges replace existing ones.
+ */
+export function planPaste(
+  world: World,
+  clip: Clip,
+  ox: number,
+  oy: number,
+  budget: SpecialBudget = new Map(),
+): PastePlan {
   const { state } = world;
   const freeTile = (x: number, y: number): boolean =>
     isInBounds(x, y) && !world.occupancy.has(key(x, y));
@@ -187,8 +208,14 @@ export function planPaste(world: World, clip: Clip, ox: number, oy: number): Pas
         d.y === y + 1 &&
         isExtractable(d.value, state.maxExtraction);
       if (d) value = d.value;
+    } else if (isSpecial(b.type)) {
+      // Pasted with its native edition, only while a copy of it is free (no unlimited one).
+      const k = specialKey(b.type, b.edition ?? 'base');
+      const left = budget.get(k) ?? freeSpecials(state, k);
+      ok = ok && left > 0;
+      budget.set(k, ok ? left - 1 : left);
     } else {
-      ok = ok && isBuildingUnlocked(state, b.type);
+      ok = ok && canPlaceType(state, b.type);
     }
     const priority = b.priority
       ? key(ox + b.priority.x, oy + b.priority.y) * 4 + b.priority.face
@@ -203,6 +230,7 @@ export function planPaste(world: World, clip: Clip, ox: number, oy: number): Pas
       ok,
     };
     if (value !== undefined) entry.value = value;
+    if (b.edition) entry.edition = b.edition;
     plan.buildings.push(entry);
   }
   for (const b of clip.belts) {
@@ -225,10 +253,16 @@ export function applyPaste(world: World, plan: PastePlan): number {
   for (const b of plan.buildings) {
     // Re-check: an earlier copy of a row may now be in the way.
     if (!b.ok || !world.isFootprintFree(b.type, b.x, b.y, b.rot, b.mirror)) continue;
-    const extra: { extractValue?: number; mirror?: boolean } = { mirror: b.mirror };
+    const extra: { extractValue?: number; mirror?: boolean; native?: SpecialEdition } = {
+      mirror: b.mirror,
+    };
     if (b.type === 'extractor') {
       if (b.value === undefined) continue;
       extra.extractValue = b.value;
+    }
+    if (isSpecial(b.type)) {
+      if (!canPlaceType(world.state, b.type, b.edition ?? 'base')) continue;
+      if (b.edition) extra.native = b.edition;
     }
     const placed = world.addBuilding(b.type, b.x, b.y, b.rot, extra);
     if (
@@ -280,10 +314,11 @@ export function planPasteRow(
   const count = Math.min(MAX_PASTE_ROW, Math.floor(Math.abs(dist) / step) + 1);
   const sign = dist < 0 ? -1 : 1;
   const plans: PastePlan[] = [];
+  const budget: SpecialBudget = new Map();
   for (let i = 0; i < count; i++) {
     const x = start.x + (horizontal ? sign * step * i : 0);
     const y = start.y + (horizontal ? 0 : sign * step * i);
-    plans.push(planPaste(world, clip, x, y));
+    plans.push(planPaste(world, clip, x, y, budget));
   }
   return plans;
 }

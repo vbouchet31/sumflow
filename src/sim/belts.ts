@@ -8,6 +8,7 @@ import {
   isInputKind,
   type PortKind,
 } from './entities';
+import { editionEffect } from './inventory';
 import { deliver } from './progression';
 import { currentBeltSpeed } from './upgrades';
 import type { World } from './world';
@@ -58,12 +59,25 @@ export function resolveTarget(world: World, x: number, y: number, d: Dir): Targe
 }
 
 /**
+ * Items a storage holds at most: `STORAGE_CAPACITY` times its edition (PLAN-recompenses
+ * §3.4), rounded down. Removing an edition never destroys items: a storage over its new
+ * capacity only stops taking more.
+ */
+export function storageCapacity(b: {
+  type: Building['type'];
+  edition?: Building['edition'] | undefined;
+}): number {
+  if (b.edition === undefined) return STORAGE_CAPACITY;
+  return Math.floor(STORAGE_CAPACITY * (editionEffect(b).capacity ?? 1));
+}
+
+/**
  * Put one item in a storage: the first value received while empty fixes it, other values
- * are refused (the incoming belt waits), up to 10 000 items (PLAN §6.3).
+ * are refused (the incoming belt waits), up to its capacity (PLAN §6.3).
  */
 export function storeItem(b: Building, value: number): boolean {
   const count = b.storeCount ?? 0;
-  if (count >= STORAGE_CAPACITY) return false;
+  if (count >= storageCapacity(b)) return false;
   if (count > 0 && b.storeValue !== value) return false;
   b.storeValue = value;
   b.storeCount = count + 1;
