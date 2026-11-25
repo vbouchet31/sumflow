@@ -284,6 +284,9 @@ function drawHatch(
   color: string,
   lw: number,
 ): void {
+  // Zoomed far out, the outline is wider than a small square: nothing is left to colour
+  // in. A negative size would give a 0×0 picture, and drawing one throws.
+  if (!(size > 0)) return;
   const dpr = ctx.getTransform().a;
   // Sizes in steps of a quarter octave: while zooming, a few pictures are scaled instead
   // of a new one being drawn every frame.
