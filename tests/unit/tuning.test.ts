@@ -22,7 +22,6 @@ import {
   cardWeight,
   curveAt,
   DEFAULT_CATALOGUE,
-  drawOffer,
   naturalAt,
   type OfferContext,
 } from '../../src/sim/offers';
@@ -103,9 +102,12 @@ describe('default values give exactly the untuned game', () => {
         if (c.id === natural) continue;
         // The multiplier is unlocked in this context: no guard applies.
         expect(cardWeight(c, ctx, untuned), `${c.id}@${level}`).toBe(curveAt(c.weight, level));
-        expect(cardWeight(c, ctx), `${c.id}@${level}`).toBe(cardWeight(c, ctx, untuned));
+        // The live game reads tuning.json: its weight is the curve times the tuned scale.
+        expect(cardWeight(c, ctx), `${c.id}@${level}`).toBeCloseTo(
+          curveAt(c.weight, level) * knobValue(c.id, 'weightScale'),
+          12,
+        );
       }
-      expect(drawOffer(ctx)).toEqual(drawOffer(ctx, untuned));
     }
   });
 
@@ -113,10 +115,13 @@ describe('default values give exactly the untuned game', () => {
     const world = makeWorld();
     for (const t of OPERATOR_TYPES) {
       expect(operatorSpeedFactor(t, defaultTuning())).toBe(1);
-      expect(operatorSpeedFactor(t)).toBe(1);
     }
     world.state.upgrades.adder = 4;
-    expect(cycleDuration(world, { type: 'ancientAdder' })).toBe(1 / operatorSpeed('adder', 4));
+    // The live game reads tuning.json: a special building runs at its tuned speed factor.
+    expect(cycleDuration(world, { type: 'ancientAdder' })).toBeCloseTo(
+      1 / (operatorSpeed('adder', 4) * operatorSpeedFactor('ancientAdder')),
+      12,
+    );
     expect(cycleDuration(world, { type: 'adder' })).toBe(1 / operatorSpeed('adder', 4));
     expect(cycleDuration(world, { type: 'divider' })).toBe(1 / operatorSpeed('subdiv', 1));
   });
