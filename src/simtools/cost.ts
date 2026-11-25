@@ -181,7 +181,7 @@ export function computeCosts(tools: CostTools, upTo: number, withChoices = false
 }
 
 /** Cost of `target` from its table: its `down` recipe or one upward last step. */
-function targetCost(tools: CostTools, table: CostTable, target: number): [number, Choice] {
+export function targetCost(tools: CostTools, table: CostTable, target: number): [number, Choice] {
   const down = table.down;
   let cost = down[target] ?? Infinity;
   let pick: Choice = { op: -2, a: target, b: 0 };
