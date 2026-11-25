@@ -19,7 +19,9 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "bench": "vitest run --mode bench"
+    "bench": "vitest run --mode bench",
+    "sim": "node scripts/run-ts.mjs src/simtools/cli.ts sim",
+    "tune": "node scripts/run-ts.mjs src/simtools/cli.ts tune"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
