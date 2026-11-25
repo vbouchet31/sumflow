@@ -1,7 +1,7 @@
 # Concaténateur (`concat`)
 
-> **État** : en discussion
-> Pilote de l'étape 2b (`PLAN-objets.md`). Proposition par défaut de l'auteur (2026-11-25), questions tranchées une à une en section 8. Une valeur marquée « (à trancher, Qn) » attend la réponse à la question n.
+> **État** : en discussion (toutes les questions tranchées, en attente de l'accord de l'auteur avant le code)
+> Pilote de l'étape 2b (`PLAN-objets.md`). Proposition par défaut de l'auteur (2026-11-25), questions tranchées une à une en section 8.
 
 ## 1. Idée et effet
 
@@ -14,16 +14,16 @@
 
 ## 2. Carte
 
-| Champ                     | Valeur                                                                                                            |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Genre                     | `special` (décidé, Q1)                                                                                            |
-| Emplacement               | Atelier (décidé, Q3)                                                                                              |
-| Exemplaires par carte     | 1 (décidé, Q2)                                                                                                    |
-| Carte unique (`maxPicks`) | non, reprise possible                                                                                             |
-| Prérequis                 | × débloquée (`requires: [{ building: 'multiplier' }]`)                                                            |
-| Niveau minimum            | 8 (à trancher, Q10)                                                                                               |
-| Courbe de poids de départ | `[(8, 2), (12, 5), (20, 5), (30, 3)]` (à trancher, Q10). Repères : valeur 20, déblocage ≤ 20, Édition brillante 3 |
-| **Niveau repère**         | 15                                                                                                                |
+| Champ                     | Valeur                                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Genre                     | `special` (décidé, Q1)                                                                                        |
+| Emplacement               | Atelier (décidé, Q3)                                                                                          |
+| Exemplaires par carte     | 1 (décidé, Q2)                                                                                                |
+| Carte unique (`maxPicks`) | non, reprise possible                                                                                         |
+| Prérequis                 | × débloquée (`requires: [{ building: 'multiplier' }]`)                                                        |
+| Niveau minimum            | 8 (décidé, Q10)                                                                                               |
+| Courbe de poids de départ | `[(8, 2), (12, 5), (20, 5), (30, 3)]` (décidé, Q10). Repères : valeur 20, déblocage ≤ 20, Édition brillante 3 |
+| **Niveau repère**         | 15                                                                                                            |
 
 ## 3. Bâtiment
 
@@ -71,21 +71,9 @@ Aucun (les 3 critères standard, niveau repère 15).
 - 2026-11-25, **Q7 bis** : borne haute du bouton `speed` à 1,5 (standard) au lieu de 1,2. Avec le mélange, le risque est plutôt l'inutilité ; même à 1,5, l'indice reste loin de 0,5 (il faudrait environ × 7 avec 1 exemplaire). Pas d'entrée dans `KNOB_OVERRIDES`.
 - 2026-11-25, **Q8** : rien pour la légendaire, effet commun seulement (brillante vitesse × 1,25, légendaire × 1,5), simulé tel quel. Idée gardée pour plus tard si la légendaire paraît fade en partie de test : autoriser des zéros de tête (par exemple B écrit sur au moins 2 chiffres). Peu utile en l'état (405 = 40 ‖ 5, 1003 = 100 ‖ 3) et demanderait un calcul par édition.
 - 2026-11-25, **Q9** : empreinte « A puis B » (2×2 pivotable : A en haut à gauche, B en bas à gauche, `O` sur la colonne de droite). Écart connu : c'est le reflet du + et elle s'écarte de la règle « A à gauche de B » des autres opérateurs. Facile à changer après les parties de test : l'empreinte n'entre pas dans le modèle de coût, donc ni poids ni réglage à refaire.
+- 2026-11-25, **Q10** : niveau minimum 8 et courbe `[(8, 2), (12, 5), (20, 5), (30, 3)]` gardés. Le niveau minimum sert : la carte × peut sortir dès le niveau 3, et ‖ n'apporte rien sur des cibles à 1 ou 2 chiffres. La baisse après le niveau 20 évite d'encombrer les offres avec une carte qui pèse de moins en moins face à une usine qui grandit ; elle ne touche aucun critère. Le régleur ne change que l'échelle de la courbe, pas sa forme.
 
-Questions ouvertes, la plus importante en premier :
-
-1. ~~`special` ou `unlock`~~ : tranché.
-2. ~~1 ou 2 exemplaires~~ : tranché.
-3. ~~Atelier ou Nombres~~ : tranché.
-4. ~~B négatif~~ : tranché.
-5. ~~A = 0~~ : tranché.
-6. ~~Piste~~ : tranché.
-7. ~~Vitesse de base~~ : tranché.
-8. ~~Effet propre de la légendaire~~ : tranché.
-9. ~~Empreinte~~ : tranché.
-10. Niveau minimum 8, et baisse du poids en fin de partie ?
-
-Constat à garder en tête (2026-11-25, lecture de `src/simtools/config.ts`) : une opération que seuls des bâtiments limités effectuent coûte `1 / (exemplaires × vitesse)`, alors qu'une opération ordinaire se répartit sur `G(L) = 6 + L` bâtiments (14 au niveau 8, 21 au niveau 15). Un seul Concaténateur à vitesse × 1 est donc un goulot environ 7 à 10 fois plus lent que « × puis + » : le modèle ne le choisira presque jamais (risque d'échec au critère 2).
+Constat à l'origine du mélange (2026-11-25, lecture de `src/simtools/config.ts`) : une opération que seuls des bâtiments limités effectuent coûte `1 / (exemplaires × vitesse)`, alors qu'une opération ordinaire se répartit sur `G(L) = 6 + L` bâtiments (14 au niveau 8, 21 au niveau 15). Un seul Concaténateur à vitesse × 1 est donc un goulot environ 7 à 10 fois plus lent que « × puis + » : le modèle actuel ne le choisirait presque jamais (risque d'échec au critère 2). Le mélange décidé plus haut corrige ce biais.
 
 ## 9. Retours de parties de test
 
