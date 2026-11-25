@@ -93,7 +93,7 @@ export function objectNotes(e: ObjectEvaluation, result: RunResult): string[] {
   const run = result.runs.get(`object:${e.card}`);
   const after = run ? indexAfterPick(run, e.card) : null;
   const useful = e.criteria.useful;
-  if (e.naturalLevel !== null) {
+  if (e.naturalLevel !== null && useful.status !== 'n/a') {
     notes.push(
       `fil rouge (niveau ${e.naturalLevel}) : la référence le prend aussi ; une fois qu’elle l’a, les deux parties ont les mêmes outils et l’indice revient à 1, le critère 2 ne mesure donc que l’avance prise`,
     );
