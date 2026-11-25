@@ -58,6 +58,10 @@ npm run tune -- <id>                  # propose des valeurs, n'écrit rien
 ```
 
 - Lire le verdict des **3 critères** (pas indispensable, pas inutile, visible) pour l'objet, puis les **régressions** des autres objets. Une bascule dans la marge de bruit est « à surveiller » et ne bloque pas.
+- Stratégies : `object:<id>` prend l'objet à chaque offre (abus, critères 1 et 3) ; `once:<id>` le prend une fois puis joue le fil rouge (utilité, critère 2).
+- Les cartes du **socle** (suite du fil rouge : valeur, ×, −, ÷, ^, pont, priorités, stockage) ne sont pas jugées et `npm run tune` les refuse. Un nouvel objet hors fil rouge est toujours jugé.
+- Si l'effet de l'objet est invisible pour le modèle de coût, l'ajouter à `UNMODELED` (`src/simtools/config.ts`) avec sa raison : son critère 2 devient « n/a ».
+- Durées indicatives sur 4 cœurs : `sim` environ 40 s, `tune` de 30 s (un bouton) à 2 min (deux boutons).
 - Si le régleur ne trouve rien dans les bornes : ne pas élargir les bornes de soi-même. Expliquer à l'auteur le critère qui échoue et la meilleure valeur trouvée, puis proposer une piste (changer l'effet, la vitesse de base, les bornes) et attendre sa décision.
 - Rappeler à chaque fois la limite du modèle : il n'y a pas d'usine simulée ; le réglage est un point de départ, la partie de test de l'auteur tranche.
 

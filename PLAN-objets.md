@@ -1,6 +1,6 @@
 # PLAN-objets.md : ajouter des objets de façon répétable
 
-> **État : phase 2a en cours (outillage).** Suite de [`PLAN-recompenses.md`](PLAN-recompenses.md) (phase 1 terminée). Les choix faits en cours de route vont dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> **État : phase 2a terminée (outillage) ; prochaine étape 2b, pilote Concaténateur.** Suite de [`PLAN-recompenses.md`](PLAN-recompenses.md) (phase 1 terminée). Les choix faits en cours de route vont dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ---
 
@@ -58,7 +58,8 @@ Aujourd'hui, un bâtiment spécial imite un opérateur existant (`SPECIAL_BUILDI
   - `random` : une carte au hasard ;
   - `new` : toujours une nouveauté ;
   - `minimal` : refuse les valeurs ;
-  - `object:<id>` : prend l'objet testé dès qu'il est proposé, sinon le fil rouge.
+  - `object:<id>` : prend l'objet testé chaque fois qu'il est proposé, sinon le fil rouge (test d'abus, critères 1 et 3) ;
+  - `once:<id>` : prend l'objet testé la première fois qu'il est proposé, puis joue `natural` (utilité, critère 2).
 - Les offres sont tirées **avec le vrai code** (`drawOffer`, `chooseCard`, état du jeu), du niveau 1 au niveau maximum de la simulation (réglable, environ 60 par défaut).
 
 ### 3.2 Le modèle de coût
@@ -83,13 +84,15 @@ Les constantes du modèle sont regroupées dans un seul fichier de configuration
 
 ## 4. Critères d'équilibre (validés)
 
-Pour chaque objet du catalogue (hors objets factices, signalés à part) :
+Pour chaque objet du catalogue, sauf les objets factices (signalés à part) et le **socle** : les cartes de la suite du fil rouge (`naturalSequence()`), qui sont le chemin de référence et apparaissent dans un tableau d'information. Un effet que le modèle ne voit pas (pont, priorités, stockage, Éventail…) est listé dans `UNMODELED` avec sa raison : son critère 2 vaut « n/a ».
 
 1. **Pas indispensable** : avec la stratégie `object:<id>`, l'indice ne descend pas sous **0,5** (pas plus de 2 fois plus facile que la référence) pendant plus de **3 niveaux de suite**, pour au moins 90 % des parties.
-2. **Pas inutile** : avec la stratégie `object:<id>`, l'indice est **sous 1** sur au moins **un tiers** des niveaux qui suivent sa première prise (en médiane sur les parties).
+2. **Pas inutile** : avec la stratégie `once:<id>`, l'indice est **sous 1** sur au moins **un tiers** des niveaux qui suivent sa première prise (en médiane sur les parties).
 3. **Visible** : l'objet apparaît au moins une fois dans une offre dans **50 à 80 %** des parties, avant son **niveau repère** (déclaré dans sa fiche, par exemple 15 pour le Concaténateur).
 
 Les seuils (0,5 ; 3 niveaux ; un tiers ; 50 à 80 %) sont des constantes de configuration, modifiables objet par objet si la fiche le justifie.
+
+**Bruit** : 60 graines par défaut. Une bascule d'un autre objet n'est une régression que si la mesure bouge de plus de max(7 points, 2 écarts types d'une proportion) ; sinon elle est « à surveiller » et ne bloque pas.
 
 ---
 
