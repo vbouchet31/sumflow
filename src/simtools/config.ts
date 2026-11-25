@@ -7,7 +7,7 @@
 /** Default run of `npm run sim` (overridable from the command line). */
 export const RUN_DEFAULTS = {
   /** Games per strategy. */
-  seeds: 30,
+  seeds: 60,
   /** First seed; seeds are `seedOffset`, `seedOffset + 1`, … */
   seedOffset: 1,
   /** Last level played (the offer of this level is not drawn: it plays no level). */
@@ -16,9 +16,11 @@ export const RUN_DEFAULTS = {
 
 /** Tuner settings (§5). */
 export const TUNER = {
-  /** Seeds of the search, then of the control run (disjoint from the search seeds). */
-  seeds: 30,
+  /** Seeds of the search (each point plays `natural`, `object:<id>` and `once:<id>`). */
+  seeds: 60,
   seedOffset: 1,
+  /** Seeds of the control run, whole catalogue, disjoint from the search seeds. */
+  controlSeeds: 60,
   controlSeedOffset: 100_001,
   /** Points of the coarse grid of a knob, log-spaced between its bounds (plus the current value). */
   gridPoints: 9,
@@ -28,6 +30,11 @@ export const TUNER = {
   refineSteps: 2,
   /** Proposed values are rounded to this many significant digits. */
   digits: 2,
+  /**
+   * Slack preferred on each criterion among the passing points (share of games or of
+   * levels): 5 points away from the bounds when possible, against the noise of the seeds.
+   */
+  safety: 0.05,
 } as const;
 
 /**
@@ -91,6 +98,29 @@ export const CRITERIA: CriteriaThresholds = {
   useful: { below: 1, levels: 1 / 3 },
   visible: { min: 0.5, max: 0.8 },
 };
+
+/**
+ * Effects the cost model cannot see, by card id, with the reason shown in the report: their
+ * criterion 2 is "n/a". A new card whose effect changes no item cost goes here, argued in
+ * its sheet.
+ */
+export const UNMODELED: Readonly<Record<string, string>> = {
+  bridge: 'un pont ne calcule rien',
+  priorities: 'les priorités ne changent aucun coût',
+  storage: 'un stockage ne calcule rien',
+  eventail: 'l’emplacement d’offre en plus ne change aucun coût',
+};
+
+/**
+ * Noise margin of the tuner: `max(minPoints, standardErrors × √(p(1 − p) / n))`, n being the
+ * games behind a measure.
+ * - A criterion of another object that flips from pass to fail is a regression only if its
+ *   measure moved by more than the margin (p = mean of the two measures); a smaller flip is
+ *   shown "à surveiller" and blocks nothing.
+ * - The tuned object passes the control run if every failing criterion misses its threshold
+ *   by at most the margin (p = its measure); shown "à surveiller" too.
+ */
+export const NOISE = { minPoints: 0.07, standardErrors: 2 } as const;
 
 /** Per-object overrides of the thresholds, argued in the object's sheet (`docs/objets/`). */
 export const CRITERIA_OVERRIDES: Readonly<

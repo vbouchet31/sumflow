@@ -4,7 +4,7 @@
  *
  *   npm run sim -- [--seeds N] [--seed-offset N] [--max-level N] [--object id,id]
  *                  [--strategies s,s] [--json file | --no-json]
- *   npm run tune -- <cardId> [--seeds N] [--seed-offset N] [--control-offset N]
+ *   npm run tune -- <cardId> [--seeds N] [--seed-offset N] [--control-seeds N] [--control-offset N]
  *                  [--max-level N] [--apply] [--json file | --no-json]
  *
  * The Markdown report goes to stdout, progress to stderr, the JSON to `sim-reports/`.
@@ -25,10 +25,11 @@ import { CostCache } from './cost';
 import { defaultWorkers, WorkerPool } from './pool';
 import { playGame } from './game';
 import { bandStats, jsonReport, markdownReport, objectNotes } from './report';
+import { drawableCards, isSocle, judgedCards } from './roles';
 import {
   defaultStrategies,
-  drawableCards,
   localRunner,
+  objectStrategies,
   runSimulation,
   type SeedRunner,
 } from './run';
@@ -103,10 +104,10 @@ export function simStrategies(args: CliArgs): Strategy[] {
   if (objects !== undefined) {
     return [
       ...BASE_STRATEGIES,
-      ...objects.split(',').map((id): Strategy => {
+      ...objects.split(',').flatMap((id): Strategy[] => {
         if (!drawableCards().some((c) => c.id === id))
           throw new UsageError(`objet inconnu : ${id}`);
-        return { kind: 'object', card: id };
+        return objectStrategies(id);
       }),
     ];
   }
@@ -195,7 +196,11 @@ function knobText(values: KnobValues): string {
     .join(', ');
 }
 
-function verdictRow(before: ObjectEvaluation | undefined, after: ObjectEvaluation): string[] {
+function verdictRow(
+  before: ObjectEvaluation | undefined,
+  after: ObjectEvaluation,
+  r: TuneResult,
+): string[] {
   const c = (e: ObjectEvaluation | undefined, k: CriterionId): string => {
     const r = e?.criteria[k];
     if (!r) return '–';
@@ -204,10 +209,15 @@ function verdictRow(before: ObjectEvaluation | undefined, after: ObjectEvaluatio
       : `${r.status === 'pass' ? '✓' : '✗'} ${Math.round(r.value * 100)} %`;
   };
   const v = (e: ObjectEvaluation | undefined): string => (e ? (e.pass ? 'OK' : 'à revoir') : '–');
+  const flag = r.regressions.includes(after.card)
+    ? ' **(régression)**'
+    : r.watch.includes(after.card) || (after.card === r.card && r.targetWatch.length > 0)
+      ? ' (à surveiller)'
+      : '';
   return [
     `\`${after.card}\`${after.placeholder ? ' (factice)' : ''}`,
     ...CRITERION_IDS.map((k) => `${c(before, k)} → ${c(after, k)}`),
-    `${v(before)} → ${v(after)}`,
+    `${v(before)} → ${v(after)}${flag}`,
   ];
 }
 
@@ -219,14 +229,14 @@ function table(head: readonly string[], rows: readonly (readonly string[])[]): s
 /** Markdown of a tuner run. */
 export function tuneReport(
   r: TuneResult,
-  opts: { seeds: number; seedOffset: number; controlSeedOffset: number },
+  opts: { seeds: number; seedOffset: number; controlSeeds: number; controlSeedOffset: number },
 ): string {
   const o: string[] = [];
   const def = CARDS.find((c) => c.id === r.card);
   o.push(`# Réglage de \`${r.card}\`${def?.placeholder ? ' (objet factice)' : ''}`, '');
   o.push(
     `Recherche sur les graines ${opts.seedOffset} à ${opts.seedOffset + opts.seeds - 1} (stratégies \`natural\` et \`object:${r.card}\`), ` +
-      `${r.tried.length} points essayés ; contrôle sur les graines ${opts.controlSeedOffset} à ${opts.controlSeedOffset + opts.seeds - 1}, tout le catalogue. ` +
+      `${r.tried.length} points essayés ; contrôle sur les graines ${opts.controlSeedOffset} à ${opts.controlSeedOffset + opts.controlSeeds - 1}, tout le catalogue. ` +
       `Temps : ${(r.ms / 1000).toFixed(1)} s.`,
     '',
   );
@@ -243,12 +253,20 @@ export function tuneReport(
     ),
     '',
   );
-  o.push('Points essayés (écart aux critères, 0 = tout passe) :', '');
-  const tried = [...r.tried].sort((a, b) => a.distance - b.distance || a.deviation - b.deviation);
+  o.push(
+    `Points essayés (écart aux critères, 0 = tout passe ; à écart nul, le régleur préfère une marge de ${Math.round(TUNER.safety * 100)} points à chaque seuil, puis la valeur la plus proche de l’actuelle) :`,
+    '',
+  );
+  const tried = [...r.tried].sort(
+    (a, b) => a.distance - b.distance || a.robust - b.robust || a.deviation - b.deviation,
+  );
   o.push(
     tried
       .slice(0, 12)
-      .map((t) => `- ${knobText(t.values)} : ${t.distance.toFixed(3)}`)
+      .map(
+        (t) =>
+          `- ${knobText(t.values)} : ${t.distance.toFixed(3)} (avec la marge de sécurité : ${t.robust.toFixed(3)})`,
+      )
       .join('\n'),
   );
   if (tried.length > 12) o.push(`- … ${tried.length - 12} autres`);
@@ -298,16 +316,34 @@ export function tuneReport(
         verdictRow(
           r.control.before.evals.find((b) => b.card === e.card),
           e,
+          r,
         ),
       ),
     ),
     '',
   );
+  const flipText = (card: string): string =>
+    r.flips
+      .filter((f) => f.card === card)
+      .map(
+        (f) =>
+          `${CRITERION_NAMES[f.criterion]} ${Math.round(f.before * 100)} → ${Math.round(f.after * 100)} %, marge de bruit ${Math.round(f.margin * 100)} points`,
+      )
+      .join(' ; ');
   if (r.regressions.length > 0)
     o.push(
-      `**Régressions** (OK avant, à revoir après) : ${r.regressions.map((c) => `\`${c}\``).join(', ')}.`,
+      `**Régressions** (OK avant, à revoir après, au-delà du bruit) : ${r.regressions.map((c) => `\`${c}\` (${flipText(c)})`).join(', ')}.`,
       '',
     );
+  if (r.watch.length > 0)
+    o.push(
+      `**À surveiller** (OK avant, à revoir après, dans la marge de bruit : ne bloque pas) : ${r.watch.map((c) => `\`${c}\` (${flipText(c)})`).join(', ')}.`,
+      '',
+    );
+  o.push(
+    'Le socle (cartes du fil rouge) n’est pas jugé ; les objets factices ne comptent pas comme régression.',
+    '',
+  );
   return o.join('\n');
 }
 
@@ -321,6 +357,13 @@ function failingLines(e: ObjectEvaluation | null | undefined, where: string): st
       `- ${CRITERION_NAMES[k]} échoue sur les graines ${where} : mesuré ${Math.round(c.value * 100)} %, attendu ${c.target}${note}.`,
     ];
   });
+}
+
+/** "à surveiller" note when the tuned object misses a threshold within the noise margin. */
+function nearText(r: TuneResult): string {
+  return r.targetWatch.length > 0
+    ? ` ; à surveiller : sur les graines de contrôle, ${r.targetWatch.map((k) => CRITERION_NAMES[k]).join(', ')} manque son seuil de moins que la marge de bruit`
+    : '';
 }
 
 /** The conclusion of a tuner run, and whether `--apply` may write. */
@@ -353,14 +396,19 @@ export function conclusion(r: TuneResult, card: string): string {
       ].join('\n');
     case 'regression':
       return [
-        `**Les valeurs trouvées (${best}) respectent les critères de \`${card}\` mais font régresser d’autres objets** : ${regressions} (OK avant, à revoir après, sur les graines de contrôle).`,
+        `**Les valeurs trouvées (${best}) respectent les critères de \`${card}\` mais font régresser d’autres objets** : ${regressions} (OK avant, à revoir après sur les graines de contrôle, au-delà de la marge de bruit).`,
         '',
         `${tail} Si l’auteur accepte ces régressions : \`npm run tune -- ${card} --apply --accept-regressions\`.`,
       ].join('\n');
     case 'unchanged':
-      return `Les valeurs actuelles (${knobText(r.current)}) respectent déjà les critères : rien à changer.`;
-    case 'proposed':
-      return `Valeurs proposées : ${best}${r.regressions.length > 0 ? ` (régressions acceptées : ${regressions})` : ''}.`;
+      return `Les valeurs actuelles (${knobText(r.current)}) respectent déjà les critères : rien à changer${nearText(r)}.`;
+    case 'proposed': {
+      const watch =
+        r.watch.length > 0
+          ? ` ; à surveiller (dans la marge de bruit) : ${r.watch.map((c) => `\`${c}\``).join(', ')}`
+          : '';
+      return `Valeurs proposées : ${best}${r.regressions.length > 0 ? ` (régressions acceptées : ${regressions})` : ''}${nearText(r)}${watch}.`;
+    }
   }
 }
 
@@ -371,6 +419,7 @@ export async function tuneMain(argv: readonly string[]): Promise<number> {
     'seeds',
     'seed-offset',
     'control-offset',
+    'control-seeds',
     'max-level',
     'apply',
     'json',
@@ -380,16 +429,21 @@ export async function tuneMain(argv: readonly string[]): Promise<number> {
   const card = args.positional[0];
   if (!card || args.positional.length > 1)
     throw new UsageError('usage : npm run tune -- <cardId> [--apply]');
-  if (!KNOBS[card]) {
+  const tunable = judgedCards()
+    .map((c) => c.id)
+    .filter((id) => KNOBS[id]);
+  if (isSocle(card))
     throw new UsageError(
-      `${card} : pas un objet réglable (objets : ${Object.keys(KNOBS).join(', ')})`,
+      `${card} : carte du socle (fil rouge), les critères ne s’y appliquent pas (objets réglables : ${tunable.join(', ')})`,
     );
-  }
+  if (!KNOBS[card])
+    throw new UsageError(`${card} : pas un objet réglable (objets : ${tunable.join(', ')})`);
   const seeds = intFlag(args, 'seeds', TUNER.seeds);
   const seedOffset = intFlag(args, 'seed-offset', TUNER.seedOffset, 0);
+  const controlSeeds = intFlag(args, 'control-seeds', TUNER.controlSeeds);
   const controlSeedOffset = intFlag(args, 'control-offset', TUNER.controlSeedOffset, 0);
   const maxLevel = intFlag(args, 'max-level', RUN_DEFAULTS.maxLevel, 3);
-  if (controlSeedOffset < seedOffset + seeds && seedOffset < controlSeedOffset + seeds)
+  if (controlSeedOffset < seedOffset + seeds && seedOffset < controlSeedOffset + controlSeeds)
     throw new UsageError('les graines de contrôle doivent être différentes des graines de réglage');
   err(`npm run tune -- ${card} : recherche…`);
   const r = await withRunner(args, (runner) =>
@@ -397,6 +451,7 @@ export async function tuneMain(argv: readonly string[]): Promise<number> {
       card,
       seeds,
       seedOffset,
+      controlSeeds,
       controlSeedOffset,
       maxLevel,
       runner,
@@ -404,7 +459,7 @@ export async function tuneMain(argv: readonly string[]): Promise<number> {
       log: err,
     }),
   );
-  const opts = { seeds, seedOffset, controlSeedOffset };
+  const opts = { seeds, seedOffset, controlSeeds, controlSeedOffset };
   out(tuneReport(r, opts));
   const proposed = withKnobs(TUNED, card, r.best.values);
   const file = writeJson(args, `tune-${card}.json`, {
@@ -416,6 +471,8 @@ export async function tuneMain(argv: readonly string[]): Promise<number> {
     outcome: r.outcome,
     tried: r.tried,
     regressions: r.regressions,
+    watch: r.watch,
+    flips: r.flips,
     search: r.bestEvaluation,
     controlBefore: jsonReport(r.control.before.result, r.control.before.evals),
     controlAfter: jsonReport(r.control.after.result, r.control.after.evals),
@@ -461,17 +518,19 @@ const HELP = `npm run sim -- [options]
   --seeds N          parties par stratégie (défaut ${RUN_DEFAULTS.seeds})
   --seed-offset N    première graine (défaut ${RUN_DEFAULTS.seedOffset})
   --max-level N      dernier niveau joué (défaut ${RUN_DEFAULTS.maxLevel})
-  --object a,b       seulement ces objets (plus natural, random, new, minimal)
-  --strategies s,t   liste exacte : natural, random, new, minimal, object:<id>
+  --object a,b       seulement ces objets : object:<id> et once:<id> (plus natural, random, new, minimal)
+  --strategies s,t   liste exacte : natural, random, new, minimal, object:<id>, once:<id>
   --json FICHIER     JSON détaillé (défaut ${REPORT_DIR}/sim.json) ; --no-json pour ne rien écrire
   --workers N        fils d’exécution (défaut : les cœurs, 8 au plus ; 1 = sans fil)
 
 npm run tune -- <cardId> [options]
-  --seeds N          parties par stratégie et par point essayé (défaut ${TUNER.seeds})
+  --seeds N          parties par stratégie et par point essayé (défaut ${TUNER.seeds} ; natural, object, once)
   --seed-offset N    première graine du réglage (défaut ${TUNER.seedOffset})
+  --control-seeds N  parties par stratégie du contrôle, tout le catalogue (défaut ${TUNER.controlSeeds})
   --control-offset N première graine du contrôle (défaut ${TUNER.controlSeedOffset})
   --max-level N      dernier niveau joué (défaut ${RUN_DEFAULTS.maxLevel})
   --apply            écrit les valeurs proposées dans ${TUNING_FILE} (seulement si les critères passent)
-  --accept-regressions  ne bloque pas sur la régression d’autres objets (accord de l’auteur)
+  --accept-regressions  ne bloque pas sur la régression d’autres objets (accord de l’auteur ;
+                     un basculement dans la marge de bruit, « à surveiller », ne bloque jamais)
   --json FICHIER     JSON détaillé (défaut ${REPORT_DIR}/tune-<cardId>.json) ; --no-json
   --workers N        fils d’exécution (défaut : les cœurs, 8 au plus ; 1 = sans fil)`;

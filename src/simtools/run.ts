@@ -9,6 +9,7 @@ import { TUNED, type TuningValues } from '../config/tuning';
 import { COST } from './config';
 import { CostCache } from './cost';
 import { type GameRecord, playGame } from './game';
+import { judgedCards } from './roles';
 import { BASE_STRATEGIES, type Strategy, strategyName } from './strategies';
 
 export interface RunOptions {
@@ -54,17 +55,20 @@ export interface SeedResult {
 /** Something that plays seed tasks: this process (`playSeeds`) or a worker pool. */
 export type SeedRunner = (tasks: readonly SeedTask[]) => Promise<SeedResult[]>;
 
-/** Drawable cards (they have an `object:<id>` strategy). */
-export function drawableCards(cards: readonly CardDef[] = CARDS): CardDef[] {
-  return cards.filter((c) => c.slot !== null);
+/** The two strategies judging an object: every time offered, then only the first time. */
+export function objectStrategies(card: string): Strategy[] {
+  return [
+    { kind: 'object', card },
+    { kind: 'once', card },
+  ];
 }
 
-/** Default strategies: the four base ones, then `object:<id>` for every drawable card. */
+/**
+ * Default strategies: the four base ones, then `object:<id>` and `once:<id>` for every card
+ * the criteria judge (not the socle, reported from the base strategies).
+ */
 export function defaultStrategies(cards: readonly CardDef[] = CARDS): Strategy[] {
-  return [
-    ...BASE_STRATEGIES,
-    ...drawableCards(cards).map((c): Strategy => ({ kind: 'object', card: c.id })),
-  ];
+  return [...BASE_STRATEGIES, ...judgedCards(cards).flatMap((c) => objectStrategies(c.id))];
 }
 
 export function seedList(seeds: number, offset: number): number[] {

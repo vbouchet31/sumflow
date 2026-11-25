@@ -12,11 +12,13 @@ import {
   longestRunBelow,
   quantile,
   thresholdsOf,
-  unmodelledReason,
   usefulCriterion,
   visibleCriterion,
 } from '../../src/simtools/criteria';
 import type { GameRecord } from '../../src/simtools/game';
+import { isSocle, judgedCards, roleOf, unmodeledReason } from '../../src/simtools/roles';
+import { UNMODELED } from '../../src/simtools/config';
+import { naturalSequence } from '../../src/sim/offers';
 import { bands, bandStats, markdownReport } from '../../src/simtools/report';
 import {
   defaultStrategies,
@@ -49,7 +51,7 @@ describe('strategies', () => {
   };
 
   it('parses the strategy names', () => {
-    for (const n of ['natural', 'random', 'new', 'minimal', 'object:mult']) {
+    for (const n of ['natural', 'random', 'new', 'minimal', 'object:mult', 'once:eventail']) {
       const s = parseStrategy(n, CARDS);
       expect(s && strategyName(s)).toBe(n);
     }
@@ -66,8 +68,25 @@ describe('strategies', () => {
     expect(pickIndex(s, offer, { kind: 'object', card: 'mult' })).toBe(0); // not offered: natural
     expect(pickIndex(s, offer, { kind: 'random' })).toBe(autoPickIndex(s, offer, 'random'));
     expect(pickIndex(s, offer, { kind: 'new' })).toBe(0); // both are new: the first
+    expect(pickIndex(s, offer, { kind: 'once', card: 'bridge' })).toBe(1);
     grantCard(s, 'value');
     expect(pickIndex(s, offer, { kind: 'new' })).toBe(1); // value is not new any more
+  });
+
+  it('once: the object the first time only, then the natural rule', () => {
+    const s = atLevel3();
+    const legendary: StoredOffer = {
+      level: 3,
+      cards: [
+        { card: 'value', edition: 'base', value: 2 },
+        { card: 'edition-legendaire', edition: 'legendaire' },
+      ],
+    };
+    expect(pickIndex(s, legendary, { kind: 'once', card: 'edition-legendaire' })).toBe(1);
+    expect(pickIndex(s, legendary, { kind: 'object', card: 'edition-legendaire' })).toBe(1);
+    grantCard(s, 'edition-legendaire');
+    expect(pickIndex(s, legendary, { kind: 'once', card: 'edition-legendaire' })).toBe(0);
+    expect(pickIndex(s, legendary, { kind: 'object', card: 'edition-legendaire' })).toBe(1);
   });
 
   it('minimal falls back to the natural rule when only values are offered', () => {
@@ -163,10 +182,25 @@ describe('criteria', () => {
     expect(benchmarkOf('mult')).toBe(7);
     expect(benchmarkOf('storage')).toBe(22);
     expect(benchmarkOf('edition-legendaire')).toBe(15);
-    expect(unmodelledReason(card('bridge'))).not.toBeNull();
-    expect(unmodelledReason(card('priorities'))).not.toBeNull();
-    expect(unmodelledReason(card('mult'))).toBeNull();
-    expect(unmodelledReason(card('ancient-adder'))).toBeNull();
+    expect(unmodeledReason('eventail')).not.toBeNull();
+    expect(unmodeledReason('bridge')).not.toBeNull();
+    expect(unmodeledReason('ancient-adder')).toBeNull();
+    for (const id of Object.keys(UNMODELED)) expect(CARDS.some((c) => c.id === id)).toBe(true);
+  });
+
+  it('the socle is the natural sequence, never hard-coded', () => {
+    const natural = new Set(naturalSequence().map((s) => s.card));
+    for (const c of CARDS) {
+      expect(isSocle(c.id)).toBe(natural.has(c.id));
+      expect(roleOf(c)).toBe(natural.has(c.id) ? 'socle' : c.placeholder ? 'factice' : 'objet');
+    }
+    expect(judgedCards().map((c) => c.id)).toEqual([
+      'edition-brillante',
+      'edition-legendaire',
+      'ancient-adder',
+      'passive-operators',
+      'eventail',
+    ]);
   });
 });
 
@@ -180,6 +214,8 @@ describe('a small run', () => {
       strategies: [
         { kind: 'minimal' },
         { kind: 'object', card: 'edition-legendaire' },
+        { kind: 'once', card: 'edition-legendaire' },
+        { kind: 'object', card: 'eventail' },
         { kind: 'object', card: 'bridge' },
       ],
     });
@@ -192,6 +228,8 @@ describe('a small run', () => {
       'natural',
       'minimal',
       'object:edition-legendaire',
+      'once:edition-legendaire',
+      'object:eventail',
       'object:bridge',
     ]);
     for (const ix of r.runs.get('natural')?.index ?? []) for (const x of ix) expect(x).toBe(1);
@@ -209,22 +247,35 @@ describe('a small run', () => {
 
   it('evaluations and the report mark what the model cannot see', async () => {
     const r = await get();
-    const bridge = evaluateObject(r, card('bridge'));
-    expect(bridge?.criteria.useful.status).toBe('n/a');
-    expect(evaluateObject(r, card('mult'))).toBeNull(); // no object:mult run
+    const eventail = evaluateObject(r, card('eventail'));
+    expect(eventail?.criteria.useful).toMatchObject({ status: 'n/a', distance: 0 });
+    expect(eventail?.criteria.useful.note).toMatch(/^non modélisé : /);
+    expect(evaluateObject(r, card('bridge'))).toBeNull(); // socle: not judged
+    expect(evaluateObject(r, card('ancient-adder'))).toBeNull(); // no object:ancient-adder run
     const legendary = evaluateObject(r, card('edition-legendaire'));
+    expect(legendary?.role).toBe('objet');
     const md = markdownReport(
       r,
-      [legendary, bridge].flatMap((e) => (e ? [e] : [])),
+      [legendary, eventail].flatMap((e) => (e ? [e] : [])),
       { title: 'T' },
     );
-    expect(md).toContain('`object:edition-legendaire`');
-    expect(md).toContain('critère 2 sans objet');
+    expect(md).toContain('`once:edition-legendaire`');
+    expect(md).toContain('n/a (non modélisé');
+    expect(md).toContain('## Socle (fil rouge), pour information');
+    const from = md.indexOf('## Socle');
+    const socle = md.slice(from, md.indexOf('\n## ', from + 1));
+    expect(socle).toContain('`mult`');
+    expect(socle).not.toContain('à revoir');
   });
 
-  it('the default run has every drawable card', () => {
+  it('the default run has object: and once: for every judged card, none for the socle', () => {
     const names = defaultStrategies().map(strategyName);
     expect(names.slice(0, 4)).toEqual(['natural', 'random', 'new', 'minimal']);
-    for (const c of CARDS) if (c.slot !== null) expect(names).toContain(`object:${c.id}`);
+    for (const c of CARDS) {
+      if (c.slot === null) continue;
+      const judged = !isSocle(c.id);
+      expect(names.includes(`object:${c.id}`)).toBe(judged);
+      expect(names.includes(`once:${c.id}`)).toBe(judged);
+    }
   });
 });

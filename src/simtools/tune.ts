@@ -12,11 +12,21 @@ import {
   TUNED,
   type TuningValues,
 } from '../config/tuning';
-import { TUNER } from './config';
-import { evaluateCatalogue, evaluateObject, type ObjectEvaluation } from './criteria';
+import { NOISE, TUNER } from './config';
+import {
+  CRITERION_IDS,
+  type CriterionId,
+  type CriterionResult,
+  evaluateCatalogue,
+  evaluateObject,
+  type ObjectEvaluation,
+  thresholdsOf,
+} from './criteria';
+import { isSocle } from './roles';
 import {
   defaultStrategies,
   localRunner,
+  objectStrategies,
   type RunResult,
   runSimulation,
   type SeedRunner,
@@ -29,6 +39,12 @@ export interface Scored {
   values: KnobValues;
   /** Distance to the criteria (0 = every criterion passes). */
   distance: number;
+  /**
+   * Distance to the criteria tightened by `TUNER.safety` on each side (0 = every criterion
+   * passes with that slack): among passing points, the tuner prefers one away from the
+   * edges, which holds better on the control seeds.
+   */
+  robust: number;
   /** Distance from the starting values, in log scale (the tie-breaker: stay close). */
   deviation: number;
 }
@@ -58,10 +74,15 @@ export function knobGrid(spec: KnobSpec, start: number, points: number, digits: 
 }
 
 /** Is `a` better than `b`: closer to the criteria, then closer to the start values. */
+/** Is `a` better than `b`: closer to the criteria, then with more slack, then closer to the start. */
 export function better(a: Scored, b: Scored): boolean {
   if (Math.abs(a.distance - b.distance) > 1e-12) return a.distance < b.distance;
+  if (Math.abs(a.robust - b.robust) > 1e-12) return a.robust < b.robust;
   return a.deviation < b.deviation - 1e-12;
 }
+
+/** What a point scores: its distance, and its robust distance (equal if not given). */
+export type PointScore = number | { distance: number; robust: number };
 
 export function deviation(values: KnobValues, start: KnobValues): number {
   let d = 0;
@@ -80,30 +101,30 @@ export function deviation(values: KnobValues, start: KnobValues): number {
 export async function coordinateSearch(
   knobs: Readonly<Partial<Record<KnobId, KnobSpec>>>,
   start: KnobValues,
-  distance: (values: KnobValues) => number | Promise<number>,
+  distance: (values: KnobValues) => PointScore | Promise<PointScore>,
   settings: SearchSettings = TUNER,
 ): Promise<{ best: Scored; tried: Scored[] }> {
   const ids = KNOB_IDS.filter((k) => knobs[k]);
   const memo = new Map<string, Scored>();
   const tried: Scored[] = [];
-  let best: Scored = { values: start, distance: Infinity, deviation: 0 };
+  let best: Scored = { values: start, distance: Infinity, robust: Infinity, deviation: 0 };
   const score = async (values: KnobValues): Promise<Scored> => {
     const key = ids.map((k) => `${k}=${values[k]}`).join(',');
     const hit = memo.get(key);
     if (hit) return hit;
-    // Once every criterion passes, only a point closer to the start can win: skip the others
-    // without playing them (they are not recorded as tried).
+    // Once every criterion passes with slack, only a point closer to the start can win: skip
+    // the others without playing them (they are not recorded as tried).
     const dev = deviation(values, start);
-    if (best.distance === 0 && dev >= best.deviation - 1e-12) return best;
-    const d = await distance(values);
-    const s: Scored = { values, distance: d, deviation: dev };
+    if (best.distance === 0 && best.robust === 0 && dev >= best.deviation - 1e-12) return best;
+    const r = await distance(values);
+    const d = typeof r === 'number' ? { distance: r, robust: r } : r;
+    const s: Scored = { values, distance: d.distance, robust: d.robust, deviation: dev };
     memo.set(key, s);
     tried.push(s);
     return s;
   };
   best = await score({ ...start });
-  // Nothing beats the start once it satisfies every criterion (the tie-breaker is the
-  // distance to the start).
+  // Current values that satisfy every criterion are kept as they are (no churn).
   if (best.distance === 0) return { best, tried };
   const grids = new Map<KnobId, number[]>();
   for (const k of ids) {
@@ -157,6 +178,8 @@ export interface TuneOptions {
   card: string;
   seeds: number;
   seedOffset: number;
+  /** Seeds of the control run (default: `seeds`). */
+  controlSeeds?: number;
   controlSeedOffset: number;
   maxLevel: number;
   base?: TuningValues;
@@ -206,12 +229,111 @@ export interface TuneResult {
     before: { result: RunResult; evals: ObjectEvaluation[] };
     after: { result: RunResult; evals: ObjectEvaluation[] };
   };
-  /** Real objects passing with the current values and failing with the proposed ones. */
+  /**
+   * Real objects passing with the current values and failing with the proposed ones, by a
+   * margin beyond the noise (`regressions`) or within it (`watch`, blocks nothing).
+   */
   regressions: string[];
+  watch: string[];
+  flips: Flip[];
+  /**
+   * Criteria of the tuned object failing on the control seeds by less than the noise margin
+   * (`failsWithinNoise`): accepted, shown "à surveiller". Empty when it passes or fails for real.
+   */
+  targetWatch: CriterionId[];
   outcome: TuneOutcome;
   /** `unchanged` or `proposed`: the values may be applied. */
   ok: boolean;
   ms: number;
+}
+
+/** Distance to the criteria of `e` with every threshold tightened by `slack`. */
+export function robustDistance(e: ObjectEvaluation, slack: number): number {
+  const t = thresholdsOf(e.card);
+  let d = 0;
+  const { essential, useful, visible } = e.criteria;
+  if (essential.status !== 'n/a')
+    d += Math.max(0, Math.min(1, t.essential.games + slack) - essential.value);
+  if (useful.status !== 'n/a') d += Math.max(0, t.useful.levels + slack - useful.value);
+  if (visible.status !== 'n/a')
+    d += Math.max(
+      0,
+      t.visible.min + slack - visible.value,
+      visible.value - (t.visible.max - slack),
+    );
+  return d;
+}
+
+/** A criterion of another object that passed with the current values and fails now. */
+export interface Flip {
+  card: string;
+  criterion: CriterionId;
+  before: number;
+  after: number;
+  /** Noise margin of this measure (`noiseMargin`). */
+  margin: number;
+  /** The measure moved by more than the margin: a regression; else "à surveiller". */
+  beyondNoise: boolean;
+}
+
+/**
+ * Noise margin of a measure (NOISE): `max(minPoints, standardErrors × √(p(1 − p) / n))`,
+ * p the mean of the two measures, n the games behind them (the fewer of the two).
+ */
+export function noiseMargin(a: CriterionResult, b: CriterionResult): number {
+  const p = Math.min(1, Math.max(0, (a.value + b.value) / 2));
+  const n = Math.max(1, Math.min(a.n, b.n));
+  return Math.max(NOISE.minPoints, NOISE.standardErrors * Math.sqrt((p * (1 - p)) / n));
+}
+
+/** Noise margin of one measure: `max(minPoints, standardErrors × √(p(1 − p) / n))`. */
+export function measureMargin(c: CriterionResult): number {
+  return noiseMargin(c, c);
+}
+
+/**
+ * The failing criteria of `e` when each fails by less than its noise margin (distance to its
+ * threshold at most `measureMargin`), else [] (it passes, or one failure is real).
+ */
+export function failsWithinNoise(e: ObjectEvaluation): CriterionId[] {
+  const failing = CRITERION_IDS.filter((k) => e.criteria[k].status === 'fail');
+  if (failing.length === 0) return [];
+  const close = failing.every(
+    (k) => e.criteria[k].distance <= measureMargin(e.criteria[k]) + 1e-12,
+  );
+  return close ? failing : [];
+}
+
+/**
+ * Criteria of real objects (not `except`, not placeholders; the socle is never evaluated)
+ * that pass in `before`, for an object passing as a whole, and fail in `after`.
+ */
+export function verdictFlips(
+  before: readonly ObjectEvaluation[],
+  after: readonly ObjectEvaluation[],
+  except: string,
+): Flip[] {
+  const flips: Flip[] = [];
+  for (const e of after) {
+    if (e.placeholder || e.card === except || e.pass) continue;
+    const b = before.find((x) => x.card === e.card);
+    if (!b?.pass) continue;
+    for (const k of CRITERION_IDS) {
+      const was = b.criteria[k];
+      const now = e.criteria[k];
+      if (was.status !== 'pass' || now.status !== 'fail') continue;
+      const margin = noiseMargin(was, now);
+      flips.push({
+        card: e.card,
+        criterion: k,
+        before: was.value,
+        after: now.value,
+        margin,
+        beyondNoise: Math.abs(now.value - was.value) > margin + 1e-12,
+      });
+    }
+  }
+  return flips;
 }
 
 /** Current values of `card`'s knobs (stored or default). */
@@ -232,7 +354,8 @@ export async function tune(opts: TuneOptions): Promise<TuneResult> {
   if (!knobs || !def) throw new Error(`${opts.card}: no such object with knobs`);
   const current = currentKnobs(opts.card, base);
   const runner = opts.runner ?? localRunner();
-  const strategies: Strategy[] = [{ kind: 'natural' }, { kind: 'object', card: opts.card }];
+  if (isSocle(opts.card)) throw new Error(`${opts.card}: socle card, the criteria do not apply`);
+  const strategies: Strategy[] = [{ kind: 'natural' }, ...objectStrategies(opts.card)];
   const evaluations = new Map<string, ObjectEvaluation | null>();
   const evaluate = async (values: KnobValues): Promise<ObjectEvaluation | null> => {
     const key = JSON.stringify(values);
@@ -252,14 +375,21 @@ export async function tune(opts: TuneOptions): Promise<TuneResult> {
     opts.log?.(
       `  ${Object.entries(values)
         .map(([k, v]) => `${k}=${v}`)
-        .join(' ')} → écart ${e ? e.distance.toFixed(3) : '?'}`,
+        .join(
+          ' ',
+        )} → écart ${e ? e.distance.toFixed(3) : '?'}, avec marge ${e ? robustDistance(e, TUNER.safety).toFixed(3) : '?'}`,
     );
     return e;
   };
   const { best, tried } = await coordinateSearch(
     knobs,
     current,
-    async (v) => (await evaluate(v))?.distance ?? Infinity,
+    async (v) => {
+      const e = await evaluate(v);
+      return e
+        ? { distance: e.distance, robust: robustDistance(e, TUNER.safety) }
+        : { distance: Infinity, robust: Infinity };
+    },
     opts.settings ?? TUNER,
   );
   const controlStrategies = opts.controlStrategies ?? defaultStrategies();
@@ -268,7 +398,7 @@ export async function tune(opts: TuneOptions): Promise<TuneResult> {
   ): Promise<{ result: RunResult; evals: ObjectEvaluation[] }> => {
     const result = await runSimulation(
       {
-        seeds: opts.seeds,
+        seeds: opts.controlSeeds ?? opts.seeds,
         seedOffset: opts.controlSeedOffset,
         maxLevel: opts.maxLevel,
         strategies: controlStrategies,
@@ -283,15 +413,15 @@ export async function tune(opts: TuneOptions): Promise<TuneResult> {
   const changed = Object.entries(best.values).some(([k, v]) => current[k as KnobId] !== v);
   if (changed) opts.log?.('  contrôle sur d’autres graines : valeurs proposées…');
   const after = changed ? await control(withKnobs(base, opts.card, best.values)) : before;
-  const regressions = after.evals
-    .filter((e) => !e.placeholder && e.card !== opts.card)
-    .filter((e) => !e.pass && before.evals.find((b) => b.card === e.card)?.pass === true)
-    .map((e) => e.card);
+  const flips = verdictFlips(before.evals, after.evals, opts.card);
+  const regressions = [...new Set(flips.filter((f) => f.beyondNoise).map((f) => f.card))];
+  const watch = [...new Set(flips.map((f) => f.card))].filter((c) => !regressions.includes(c));
   const target = after.evals.find((e) => e.card === opts.card);
+  const targetWatch = target ? failsWithinNoise(target) : [];
   const outcome = tuneOutcome({
     changed,
     best,
-    targetPassesControl: target?.pass === true,
+    targetPassesControl: target !== undefined && (target.pass || targetWatch.length > 0),
     regressions,
     acceptRegressions: opts.acceptRegressions === true,
   });
@@ -304,6 +434,9 @@ export async function tune(opts: TuneOptions): Promise<TuneResult> {
     tried,
     control: { before, after },
     regressions,
+    watch,
+    flips,
+    targetWatch,
     outcome,
     ok: outcome === 'unchanged' || outcome === 'proposed',
     ms: performance.now() - start,

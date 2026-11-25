@@ -1,11 +1,13 @@
 /**
- * The three balance criteria of PLAN-objets §4, evaluated on a run, object by object:
- * 1. not essential, 2. not useless (with the `object:<id>` strategy against `natural`),
- * 3. visible (offered before its benchmark level). Thresholds in `config.ts`.
+ * The three balance criteria of PLAN-objets §4, evaluated on a run, object by object, against
+ * the `natural` games of the same seeds:
+ * 1. not essential, with `object:<id>` (taken every time it is offered: the abuse test);
+ * 2. not useless, with `once:<id>` (taken the first time, then `natural`: is it worth the
+ *    natural card it replaces);
+ * 3. visible (offered before its benchmark level).
+ * Thresholds in `config.ts`. The socle (natural sequence) is not judged (`roles.ts`).
  */
-import { OPERATOR_BUILDINGS } from '../config/buildings';
-import { type CardDef, CARDS, OFFERS, PASSIVE_EFFECTS } from '../config/cards';
-import { naturalSequence } from '../sim/offers';
+import { type CardDef, CARDS, OFFERS } from '../config/cards';
 import {
   BENCHMARK_LEVELS,
   CRITERIA,
@@ -14,6 +16,7 @@ import {
   DEFAULT_BENCHMARK,
   INDEX_EPSILON,
 } from './config';
+import { type CardRole, isSocle, naturalLevelOf, roleOf, unmodeledReason } from './roles';
 import type { RunResult, StrategyRun } from './run';
 
 export type CriterionId = 'essential' | 'useful' | 'visible';
@@ -27,6 +30,8 @@ export interface CriterionResult {
   distance: number;
   /** What is required, readable. */
   target: string;
+  /** Games behind the measure (the tuner's noise margin). */
+  n: number;
   note?: string;
 }
 
@@ -44,11 +49,10 @@ export interface Exposure {
 
 export interface ObjectEvaluation {
   card: string;
+  role: Exclude<CardRole, 'socle'>;
   placeholder: boolean;
-  /** Why the cost model cannot see the object's effect, or null if it can. */
-  unmodelled: string | null;
-  /** Level of the natural sequence giving this card, or null. */
-  naturalLevel: number | null;
+  /** Why the cost model cannot see the object's effect (`UNMODELED`), or null if it can. */
+  unmodeled: string | null;
   benchmark: number;
   exposure: Record<string, Exposure>;
   criteria: Record<CriterionId, CriterionResult>;
@@ -68,29 +72,9 @@ export function thresholdsOf(card: string): CriteriaThresholds {
   };
 }
 
-/** First level of the natural sequence giving `card`, or null. */
-export function naturalLevelOf(card: string): number | null {
-  const i = naturalSequence().findIndex((s) => s.card === card);
-  return i >= 0 ? i + 1 : null;
-}
-
 /** Benchmark level of `card` (criterion 3). */
 export function benchmarkOf(card: string): number {
   return BENCHMARK_LEVELS[card] ?? naturalLevelOf(card) ?? DEFAULT_BENCHMARK;
-}
-
-/**
- * Why the cost model ignores the effect of `card`, or null when it reads it: a feature or a
- * building that computes nothing (bridge, storage) changes no item cost.
- */
-export function unmodelledReason(card: CardDef): string | null {
-  const e = card.effect;
-  if (e.kind === 'feature') return 'fonctionnalité sans effet sur le coût';
-  if (e.kind === 'unlock' && !Object.hasOwn(OPERATOR_BUILDINGS, e.building))
-    return 'bâtiment sans opération, sans effet sur le coût';
-  if (e.kind === 'passive' && PASSIVE_EFFECTS[e.id].operatorSpeed === 1)
-    return 'passif sans effet de vitesse';
-  return null;
 }
 
 export function median(xs: readonly number[]): number {
@@ -156,6 +140,7 @@ export function essentialCriterion(run: StrategyRun, t: CriteriaThresholds): Cri
     value,
     distance: Math.max(0, games - value),
     target: `≥ ${pct(games)} des parties sans plus de ${maxRun} niveaux de suite sous ${below}`,
+    n: run.index.length,
   };
 }
 
@@ -178,13 +163,14 @@ export function usefulCriterion(
   });
   const target = `médiane ≥ ${pct(levels)} des niveaux après la 1re prise sous ${below}`;
   if (shares.length === 0)
-    return { status: 'fail', value: 0, distance: levels, target, note: 'jamais pris' };
+    return { status: 'fail', value: 0, distance: levels, target, n: 0, note: 'jamais pris' };
   const value = median(shares);
   return {
     status: value >= levels ? 'pass' : 'fail',
     value,
     distance: Math.max(0, levels - value),
     target,
+    n: shares.length,
   };
 }
 
@@ -203,6 +189,7 @@ export function visibleCriterion(
       value: 0,
       distance: 0,
       target,
+      n: run.games.length,
       note: 'aucune offre avant le niveau repère',
     };
   const seen = run.games.filter((g) => (g.firstOffered[card] ?? Infinity) < benchmark).length;
@@ -212,30 +199,38 @@ export function visibleCriterion(
     value,
     distance: Math.max(0, min - value, value - max),
     target,
+    n: run.games.length,
   };
 }
 
-/** The three criteria and the exposure of `card` in `result` (its `object:<id>` run is needed). */
+/**
+ * The three criteria and the exposure of `card` in `result`: criteria 1 and 3 on its
+ * `object:<id>` run, criterion 2 on its `once:<id>` run (the `object:<id>` one if absent).
+ * Null for a socle card (not judged) or without an `object:<id>` run.
+ */
 export function evaluateObject(result: RunResult, card: CardDef): ObjectEvaluation | null {
   const run = result.runs.get(`object:${card.id}`);
-  if (!run) return null;
+  if (!run || isSocle(card.id)) return null;
+  const once = result.runs.get(`once:${card.id}`) ?? run;
   const t = thresholdsOf(card.id);
   const benchmark = benchmarkOf(card.id);
-  const unmodelled = unmodelledReason(card);
+  const unmodeled = unmodeledReason(card.id);
   const exposure: Record<string, Exposure> = {};
   for (const [name, r] of result.runs) exposure[name] = exposureOf(r, card.id);
-  const useful = usefulCriterion(run, card.id, t);
+  const useful = usefulCriterion(once, card.id, t);
   const criteria: Record<CriterionId, CriterionResult> = {
     essential: essentialCriterion(run, t),
-    useful: unmodelled ? { ...useful, status: 'n/a', distance: 0, note: unmodelled } : useful,
+    useful: unmodeled
+      ? { ...useful, status: 'n/a', distance: 0, note: `non modélisé : ${unmodeled}` }
+      : useful,
     visible: visibleCriterion(run, card.id, benchmark, t),
   };
   const applicable = CRITERION_IDS.map((k) => criteria[k]).filter((c) => c.status !== 'n/a');
   return {
     card: card.id,
+    role: card.placeholder === true ? 'factice' : 'objet',
     placeholder: card.placeholder === true,
-    unmodelled,
-    naturalLevel: naturalLevelOf(card.id),
+    unmodeled,
     benchmark,
     exposure,
     criteria,
@@ -244,7 +239,7 @@ export function evaluateObject(result: RunResult, card: CardDef): ObjectEvaluati
   };
 }
 
-/** Evaluation of every object with an `object:<id>` run, in catalogue order. */
+/** Evaluation of every judged object with an `object:<id>` run, in catalogue order. */
 export function evaluateCatalogue(
   result: RunResult,
   cards: readonly CardDef[] = CARDS,
@@ -252,5 +247,25 @@ export function evaluateCatalogue(
   return cards.flatMap((c) => {
     const e = evaluateObject(result, c);
     return e ? [e] : [];
+  });
+}
+
+/** What the report shows of a socle card: information only, no criterion. */
+export interface SocleInfo {
+  card: string;
+  /** Level of the natural sequence giving it. */
+  naturalLevel: number;
+  /** By strategy (the base ones, and `object:` / `once:` if they were run). */
+  exposure: Record<string, Exposure>;
+}
+
+/** Socle cards of the catalogue (natural sequence, drawable), in catalogue order. */
+export function socleInfo(result: RunResult, cards: readonly CardDef[] = CARDS): SocleInfo[] {
+  return cards.flatMap((c) => {
+    const level = naturalLevelOf(c.id);
+    if (level === null || c.slot === null || roleOf(c) !== 'socle') return [];
+    const exposure: Record<string, Exposure> = {};
+    for (const [name, r] of result.runs) exposure[name] = exposureOf(r, c.id);
+    return [{ card: c.id, naturalLevel: level, exposure }];
   });
 }

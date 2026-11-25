@@ -18,8 +18,10 @@ export type Strategy =
   | { kind: 'new' }
   /** Never a value card when another card is offered; among the others, as `natural`. */
   | { kind: 'minimal' }
-  /** The object as soon as it is offered, else as `natural`. */
-  | { kind: 'object'; card: string };
+  /** The object every time it is offered, else as `natural` (criterion 1: abuse). */
+  | { kind: 'object'; card: string }
+  /** The object the first time it is offered, then as `natural` (criterion 2: is it worth it). */
+  | { kind: 'once'; card: string };
 
 export const BASE_STRATEGIES: readonly Strategy[] = [
   { kind: 'natural' },
@@ -29,16 +31,17 @@ export const BASE_STRATEGIES: readonly Strategy[] = [
 ];
 
 export function strategyName(s: Strategy): string {
-  return s.kind === 'object' ? `object:${s.card}` : s.kind;
+  return s.kind === 'object' || s.kind === 'once' ? `${s.kind}:${s.card}` : s.kind;
 }
 
-/** Parse `natural`, `random`, `new`, `minimal` or `object:<cardId>`; null if unknown. */
+/** Parse `natural`, `random`, `new`, `minimal`, `object:<cardId>` or `once:<cardId>`. */
 export function parseStrategy(text: string, cards: readonly CardDef[]): Strategy | null {
   const t = text.trim();
   if (t === 'natural' || t === 'random' || t === 'new' || t === 'minimal') return { kind: t };
-  if (t.startsWith('object:')) {
-    const card = t.slice('object:'.length);
-    return cards.some((c) => c.id === card && c.slot !== null) ? { kind: 'object', card } : null;
+  for (const kind of ['object', 'once'] as const) {
+    if (!t.startsWith(`${kind}:`)) continue;
+    const card = t.slice(kind.length + 1);
+    return cards.some((c) => c.id === card && c.slot !== null) ? { kind, card } : null;
   }
   return null;
 }
@@ -76,6 +79,11 @@ export function pickIndex(state: GameState, offer: StoredOffer, strategy: Strate
       return n >= 0 ? n : (others[0] ?? 0);
     }
     case 'object': {
+      const i = offer.cards.findIndex((c) => c.card === strategy.card);
+      return i >= 0 ? i : natural();
+    }
+    case 'once': {
+      if (state.picks.some((p) => p.card === strategy.card)) return natural();
       const i = offer.cards.findIndex((c) => c.card === strategy.card);
       return i >= 0 ? i : natural();
     }

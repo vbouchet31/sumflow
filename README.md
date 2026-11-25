@@ -96,18 +96,19 @@ npm run dev
 Outils d'équilibrage des objets ([`PLAN-objets.md`](PLAN-objets.md) §3 à §5, choix dans [`docs/DECISIONS.md`](docs/DECISIONS.md)). Ils rejouent les vrais tirages d'offres, sans usine : un modèle de coût donne le temps de chaque niveau. Le code est dans `src/simtools/`, lancé par `scripts/run-ts.mjs` (module runner de Vite, aucune dépendance en plus).
 
 ```bash
-npm run sim                                   # 30 graines × 17 stratégies, niveaux 1 à 60
-npm run sim -- --seeds 50 --seed-offset 1000  # autres graines
-npm run sim -- --object ancient-adder         # un seul objet (plus natural, random, new, minimal)
-npm run sim -- --strategies natural,object:mult --max-level 30
+npm run sim                                   # 60 graines × 14 stratégies, niveaux 1 à 60
+npm run sim -- --seeds 30 --seed-offset 1000  # autres graines
+npm run sim -- --object ancient-adder         # un seul objet (object: et once:, plus natural, random, new, minimal)
+npm run sim -- --strategies natural,once:eventail --max-level 30
 npm run tune -- edition-legendaire            # propose, n'écrit rien
 npm run tune -- edition-legendaire --apply    # écrit src/config/tuning.json (si les critères passent)
 ```
 
-- **Sortie** : un rapport Markdown dans le terminal (indices par tranche de niveaux, apparitions, prises, verdict des 3 critères par objet), un JSON détaillé dans `sim-reports/` (ignoré par git). `--json FICHIER` le place ailleurs, `--no-json` ne l'écrit pas.
-- **Options communes** : `--seeds`, `--seed-offset`, `--max-level`, `--workers` (fils d'exécution, par défaut les cœurs ; `1` sans fil, même résultat). Régleur : `--control-offset` (graines de contrôle), `--apply`, `--accept-regressions`. `--help` les liste.
-- **Code de sortie du régleur** : 0 si les valeurs actuelles ou proposées respectent les critères ; 1 sinon (aucune valeur dans les bornes, échec sur les graines de contrôle ou régression d'un autre objet) : rien n'est alors écrit ; 2 pour une commande mal formée.
-- **Durée** sur 4 cœurs : `npm run sim` environ 15 s (50 s avec `--workers 1`) ; `npm run tune` de 15 s (`mult`, `edition-legendaire`) à 1 min (`ancient-adder`, deux boutons).
+- **Rapport** : un Markdown dans le terminal (indices par tranche de niveaux et par stratégie, apparitions, prises, verdict des 3 critères par objet ; objets factices à part ; cartes du fil rouge dans un tableau « Socle », pour information, jamais jugées), un JSON détaillé dans `sim-reports/` (ignoré par git). `--json FICHIER` le place ailleurs, `--no-json` ne l'écrit pas.
+- **Stratégies d'un objet** : `object:<id>` le prend à chaque offre (critère 1, abus), `once:<id>` la première fois puis joue `natural` (critère 2, vaut-il la carte qu'il remplace).
+- **Options communes** : `--seeds`, `--seed-offset`, `--max-level`, `--workers` (fils d'exécution, par défaut les cœurs ; `1` sans fil, même résultat). Régleur : `--control-seeds`, `--control-offset` (graines de contrôle, tout le catalogue), `--apply`, `--accept-regressions`. `--help` les liste.
+- **Code de sortie du régleur** : 0 si les valeurs actuelles ou proposées respectent les critères (un écart dans la marge de bruit est seulement « à surveiller ») ; 1 sinon (aucune valeur dans les bornes, échec net sur les graines de contrôle ou régression nette d'un autre objet) : rien n'est alors écrit ; 2 pour une commande mal formée (dont une carte du socle, qui ne se règle pas).
+- **Durée** sur 4 cœurs : `npm run sim` environ 35 s (840 parties) ; `npm run tune` de 35 s (`edition-legendaire`, déjà bon) à 1 min 50 (`ancient-adder`, deux boutons).
 
 ## Performances
 

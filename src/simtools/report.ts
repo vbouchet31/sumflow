@@ -7,9 +7,11 @@ import { BAND_SIZE } from './config';
 import {
   CRITERION_IDS,
   type CriterionResult,
+  type Exposure,
   median,
   type ObjectEvaluation,
   quantile,
+  socleInfo,
   thresholdsOf,
 } from './criteria';
 import type { RunResult, StrategyRun } from './run';
@@ -85,34 +87,40 @@ const KIND: Record<string, string> = {
   meta: 'méta',
 };
 
+/** Median index after the first pick of `card` with the strategy `name`, or null. */
+function afterPick(result: RunResult, name: string, card: string): number | null {
+  const run = result.runs.get(name);
+  return run ? indexAfterPick(run, card) : null;
+}
+
 /** Notes explaining a verdict, readable by the author. */
 export function objectNotes(e: ObjectEvaluation, result: RunResult): string[] {
   const notes: string[] = [];
-  if (e.placeholder) notes.push('objet factice : hors critères, signalé à part');
-  if (e.unmodelled) notes.push(`critère 2 sans objet : ${e.unmodelled}`);
-  const run = result.runs.get(`object:${e.card}`);
-  const after = run ? indexAfterPick(run, e.card) : null;
+  if (e.placeholder) notes.push('objet factice : hors verdict, signalé à part');
+  if (e.unmodeled) notes.push(`critère 2 n/a (non modélisé : ${e.unmodeled})`);
+  const once = afterPick(result, `once:${e.card}`, e.card);
+  const every = afterPick(result, `object:${e.card}`, e.card);
   const useful = e.criteria.useful;
-  if (e.naturalLevel !== null && useful.status !== 'n/a') {
+  if (once !== null && useful.status === 'fail' && once > 1) {
     notes.push(
-      `fil rouge (niveau ${e.naturalLevel}) : la référence le prend aussi ; une fois qu’elle l’a, les deux parties ont les mêmes outils et l’indice revient à 1, le critère 2 ne mesure donc que l’avance prise`,
+      `le prendre au lieu de la carte qu’il remplace coûte plus qu’il ne rapporte dans le modèle (indice médian ${fmt(once)} après la prise, \`once\`)`,
     );
-  } else if (after !== null && useful.status === 'fail' && after > 1) {
+  } else if (once !== null && useful.status === 'fail') {
     notes.push(
-      `le prendre dès qu’il est offert retarde le fil rouge plus qu’il ne rapporte dans le modèle (indice médian ${fmt(after)} après la 1re prise)`,
+      `effet faible ou nul dans le modèle : indice médian ${fmt(once)} après la prise (\`once\` ; 1 = la référence)`,
     );
-  } else if (after !== null && useful.status === 'fail') {
+  } else if (once !== null && useful.status === 'pass' && once > 0.97) {
     notes.push(
-      `effet faible ou nul dans le modèle : indice médian ${fmt(after)} après la 1re prise (1 = la référence)`,
-    );
-  } else if (after !== null && useful.status === 'pass' && after > 0.97) {
-    notes.push(
-      `utile mais de peu : indice médian ${fmt(after)} après la 1re prise (le critère 2 demande seulement un indice sous ${thresholdsOf(e.card).useful.below})`,
+      `utile mais de peu : indice médian ${fmt(once)} après la prise (\`once\` ; le critère 2 demande seulement un indice sous ${thresholdsOf(e.card).useful.below})`,
     );
   }
+  if (once !== null && every !== null && every > once + 0.05)
+    notes.push(
+      `le prendre à chaque offre coûte des cartes du fil rouge (indice médian ${fmt(every)} avec \`object\`, ${fmt(once)} avec \`once\`)`,
+    );
   for (const k of CRITERION_IDS) {
     const c = e.criteria[k];
-    if (c.note && !(k === 'useful' && e.unmodelled))
+    if (c.note && !(k === 'useful' && e.unmodeled))
       notes.push(`critère ${CRITERION_IDS.indexOf(k) + 1} : ${c.note}`);
   }
   const visible = e.criteria.visible;
@@ -188,31 +196,33 @@ export function markdownReport(
     'Repère',
     'Offert',
     '1re offre',
-    'Pris (nat. / rand. / new / objet)',
-    'Indice après prise',
+    'Pris (nat. / rand. / new / objet / once)',
+    'Indice après prise (once / objet)',
     '1. Pas indispensable',
     '2. Pas inutile',
     '3. Visible',
     'Verdict',
   ];
+  const picked = (ex: Record<string, Exposure>, names: readonly string[]): string =>
+    names
+      .map((name) => {
+        const x = ex[name];
+        return x ? pct(x.picked) : '–';
+      })
+      .join(' / ');
   const objectRow = (e: ObjectEvaluation): string[] => {
     const def = CARDS.find((c) => c.id === e.card);
-    const ex = e.exposure;
-    const obj = ex[`object:${e.card}`];
-    const p = (name: string): string => {
-      const x = ex[name];
-      return x ? pct(x.picked) : '–';
-    };
-    const run = result.runs.get(`object:${e.card}`);
-    const after = run ? indexAfterPick(run, e.card) : null;
+    const obj = e.exposure[`object:${e.card}`];
+    const once = afterPick(result, `once:${e.card}`, e.card);
+    const every = afterPick(result, `object:${e.card}`, e.card);
     return [
       `\`${e.card}\``,
       KIND[def?.effect.kind ?? ''] ?? '',
       String(e.benchmark),
       obj ? pct(obj.offered) : '–',
       obj?.firstOffer != null ? `niv. ${Math.round(obj.firstOffer)}` : '–',
-      [p('natural'), p('random'), p('new'), p(`object:${e.card}`)].join(' / '),
-      after === null ? '–' : fmt(after),
+      picked(e.exposure, ['natural', 'random', 'new', `object:${e.card}`, `once:${e.card}`]),
+      `${once === null ? '–' : fmt(once)} / ${every === null ? '–' : fmt(every)}`,
       cell(e.criteria.essential),
       cell(e.criteria.useful),
       cell(e.criteria.visible),
@@ -226,8 +236,42 @@ export function markdownReport(
     out.push(table(head, real.map(objectRow)), '');
   }
   if (fake.length > 0) {
-    out.push('## Objets factices (signalés à part, hors critères)', '');
+    out.push('## Objets factices (signalés à part, hors verdict)', '');
     out.push(table(head, fake.map(objectRow)), '');
+  }
+  const socle = socleInfo(result);
+  if (socle.length > 0) {
+    out.push(
+      '## Socle (fil rouge), pour information',
+      '',
+      'Les cartes de la suite naturelle (`naturalSequence()`) sont le chemin de référence du jeu : les critères ne s’y appliquent pas, elles ne comptent ni dans le verdict ni comme régression.',
+      '',
+    );
+    out.push(
+      table(
+        [
+          'Carte',
+          'Genre',
+          'Fil rouge',
+          'Offert (natural)',
+          '1re offre (natural)',
+          'Pris (nat. / rand. / new / minimal)',
+        ],
+        socle.map((x) => {
+          const def = CARDS.find((c) => c.id === x.card);
+          const nat = x.exposure.natural;
+          return [
+            `\`${x.card}\``,
+            KIND[def?.effect.kind ?? ''] ?? '',
+            `niv. ${x.naturalLevel}`,
+            nat ? pct(nat.offered) : '–',
+            nat?.firstOffer != null ? `niv. ${Math.round(nat.firstOffer)}` : '–',
+            picked(x.exposure, ['natural', 'random', 'new', 'minimal']),
+          ];
+        }),
+      ),
+      '',
+    );
   }
   const notes = evals.flatMap((e) => {
     const n = objectNotes(e, result);
@@ -238,7 +282,8 @@ export function markdownReport(
   out.push(
     '## Légende',
     '',
-    '- **Offert** : parties où l’objet apparaît au moins une fois dans une offre (stratégie objet) ; **1re offre** : niveau médian de sa première apparition ; **Pris** : parties où il est pris au moins une fois, par stratégie ; **Indice après prise** : médiane des parties de la médiane de l’indice après la 1re prise (stratégie objet).',
+    '- **Stratégies** : `object:<id>` prend l’objet à chaque offre (critères 1 et 3), `once:<id>` la première fois seulement, puis joue `natural` (critère 2).',
+    '- **Offert** : parties où l’objet apparaît au moins une fois dans une offre (stratégie `object`) ; **1re offre** : niveau médian de sa première apparition ; **Pris** : parties où il est pris au moins une fois, par stratégie ; **Indice après prise** : médiane des parties de la médiane de l’indice après la 1re prise.',
     `- **1. Pas indispensable** : ${real[0]?.criteria.essential.target ?? 'voir config.ts'}. **2. Pas inutile** : ${real[0]?.criteria.useful.target ?? ''}. **3. Visible** : part des parties où il est offert avant son niveau repère, attendue entre les bornes (seuils dans \`src/simtools/config.ts\`).`,
     '',
     failed.length > 0
@@ -273,6 +318,7 @@ export function jsonReport(
     ms: Math.round(result.ms),
     tables: result.tables,
     objects: evals,
+    socle: socleInfo(result),
     runs,
   };
 }
