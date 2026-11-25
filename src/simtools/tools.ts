@@ -141,6 +141,28 @@ export function throughputOf(
 }
 
 /**
+ * Prices of the operations, normalised by the generic capacity `G` (COST comment):
+ * - an ordinary operation costs `1 / v` (its best ordinary speed `v`), lowered when limited
+ *   copies perform it too: they add their throughput to the ordinary buildings;
+ * - an operation only limited buildings perform costs `G / lim` on their own line, which
+ *   works in parallel with the ordinary factory (mixing, `cost.ts`).
+ */
+export function pricedOperations(
+  ordinary: Throughput['ordinary'],
+  limited: Throughput['limited'],
+  G: number,
+): PricedOperation[] {
+  const ops: PricedOperation[] = [];
+  for (const op of OPERATION_IDS) {
+    const v = ordinary[op];
+    const lim = limited[op] ?? 0;
+    if (v !== undefined && v > 0) ops.push({ op, price: (1 / v) * (G / (G + lim / v)) });
+    else if (lim > 0) ops.push({ op, price: G / lim, limited: true });
+  }
+  return ops;
+}
+
+/**
  * Cost tools of a level, normalised by the generic capacity `G`: the time of one item is
  * `itemCost(tools) / G` (COST comment). Normalising keeps the cache shared across levels
  * whose speeds are the same.
@@ -152,22 +174,11 @@ export function costTools(
 ): { tools: CostTools; capacity: number } {
   const t = throughputOf(state, level, tuning);
   const G = factoryCapacity(level) + t.editionBonus;
-  const ops: PricedOperation[] = [];
-  for (const op of OPERATION_IDS) {
-    const v = t.ordinary[op];
-    const lim = t.limited[op] ?? 0;
-    if (v !== undefined && v > 0) {
-      // Limited copies add their throughput to the ordinary buildings doing the same.
-      ops.push({ op, price: (1 / v) * (G / (G + lim / v)) });
-    } else if (lim > 0) {
-      ops.push({ op, price: G / lim });
-    }
-  }
   const tools: CostTools = {
     values: extractableValues(state.maxExtraction),
     rawBase: COST.raw.weight / t.extractorRate,
     rawPenalty: COST.raw.valuePenalty,
-    ops,
+    ops: pricedOperations(t.ordinary, t.limited, G),
   };
   return { tools, capacity: G };
 }

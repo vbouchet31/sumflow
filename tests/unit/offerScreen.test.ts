@@ -79,7 +79,7 @@ describe('the back of a card', () => {
     expect(givesLabel({ card: 'value', edition: 'base', value: 2 })).toBe(
       'Nouvelle valeur extractible',
     );
-    expect(givesLabel({ card: 'ancient-adder', edition: 'base' })).toBe('Exemplaire × 1');
+    expect(givesLabel({ card: 'concat', edition: 'base' })).toBe('Exemplaire × 1');
     expect(givesLabel({ card: 'edition-brillante', edition: 'brillante' })).toBe(
       'Carte à appliquer',
     );
@@ -93,10 +93,10 @@ describe('the back of a card', () => {
       'Extracteur : débit × 1,5',
       'Stockage : capacité × 1,5',
     ]);
-    expect(editionEffectLines({ card: 'ancient-adder', edition: 'brillante' })).toEqual([
+    expect(editionEffectLines({ card: 'concat', edition: 'brillante' })).toEqual([
       'Vitesse × 1,25',
     ]);
-    expect(editionEffectLines({ card: 'ancient-adder', edition: 'base' })).toEqual([]);
+    expect(editionEffectLines({ card: 'concat', edition: 'base' })).toEqual([]);
     expect(editionEffectLines({ card: 'mult', edition: 'base' })).toEqual([]);
     setLocale('en');
     expect(editionEffectLines({ card: 'edition-brillante', edition: 'brillante' })[0]).toBe(
@@ -119,9 +119,9 @@ describe('the back of a card', () => {
     grantCard(s, 'value');
     expect(offerTags(s, { card: 'value', edition: 'base' }, 'bridge')).toEqual([]);
     // A special building is new once per edition.
-    grantCard(s, 'ancient-adder', 'base');
-    expect(offerTags(s, { card: 'ancient-adder', edition: 'base' }, 'x')).toEqual([]);
-    expect(offerTags(s, { card: 'ancient-adder', edition: 'legendaire' }, 'x')).toEqual(['new']);
+    grantCard(s, 'concat', 'base');
+    expect(offerTags(s, { card: 'concat', edition: 'base' }, 'x')).toEqual([]);
+    expect(offerTags(s, { card: 'concat', edition: 'legendaire' }, 'x')).toEqual(['new']);
   });
 });
 
@@ -145,11 +145,11 @@ describe('offer view', () => {
     const s = withOffer();
     const offer: StoredOffer = {
       level: 3,
-      cards: [{ card: 'ancient-adder', edition: 'legendaire' }],
+      cards: [{ card: 'concat', edition: 'legendaire' }],
     };
     const [card] = offerView(s, offer, { index: 1, total: 1 }).cards;
-    expect(card?.name).toBe('Additionneur ancien');
-    expect(card?.fullName).toBe('Additionneur ancien (légendaire)');
+    expect(card?.name).toBe('Concaténateur');
+    expect(card?.fullName).toBe('Concaténateur (légendaire)');
   });
 });
 
@@ -164,9 +164,9 @@ describe('card pictures', () => {
       tool: 'multiplier',
       edition: 'base',
     });
-    expect(cardArt('special:ancientAdder', 'legendaire')).toEqual({
+    expect(cardArt('special:concat', 'legendaire')).toEqual({
       kind: 'building',
-      tool: 'ancientAdder',
+      tool: 'concat',
       edition: 'legendaire',
     });
     expect(cardArt('value', 'base', 11)).toEqual({ kind: 'value', value: 11 });

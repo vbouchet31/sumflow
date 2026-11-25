@@ -31,7 +31,7 @@
     "edition-legendaire": {
       "weightScale": 1
     },
-    "ancient-adder": {
+    "concat": {
       "weightScale": 1,
       "speed": 1
     },

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Track } from '../../src/config/balance';
 import {
+  type BaseOperatorType,
   BUILDINGS,
   OPERATOR_BUILDINGS,
   operationOf,
@@ -14,15 +15,15 @@ import {
   type OutputPort,
 } from '../../src/config/operations';
 import { add, divmod, INT_MAX, INT_MIN, mul, pow, sub } from '../../src/core/intmath';
-import { OPERATOR_TYPES, type OperatorType } from '../../src/sim/entities';
+import { OPERATOR_TYPES } from '../../src/sim/entities';
 import { makeWorld } from './helpers/scenario';
 
 /** Operands covering signs, zero, one, small values and the saturation edges. */
 const SAMPLES = [INT_MIN, -100_000, -17, -5, -2, -1, 0, 1, 2, 3, 5, 7, 17, 31, 100_000, INT_MAX];
 
-/** The operators as they were before the registry (phase 1): computation, symbol, track. */
+/** The ordinary operators as they were before the registry (phase 1): computation, symbol, track. */
 const LEGACY: Record<
-  OperatorType,
+  BaseOperatorType,
   { compute: (a: number, b: number) => OperationResult; symbol: string; track: Track }
 > = {
   adder: { compute: (a, b) => ({ O: add(a, b) }), symbol: '+', track: 'adder' },
@@ -37,12 +38,11 @@ const LEGACY: Record<
     track: 'subdiv',
   },
   exponent: { compute: (a, b) => ({ O: pow(a, b) }), symbol: '^', track: 'exponent' },
-  ancientAdder: { compute: (a, b) => ({ O: add(a, b) }), symbol: '+', track: 'adder' },
 };
 
 describe('operations registry', () => {
   it('declares each operation under its own id, with valid ports', () => {
-    expect(OPERATION_IDS).toEqual(['add', 'mul', 'sub', 'div', 'pow']);
+    expect(OPERATION_IDS).toEqual(['add', 'mul', 'sub', 'div', 'pow', 'concat']);
     for (const id of OPERATION_IDS) {
       const op = OPERATIONS[id];
       expect(op.id).toBe(id);
@@ -113,7 +113,7 @@ describe('buildings perform an operation of the registry', () => {
   });
 
   it('changes nothing from phase 1: same results, symbols and tracks', () => {
-    for (const t of OPERATOR_TYPES) {
+    for (const t of Object.keys(LEGACY) as BaseOperatorType[]) {
       const legacy = LEGACY[t];
       expect(operationOf(t).symbol, t).toBe(legacy.symbol);
       expect(trackOf(t), t).toBe(legacy.track);
@@ -129,8 +129,60 @@ describe('buildings perform an operation of the registry', () => {
     expect(div.outQ).toEqual([]);
     expect(div.outR).toEqual([]);
     expect(div.out).toBeUndefined();
-    const anc = world.addBuilding('ancientAdder', 30, 20, 0);
-    expect(anc.out).toEqual([]);
-    expect(anc.outQ).toBeUndefined();
+    const cat = world.addBuilding('concat', 30, 20, 0);
+    expect(cat.out).toEqual([]);
+    expect(cat.outQ).toBeUndefined();
+  });
+});
+
+describe('concatenation (docs/objets/concat.md)', () => {
+  const cat = (a: number, b: number): number | undefined => OPERATIONS.concat.compute(a, b).O;
+
+  it('writes the digits of B after those of A', () => {
+    expect(cat(4, 7)).toBe(47);
+    expect(cat(89, 1)).toBe(891);
+    expect(cat(1, 23)).toBe(123);
+    expect(cat(12, 345)).toBe(12_345);
+    expect(cat(4, 100)).toBe(4_100);
+    expect(cat(7, 7)).toBe(77);
+  });
+
+  it('B = 0 counts as one digit, A = 0 gives |B|', () => {
+    expect(cat(4, 0)).toBe(40);
+    expect(cat(-4, 0)).toBe(-40);
+    expect(cat(0, 7)).toBe(7);
+    expect(cat(0, -7)).toBe(7);
+    expect(cat(0, 0)).toBe(0);
+    expect(Object.is(cat(0, 0), -0)).toBe(false);
+  });
+
+  it('ignores the sign of B and keeps the sign of A', () => {
+    expect(cat(4, -7)).toBe(47);
+    expect(cat(-4, 7)).toBe(-47);
+    expect(cat(-4, -7)).toBe(-47);
+    expect(cat(-12, 34)).toBe(-1_234);
+  });
+
+  it('saturates like the other operations', () => {
+    expect(cat(214_748, 3_647)).toBe(INT_MAX);
+    expect(cat(214_748, 3_648)).toBe(INT_MAX);
+    expect(cat(-214_748, 3_648)).toBe(INT_MIN);
+    expect(cat(INT_MAX, 1)).toBe(INT_MAX);
+    expect(cat(INT_MIN, 1)).toBe(INT_MIN);
+    expect(cat(1, INT_MIN)).toBe(INT_MAX);
+    expect(cat(0, INT_MIN)).toBe(INT_MAX);
+    expect(cat(-1, INT_MIN)).toBe(INT_MIN);
+    expect(cat(21, 47_483_647)).toBe(INT_MAX);
+    expect(cat(21, 47_483_646)).toBe(2_147_483_646);
+  });
+
+  it('is not commutative, on the multiplier track, with one output', () => {
+    expect(OPERATIONS.concat).toMatchObject({
+      symbol: '‖',
+      commutative: false,
+      track: 'multiplier',
+      outputs: ['O'],
+    });
+    expect(cat(4, 7)).not.toBe(cat(7, 4));
   });
 });

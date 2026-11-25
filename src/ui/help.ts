@@ -138,6 +138,14 @@ export const HELP_TIPS: readonly HelpTip[] = [
     icon: '▦',
     when: (s) => isBuildingUnlocked(s, 'storage'),
   },
+  {
+    id: 'concat',
+    title: 'tool.concat',
+    text: 'help.concat',
+    icon: '‖',
+    art: () => cardArt('special:concat', 'base'),
+    when: (s) => ownedSpecials(s).some(([type]) => type === 'concat'),
+  },
   // Reward cards (PLAN-recompenses §4.3): after the buildings they apply to.
   {
     id: 'special',
@@ -145,7 +153,7 @@ export const HELP_TIPS: readonly HelpTip[] = [
     text: 'help.special',
     icon: '◈',
     art: (s) => {
-      const [type, edition] = ownedSpecials(s)[0] ?? ['ancientAdder', 'base'];
+      const [type, edition] = ownedSpecials(s)[0] ?? ['concat', 'base'];
       return cardArt(`special:${type}`, edition);
     },
     when: (s) => ownedSpecials(s).length > 0,

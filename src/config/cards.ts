@@ -129,7 +129,7 @@ export const EDITION_EFFECTS: Partial<
   exponent: operatorEdition,
   extractor: { brillante: { rate: 1.25 }, legendaire: { rate: 1.5 } },
   storage: { brillante: { capacity: 1.25 }, legendaire: { capacity: 1.5 } },
-  ancientAdder: operatorEdition,
+  concat: operatorEdition,
 };
 
 /** Effect of each passive card. */
@@ -310,15 +310,22 @@ export const CARDS: readonly CardDef[] = [
     text: 'card.editionLegendaire.text',
   },
   {
-    id: 'ancient-adder',
+    // Concaténateur (docs/objets/concat.md).
+    id: 'concat',
     slot: 'atelier',
-    effect: { kind: 'special', building: 'ancientAdder', count: 1 },
-    weight: flat(4),
-    tip: 'special',
-    icon: 'special:ancientAdder',
-    title: 'card.ancientAdder.title',
-    text: 'card.ancientAdder.text',
-    placeholder: true,
+    effect: { kind: 'special', building: 'concat', count: 1 },
+    requires: [{ building: 'multiplier' }],
+    minLevel: 8,
+    weight: [
+      { level: 8, w: 2 },
+      { level: 12, w: 5 },
+      { level: 20, w: 5 },
+      { level: 30, w: 3 },
+    ],
+    tip: 'concat',
+    icon: 'special:concat',
+    title: 'card.concat.title',
+    text: 'card.concat.text',
   },
   {
     id: 'passive-operators',

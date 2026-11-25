@@ -327,6 +327,8 @@ export const fr = {
     'Un bâtiment brillant va plus vite, ou extrait et stocke davantage. Une carte Édition s’applique sur un bâtiment posé, avec l’outil Édition (G) ou sa bulle ; le démolir te la rend.',
   'help.edition.legendaire':
     'Un bâtiment légendaire fait encore mieux qu’un brillant. Une carte Édition s’applique sur un bâtiment posé, avec l’outil Édition (G) ou sa bulle ; le démolir te la rend.',
+  'help.concat':
+    'Concaténateur : les chiffres de B s’écrivent après ceux de A (4 ‖ 7 = 47, 89 ‖ 1 = 891). A en haut, B en bas, le résultat à droite. Le signe de B est ignoré.',
   'help.title.special': 'Bâtiment spécial',
   'help.special':
     'Un bâtiment spécial se compte à l’unité : son outil (touche 0) montre combien il t’en reste. Le démolir te le rend, avec son édition.',
@@ -378,8 +380,8 @@ export const fr = {
   'card.editionBrillante.text': 'À appliquer sur un bâtiment posé. Démolir le bâtiment la rend.',
   'card.editionLegendaire.title': 'Édition légendaire',
   'card.editionLegendaire.text': 'À appliquer sur un bâtiment posé. Démolir le bâtiment la rend.',
-  'card.ancientAdder.title': 'Additionneur ancien',
-  'card.ancientAdder.text': 'Un additionneur spécial, avec son édition. Démolir le rend.',
+  'card.concat.title': 'Concaténateur',
+  'card.concat.text': 'Écrit les chiffres de B après ceux de A : 4 ‖ 7 = 47. Démolir le rend.',
   'card.passiveOperators.title': 'Opérateurs +{pct} %',
   'card.passiveOperators.text': 'Tous les opérateurs vont {pct} % plus vite.',
   'card.eventail.title': 'Éventail',
@@ -433,7 +435,7 @@ export const fr = {
   'tip.editionApplied': 'Appliquée (démolir rend la carte)',
   'tip.editionPermanent': 'Appliquée (définitive)',
   'tip.editionNative': 'D’origine',
-  'tool.ancientAdder': 'Additionneur ancien',
+  'tool.concat': 'Concaténateur',
   'tool.specialFree': 'Exemplaires libres : {list}',
   'act.specialVariants': 'Éditions de {name}',
   'act.specialVariant': '{name}, exemplaires libres : {n}',

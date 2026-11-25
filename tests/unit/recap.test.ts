@@ -17,7 +17,7 @@ describe('end screen: "Tes choix" (PLAN-recompenses §4.6)', () => {
     completeLevel(s);
     s.picks.push(
       { level: 3, card: 'value', edition: 'base', value: 2, tick: 0 },
-      { level: 4, card: 'ancient-adder', edition: 'legendaire', tick: 0 },
+      { level: 4, card: 'concat', edition: 'legendaire', tick: 0 },
       { level: 5, card: 'edition-brillante', edition: 'brillante', tick: 0 },
       { level: 0, card: 'passive-operators', edition: 'base', tick: 0 },
     );
@@ -25,12 +25,12 @@ describe('end screen: "Tes choix" (PLAN-recompenses §4.6)', () => {
       { level: 'Niv. 1', card: 'Additionneur' },
       { level: 'Niv. 2', card: 'Améliorations' },
       { level: 'Niv. 3', card: 'Valeur 2' },
-      { level: 'Niv. 4', card: 'Additionneur ancien (légendaire)' },
+      { level: 'Niv. 4', card: 'Concaténateur (légendaire)' },
       { level: 'Niv. 5', card: 'Édition brillante' },
       { level: 'Hors offre', card: 'Opérateurs +5 %' },
     ]);
     setLocale('en');
-    expect(picksRecap(s)[3]).toEqual({ level: 'Lv. 4', card: 'Ancient adder (legendary)' });
+    expect(picksRecap(s)[3]).toEqual({ level: 'Lv. 4', card: 'Concatenator (legendary)' });
   });
 });
 

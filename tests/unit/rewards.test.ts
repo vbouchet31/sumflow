@@ -210,12 +210,12 @@ describe('card effects', () => {
     const s = atLevel3();
     completeLevel(s);
     s.pendingLevels = [3];
-    s.currentOffer = { level: 3, cards: [{ card: 'ancient-adder', edition: 'brillante' }] };
+    s.currentOffer = { level: 3, cards: [{ card: 'concat', edition: 'brillante' }] };
     chooseCard(s, 0);
-    grantCard(s, 'ancient-adder', 'brillante');
-    grantCard(s, 'ancient-adder');
-    expect(s.specials).toEqual({ 'ancientAdder:brillante': 2, 'ancientAdder:base': 1 });
-    expect(s.picks.at(-3)).toMatchObject({ card: 'ancient-adder', edition: 'brillante' });
+    grantCard(s, 'concat', 'brillante');
+    grantCard(s, 'concat');
+    expect(s.specials).toEqual({ 'concat:brillante': 2, 'concat:base': 1 });
+    expect(s.picks.at(-3)).toMatchObject({ card: 'concat', edition: 'brillante' });
   });
 
   it('passive: operators go faster', () => {
@@ -427,7 +427,7 @@ describe('save version 2', () => {
     const s = atLevel3();
     grantCard(s, 'edition-brillante');
     grantCard(s, 'edition-legendaire');
-    grantCard(s, 'ancient-adder', 'legendaire');
+    grantCard(s, 'concat', 'legendaire');
     grantCard(s, 'passive-operators');
     grantCard(s, 'eventail');
     grantCard(s, 'value');
@@ -450,7 +450,7 @@ describe('save version 2', () => {
       expect(back.currentOffer).toEqual(s.currentOffer);
       expect(back.currentOffer?.cards).toHaveLength(3); // Éventail
       expect(back.editionCards).toEqual({ brillante: 1, legendaire: 1 });
-      expect(back.specials).toEqual({ 'ancientAdder:legendaire': 1 });
+      expect(back.specials).toEqual({ 'concat:legendaire': 1 });
       expect(back.passives).toEqual(['operatorsBoost']);
       expect(back.naturalRefusals).toBe(2);
       expect(stateHash(new World(back, new DepositMap(back.seed)), CAM)).toBe(
