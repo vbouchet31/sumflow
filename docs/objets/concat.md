@@ -1,6 +1,6 @@
 # Concaténateur (`concat`)
 
-> **État** : en discussion (toutes les questions tranchées, en attente de l'accord de l'auteur avant le code)
+> **État** : codé (réglage : le régleur garde les valeurs de départ ; partie de test à faire)
 > Pilote de l'étape 2b (`PLAN-objets.md`). Proposition par défaut de l'auteur (2026-11-25), questions tranchées une à une en section 8.
 
 ## 1. Idée et effet
@@ -55,8 +55,10 @@ Aucun (les 3 critères standard, niveau repère 15).
 
 ## 7. Historique des simulations
 
-| Date | Commande | Verdict (1 / 2 / 3) | Valeurs | Remarque |
-| ---- | -------- | ------------------- | ------- | -------- |
+| Date       | Commande                 | Verdict (1 / 2 / 3)                                         | Valeurs                        | Remarque                                                                              |
+| ---------- | ------------------------ | ----------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------- |
+| 2026-11-25 | `npm run sim`            | ✓ 100 % / ✓ 89 % / ✓ 75 %                                   | `weightScale` = 1, `speed` = 1 | indice après prise 0,97 (`once`), 0,90 (`object`) ; 1re offre au niveau 12 en médiane |
+| 2026-11-25 | `npm run tune -- concat` | réglage ✓ / ✓ / ✓ 75 % ; contrôle ✓ 100 % / ✓ 86 % / ✓ 75 % | inchangées (1 et 1)            | les valeurs de départ respectent déjà les critères : rien à appliquer                 |
 
 ## 8. Décisions
 
@@ -74,6 +76,9 @@ Aucun (les 3 critères standard, niveau repère 15).
 - 2026-11-25, **Q10** : niveau minimum 8 et courbe `[(8, 2), (12, 5), (20, 5), (30, 3)]` gardés. Le niveau minimum sert : la carte × peut sortir dès le niveau 3, et ‖ n'apporte rien sur des cibles à 1 ou 2 chiffres. La baisse après le niveau 20 évite d'encombrer les offres avec une carte qui pèse de moins en moins face à une usine qui grandit ; elle ne touche aucun critère. Le régleur ne change que l'échelle de la courbe, pas sa forme.
 
 Constat à l'origine du mélange (2026-11-25, lecture de `src/simtools/config.ts`) : une opération que seuls des bâtiments limités effectuent coûte `1 / (exemplaires × vitesse)`, alors qu'une opération ordinaire se répartit sur `G(L) = 6 + L` bâtiments (14 au niveau 8, 21 au niveau 15). Un seul Concaténateur à vitesse × 1 est donc un goulot environ 7 à 10 fois plus lent que « × puis + » : le modèle actuel ne le choisirait presque jamais (risque d'échec au critère 2). Le mélange décidé plus haut corrige ce biais.
+
+- 2026-11-25, **code** : l'Additionneur ancien (objet factice) est retiré, sans reprise des sauvegardes qui en contiennent (elles sont refusées au chargement : nouvelle partie, l'ancienne gardée à part). Conséquence mesurée : l'Atelier s'allège et l'Édition brillante passe de 73 % à 92 % de visibilité avant le niveau 15 (graines 1 à 60) ; le régleur propose `weightScale` = 0,3 pour elle (68 à 72 %), en attente de l'accord de l'auteur.
+- 2026-11-25, **mélange, mise en œuvre** : la recette qui passe par la ligne est cherchée avec la ligne au prix de 2 fois l'opération ordinaire la moins chère (`LINE_SEARCH_SCALES`), puis mélangée au prix réel. Les essais avec 0,5, 1 et 2 donnent les mêmes verdicts que 2 seul, trois fois plus lentement. Simulation complète : 37 s (environ 35 s avant).
 
 ## 9. Retours de parties de test
 

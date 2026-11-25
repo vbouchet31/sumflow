@@ -25,8 +25,8 @@
  * dear to ever be used), so the recipes through the line are searched with its price set to
  * a few multiples of the cheapest ordinary operation (`LINE_SEARCH_SCALES`), each then mixed
  * at the line's real price; the best mix is kept. Those searches do not depend on the line's
- * price, so a faster line (more copies) never costs more. Without limited operations, the
- * cost is the plain one.
+ * price (their tables are shared by any number of copies), so a faster line never costs
+ * more. Without limited operations, the cost is the plain one.
  */
 import { OPERATIONS, type OperationDef, type OperationId } from '../config/operations';
 import { type Emit, type HintContext, OPERATION_HINTS } from './hints';
@@ -40,15 +40,15 @@ export interface PricedOperation {
    * parallel with the ordinary factory (mixing, see the file comment).
    */
   limited?: boolean;
-  /**
-   * Limited operation in a line search: the real time of one use on the line, `price` being
-   * then only the search price (default: `price`).
-   */
-  linePrice?: number;
 }
 
-/** Search prices of a limited line, in cheapest ordinary operations (mixing). */
-export const LINE_SEARCH_SCALES = [0.5, 1, 2] as const;
+/**
+ * Search prices of a limited line, in cheapest ordinary operations (mixing). A slow line is
+ * best spent where one use saves the most generic work, which a high search price favours:
+ * on the Concaténateur, `[2]` gives the same verdicts as `[0.5, 1, 2]` in a third of the time
+ * (`[0.5]` or `[1]` alone find slightly weaker mixes).
+ */
+export const LINE_SEARCH_SCALES = [2] as const;
 
 /** What the search knows of a tool set. */
 export interface CostTools {
@@ -119,7 +119,7 @@ export interface CostTable {
   down: Float64Array;
   /** Generic part of the `down[n]` recipe: ordinary operations and raw items. */
   gen: Float64Array;
-  /** Line part of the `down[n]` recipe: real time of its limited operations. */
+  /** Line part of the `down[n]` recipe: time of its limited operations. */
   lim: Float64Array;
   /** Largest target the table answers (`limit` minus the largest value). */
   upTo: number;
@@ -144,7 +144,7 @@ function pricedOps(tools: CostTools) {
     index,
     price: o.price,
     genPrice: o.limited === true ? 0 : o.price,
-    linePrice: o.limited === true ? (o.linePrice ?? o.price) : 0,
+    linePrice: o.limited === true ? o.price : 0,
     def: OPERATIONS[o.op],
     hint: OPERATION_HINTS[o.op],
   }));
@@ -229,7 +229,7 @@ export function computeCosts(tools: CostTools, upTo: number, withChoices = false
 
 /**
  * Cost of `target` from its table: its `down` recipe or one upward last step. Also returns the
- * line part of that recipe (real time of its limited operations) and its generic part.
+ * line part of that recipe (time of its limited operations) and its generic part.
  */
 export function targetCost(
   tools: CostTools,
@@ -268,20 +268,31 @@ export function ordinaryTools(tools: CostTools): CostTools {
   return { ...tools, ops: tools.ops.filter((o) => o.limited !== true) };
 }
 
+/** A line search: tools whose line is priced for the search, and the factor back to real time. */
+export interface LineSearch {
+  tools: CostTools;
+  /** Real line time = line part found × `scale`. */
+  scale: number;
+}
+
 /**
- * The line searches of `tools` (file comment): its limited operations priced at each of
- * `LINE_SEARCH_SCALES` × the cheapest ordinary operation, their real price kept as
- * `linePrice`. Without an ordinary operation, `tools` itself.
+ * The line searches of `tools` (file comment): its limited operations priced so that the
+ * cheapest is `k` × the cheapest ordinary operation, for each `k` of `LINE_SEARCH_SCALES`
+ * (their ratios kept). Without an ordinary operation, `tools` itself.
  */
-export function lineSearches(tools: CostTools): CostTools[] {
+export function lineSearches(tools: CostTools): LineSearch[] {
   const ordinary = tools.ops.filter((o) => o.limited !== true).map((o) => o.price);
-  if (ordinary.length === 0) return [tools];
+  if (ordinary.length === 0) return [{ tools, scale: 1 }];
   const m = Math.min(...ordinary);
+  const line = Math.min(...tools.ops.filter((o) => o.limited === true).map((o) => o.price));
   return LINE_SEARCH_SCALES.map((k) => ({
-    ...tools,
-    ops: tools.ops.map((o) =>
-      o.limited === true ? { ...o, price: k * m, linePrice: o.linePrice ?? o.price } : o,
-    ),
+    tools: {
+      ...tools,
+      ops: tools.ops.map((o) =>
+        o.limited === true ? { ...o, price: (k * m * o.price) / line } : o,
+      ),
+    },
+    scale: line / (k * m),
   }));
 }
 
@@ -309,7 +320,8 @@ function mixed(tools: CostTools, target: number, plain: PlainCost): number {
   const ordinary = plain(ordinaryTools(tools), target)[0];
   let best = ordinary;
   for (const search of lineSearches(tools)) {
-    const [, limited, generic] = plain(search, target);
+    const [, found, generic] = plain(search.tools, target);
+    const limited = found * search.scale;
     best = Math.min(best, mixedCost(generic + limited, limited, ordinary));
   }
   return best;
@@ -359,9 +371,7 @@ export function explain(tools: CostTools, target: number): Recipe {
 
 /** Key of a tool set in the cache: everything a table depends on. */
 export function toolsKey(tools: CostTools): string {
-  const ops = tools.ops
-    .map((o) => `${o.op}:${o.price}${o.limited ? `L${o.linePrice ?? o.price}` : ''}`)
-    .join(',');
+  const ops = tools.ops.map((o) => `${o.op}:${o.price}${o.limited ? 'L' : ''}`).join(',');
   return `${tools.values.join(',')}|${tools.rawBase}|${tools.rawPenalty}|${ops}`;
 }
 

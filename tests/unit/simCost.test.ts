@@ -251,9 +251,10 @@ describe('cost search: mixing a limited line (docs/objets/concat.md)', () => {
 
   it('a line search prices the line at multiples of the cheapest ordinary operation', () => {
     const searches = lineSearches(withLine(30));
-    expect(searches.map((t) => t.ops.find((o) => o.op === 'concat'))).toEqual(
-      LINE_SEARCH_SCALES.map((k) => ({ op: 'concat', price: k, limited: true, linePrice: 30 })),
+    expect(searches.map((x) => x.tools.ops.find((o) => o.op === 'concat'))).toEqual(
+      LINE_SEARCH_SCALES.map((k) => ({ op: 'concat', price: k, limited: true })),
     );
+    expect(searches.map((x) => x.scale)).toEqual(LINE_SEARCH_SCALES.map((k) => 30 / k));
     // 4 ‖ 7 saves an operation: found by a search, mixed at the real (slow) price.
     const plain = itemCost(withLine(null), 47);
     const line = itemCost(withLine(30), 47);
