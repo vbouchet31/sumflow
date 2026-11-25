@@ -32,7 +32,7 @@
 | Opération            | `concat` : A ‖ B = A × 10^(chiffres de \|B\|) + signe(A) × \|B\|. B = 0 donne 10 × A ; A = 0 donne \|B\| (décidé, Q5) ; signe de A gardé, signe de B ignoré (décidé, Q4) ; saturé à [INT_MIN ; INT_MAX] ; une sortie `O` ; non commutative |
 | Empreinte et ports   | 2×2 pivotable : A en haut à gauche, B en bas à gauche, `O` sur la colonne de droite (« A puis B ») (à trancher, Q9)                                                                                                                        |
 | Piste d'amélioration | multiplicateur (décidé, Q6)                                                                                                                                                                                                                |
-| Vitesse de base      | × 1 (à trancher, Q7)                                                                                                                                                                                                                       |
+| Vitesse de base      | × 1 (décidé, Q7)                                                                                                                                                                                                                           |
 | Dessin               | craie sarcelle, symbole ‖                                                                                                                                                                                                                  |
 
 ## 4. Éditions
@@ -67,6 +67,7 @@ Aucun (les 3 critères standard, niveau repère 15).
 - 2026-11-25, **Q4** : le signe de B est ignoré (4 ‖ −7 = 47), celui de A est gardé (−4 ‖ 7 = −47). Le jeu suit la règle « un opérateur produit toujours un résultat » (÷ 0 et ^ négatif aussi). |INT_MIN| est ramené à INT_MAX avant le calcul, puis le résultat est saturé.
 - 2026-11-25, **Q5** : A = 0 sort |B| (0 ‖ 7 = 0 ‖ −7 = 7 ; 0 ‖ 0 = 0). Règle écrite à part, la formule donnant 0 avec signe(0) = 0. Effet de bord accepté : une machine à valeur absolue, sans effet sur la simulation (le modèle ne fabrique pas de négatifs).
 - 2026-11-25, **Q6** : piste du multiplicateur (`track: 'multiplier'`). Déjà active (× est un prérequis), cohérente (A ‖ B ≈ A × 10^k + B), sans nouvelle ligne d'interface ni nouveau calendrier dans le modèle.
+- 2026-11-25, **Q7** : vitesse de base × 1. La vitesse se règle par le seul bouton `speed` du régleur, au lieu d'empiler une constante et un bouton ; le régleur peut descendre à 0,3.
 
 Questions ouvertes, la plus importante en premier :
 
@@ -76,7 +77,7 @@ Questions ouvertes, la plus importante en premier :
 4. ~~B négatif~~ : tranché.
 5. ~~A = 0~~ : tranché.
 6. ~~Piste~~ : tranché.
-7. Vitesse de base × 1 ou × 0,75 ?
+7. ~~Vitesse de base~~ : tranché.
 8. Un effet propre pour la légendaire (par exemple autoriser les zéros de tête) ou rien ?
 9. Empreinte « A puis B » ou celle du + à l'identique ?
 10. Niveau minimum 8, et baisse du poids en fin de partie ?
