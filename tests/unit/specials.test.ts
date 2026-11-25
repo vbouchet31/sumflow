@@ -5,7 +5,14 @@ import { applyMove, planMove } from '../../src/build/move';
 import { applyBuildingPlan, demolishAt, planOperator } from '../../src/build/placement';
 import { ToolController } from '../../src/build/tools';
 import { operatorSpeed } from '../../src/config/balance';
-import { BUILDINGS, SPECIAL_BUILDINGS, SPECIAL_TYPES } from '../../src/config/buildings';
+import {
+  BUILDINGS,
+  operationOf,
+  SPECIAL_BUILDINGS,
+  SPECIAL_TYPES,
+  trackOf,
+} from '../../src/config/buildings';
+import { OPERATIONS } from '../../src/config/operations';
 import { CARDS } from '../../src/config/cards';
 import { SaveError, validateSave } from '../../src/save/schema';
 import { deserialize, serialize, stateHash } from '../../src/save/serialize';
@@ -53,20 +60,28 @@ function specials(world: World) {
 }
 
 describe('special building: catalogue and behaviour', () => {
-  it('is a placeholder, has the footprint and ports of what it imitates, and a card', () => {
+  it('is a placeholder, has its footprint, performs an operation and has a card', () => {
     for (const type of SPECIAL_TYPES) {
       const def = SPECIAL_BUILDINGS[type];
       expect(def.placeholder).toBe(true);
-      expect(BUILDINGS[type]).toEqual(BUILDINGS[def.like]);
+      expect(BUILDINGS[type]).toBe(def.footprint);
+      expect(OPERATIONS[def.op]).toBeDefined();
       expect(CARDS.some((c) => c.effect.kind === 'special' && c.effect.building === type)).toBe(
         true,
       );
     }
   });
 
+  it('the ancient adder performs the add operation, with the adder footprint and track', () => {
+    expect(SPECIAL_BUILDINGS.ancientAdder.op).toBe('add');
+    expect(operationOf('ancientAdder')).toBe(OPERATIONS.add);
+    expect(trackOf('ancientAdder')).toBe('adder');
+    expect(BUILDINGS.ancientAdder).toEqual(BUILDINGS.adder);
+  });
+
   it('computes A + B, at the adder track speed times its edition', () => {
     const s = setup();
-    expect(compute('ancientAdder', 4, 7)).toEqual({ o: 11 });
+    expect(compute('ancientAdder', 4, 7)).toEqual({ O: 11 });
     s.world.state.upgrades.adder = 3;
     const base = 1 / operatorSpeed('adder', 3);
     expect(cycleDuration(s.world, { type: 'ancientAdder' })).toBeCloseTo(base, 10);

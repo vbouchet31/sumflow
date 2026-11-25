@@ -38,7 +38,7 @@ export function cardArt(icon: string, edition: Edition, value?: number): CardArt
     case 'building':
       return isIconTool(name) ? { kind: 'building', tool: name, edition } : { kind: 'unknown' };
     case 'special':
-      // Its own picture: the building it imitates, with the ornament of a special one.
+      // Its own picture: its footprint and operation symbol, with the ornament of a special one.
       return isSpecial(name) ? { kind: 'building', tool: name, edition } : { kind: 'unknown' };
     case 'edition':
       return name === 'brillante' || name === 'legendaire'

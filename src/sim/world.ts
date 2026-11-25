@@ -1,4 +1,4 @@
-import { BUILDINGS, type BuildingType, isSpecial } from '../config/buildings';
+import { BUILDINGS, type BuildingType, isSpecial, operationOf } from '../config/buildings';
 import {
   EDITION_RULES,
   type EditionRules,
@@ -18,8 +18,8 @@ import {
   buildingSize,
   footprintTiles,
   isOperator,
-  baseOperator,
   localPortFaces,
+  OUTPUT_BUFFER,
   type PortFace,
   portFaces,
   portKey,
@@ -595,12 +595,7 @@ export class World {
       b.inA = [];
       b.inB = [];
       b.cycle = -1;
-      if (baseOperator(s.type) === 'divider') {
-        b.outQ = [];
-        b.outR = [];
-      } else {
-        b.out = [];
-      }
+      for (const port of operationOf(s.type).outputs) b[OUTPUT_BUFFER[port]] = [];
     }
     return b;
   }

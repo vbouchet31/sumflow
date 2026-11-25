@@ -1,5 +1,11 @@
 import type { ToolController, ToolId } from '../build/tools';
-import { isSpecial, SPECIAL_TYPES, type SpecialType } from '../config/buildings';
+import {
+  type BaseOperatorType,
+  isSpecial,
+  operationOf,
+  SPECIAL_TYPES,
+  type SpecialType,
+} from '../config/buildings';
 import { type Edition, SPECIAL_EDITIONS } from '../config/cards';
 import { TOOL_CODES } from '../config/keymap';
 import type { Rot } from '../core/grid';
@@ -32,6 +38,11 @@ function digitOf(tool: ToolId): string | undefined {
   return code?.replace('Digit', '');
 }
 
+/** An ordinary operator's tool, with the symbol of its operation as glyph. */
+function operatorButton(tool: BaseOperatorType, label: MessageKey, key: string): ToolButton {
+  return { tool, label, key, icon: operationOf(tool).symbol };
+}
+
 /** One tool per special building type, after the ordinary buildings (PLAN-recompenses §4.5). */
 const SPECIAL_BUTTONS: readonly ToolButton[] = SPECIAL_TYPES.map((type) => {
   const key = digitOf(type);
@@ -43,11 +54,11 @@ const SPECIAL_BUTTONS: readonly ToolButton[] = SPECIAL_TYPES.map((type) => {
 const BUTTONS: readonly ToolButton[] = [
   { tool: 'belt', label: 'tool.belt', key: '1', icon: '»' },
   { tool: 'extractor', label: 'tool.extractor', key: '2', icon: '▣' },
-  { tool: 'adder', label: 'tool.adder', key: '3', icon: '+' },
-  { tool: 'multiplier', label: 'tool.multiplier', key: '4', icon: '×' },
-  { tool: 'subtractor', label: 'tool.subtractor', key: '5', icon: '−' },
-  { tool: 'divider', label: 'tool.divider', key: '6', icon: '÷' },
-  { tool: 'exponent', label: 'tool.exponent', key: '7', icon: '^' },
+  operatorButton('adder', 'tool.adder', '3'),
+  operatorButton('multiplier', 'tool.multiplier', '4'),
+  operatorButton('subtractor', 'tool.subtractor', '5'),
+  operatorButton('divider', 'tool.divider', '6'),
+  operatorButton('exponent', 'tool.exponent', '7'),
   { tool: 'storage', label: 'tool.storage', key: '8', icon: '▦' },
   { tool: 'bridge', label: 'tool.bridge', key: '9', icon: '≡' },
   ...SPECIAL_BUTTONS,

@@ -43,6 +43,14 @@ Branche `claude/hub-objectives-reward-choices-kdavx9`. **Phase 1 terminée** (mo
 | Phase 2 Premiers objets, simulateur de tirage | ⏳ à faire |
 | Phase 3 Simulateur de rythme, équilibrage     | ⏳ à faire |
 
+## Objets répétables (PLAN-objets.md)
+
+| Étape                                 | État       |
+| ------------------------------------- | ---------- |
+| 2a Outillage (registre, sim, régleur) | ✅ terminé |
+| 2b Pilote : Concaténateur             | ⏳ à faire |
+| 2c Retour d'expérience                | ⏳ à faire |
+
 ## Direction artistique « Tableau noir »
 
 - [x] Palette ardoise et craie (canvas et variables CSS), cadres en bois, polices manuscrites embarquées.

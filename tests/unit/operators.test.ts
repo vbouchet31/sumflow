@@ -27,26 +27,26 @@ function adderToHub(world: World): number {
 
 describe('operator results', () => {
   it('computes each operation with A/B order', () => {
-    expect(compute('adder', 3, 4)).toEqual({ o: 7 });
-    expect(compute('multiplier', 3, 4)).toEqual({ o: 12 });
-    expect(compute('subtractor', 3, 4)).toEqual({ o: -1 });
-    expect(compute('subtractor', 4, 3)).toEqual({ o: 1 });
-    expect(compute('exponent', 2, 5)).toEqual({ o: 32 });
-    expect(compute('exponent', 5, 2)).toEqual({ o: 25 });
-    expect(compute('exponent', 0, 0)).toEqual({ o: 1 });
-    expect(compute('exponent', -2, 3)).toEqual({ o: -8 });
+    expect(compute('adder', 3, 4)).toEqual({ O: 7 });
+    expect(compute('multiplier', 3, 4)).toEqual({ O: 12 });
+    expect(compute('subtractor', 3, 4)).toEqual({ O: -1 });
+    expect(compute('subtractor', 4, 3)).toEqual({ O: 1 });
+    expect(compute('exponent', 2, 5)).toEqual({ O: 32 });
+    expect(compute('exponent', 5, 2)).toEqual({ O: 25 });
+    expect(compute('exponent', 0, 0)).toEqual({ O: 1 });
+    expect(compute('exponent', -2, 3)).toEqual({ O: -8 });
   });
 
   it('saturates', () => {
-    expect(compute('multiplier', 100_000, 100_000)).toEqual({ o: INT_MAX });
-    expect(compute('adder', INT_MAX, 1)).toEqual({ o: INT_MAX });
+    expect(compute('multiplier', 100_000, 100_000)).toEqual({ O: INT_MAX });
+    expect(compute('adder', INT_MAX, 1)).toEqual({ O: INT_MAX });
   });
 
   it('divider: R only when non-zero, b = 0, negatives', () => {
-    expect(compute('divider', 17, 5)).toEqual({ q: 3, r: 2 });
-    expect(compute('divider', 20, 5)).toEqual({ q: 4 });
-    expect(compute('divider', 9, 0)).toEqual({ q: 0, r: 9 });
-    expect(compute('divider', -17, 5)).toEqual({ q: -3, r: -2 });
+    expect(compute('divider', 17, 5)).toEqual({ Q: 3, R: 2 });
+    expect(compute('divider', 20, 5)).toEqual({ Q: 4 });
+    expect(compute('divider', 9, 0)).toEqual({ Q: 0, R: 9 });
+    expect(compute('divider', -17, 5)).toEqual({ Q: -3, R: -2 });
   });
 });
 

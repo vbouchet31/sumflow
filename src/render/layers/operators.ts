@@ -1,4 +1,4 @@
-import { BUILDINGS, isSpecial } from '../../config/buildings';
+import { BUILDINGS, isSpecial, operationOf } from '../../config/buildings';
 import { BUILDING_COLORS, CHALK, COLORS, FONT_NUM, SPECIAL_ORNAMENT } from '../../config/colors';
 import { DX, DY, type Rot, transformLocal } from '../../core/grid';
 import { buildingSize, type OperatorType, portFaces } from '../../sim/entities';
@@ -7,15 +7,6 @@ import type { Camera } from '../camera';
 import { chalkSquare, sketchRect, shade, tileSeed } from '../chalk';
 import { editionFrame, type ScreenTile } from '../editions';
 import { LOD } from '../lod';
-
-export const OPERATOR_SYMBOL: Record<OperatorType, string> = {
-  adder: '+',
-  multiplier: '×',
-  subtractor: '−',
-  divider: '÷',
-  exponent: '^',
-  ancientAdder: '+',
-};
 
 export interface OperatorDrawOptions {
   alpha?: number;
@@ -140,7 +131,7 @@ export function drawOperator(
     }
     ctx.fillStyle = COLORS.text;
     ctx.font = `700 ${0.62 * s}px ${FONT_NUM}`;
-    ctx.fillText(OPERATOR_SYMBOL[type], center.x, center.y + 0.04 * s);
+    ctx.fillText(operationOf(type).symbol, center.x, center.y + 0.04 * s);
   }
 
   if (opts.flash && opts.flash > 0) {
