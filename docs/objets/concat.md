@@ -27,13 +27,13 @@
 
 ## 3. Bâtiment
 
-| Champ                | Valeur                                                                                                                                                                                                                             |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Opération            | `concat` : A ‖ B = A × 10^(chiffres de \|B\|) + signe(A) × \|B\|. B = 0 donne 10 × A ; A = 0 donne \|B\| (Q5) ; signe de A gardé, signe de B ignoré (décidé, Q4) ; saturé à [INT_MIN ; INT_MAX] ; une sortie `O` ; non commutative |
-| Empreinte et ports   | 2×2 pivotable : A en haut à gauche, B en bas à gauche, `O` sur la colonne de droite (« A puis B ») (à trancher, Q9)                                                                                                                |
-| Piste d'amélioration | multiplicateur (à trancher, Q6)                                                                                                                                                                                                    |
-| Vitesse de base      | × 1 (à trancher, Q7)                                                                                                                                                                                                               |
-| Dessin               | craie sarcelle, symbole ‖                                                                                                                                                                                                          |
+| Champ                | Valeur                                                                                                                                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Opération            | `concat` : A ‖ B = A × 10^(chiffres de \|B\|) + signe(A) × \|B\|. B = 0 donne 10 × A ; A = 0 donne \|B\| (décidé, Q5) ; signe de A gardé, signe de B ignoré (décidé, Q4) ; saturé à [INT_MIN ; INT_MAX] ; une sortie `O` ; non commutative |
+| Empreinte et ports   | 2×2 pivotable : A en haut à gauche, B en bas à gauche, `O` sur la colonne de droite (« A puis B ») (à trancher, Q9)                                                                                                                        |
+| Piste d'amélioration | multiplicateur (à trancher, Q6)                                                                                                                                                                                                            |
+| Vitesse de base      | × 1 (à trancher, Q7)                                                                                                                                                                                                                       |
+| Dessin               | craie sarcelle, symbole ‖                                                                                                                                                                                                                  |
 
 ## 4. Éditions
 
@@ -65,6 +65,7 @@ Aucun (les 3 critères standard, niveau repère 15).
 - 2026-11-25, **Q2** : 1 exemplaire par carte, reprise possible. Dosage fin (chaque reprise ajoute environ 1/7 de débit au niveau 8), marge laissée au régleur (poids, vitesse), chaque carte a sa propre édition d'origine.
 - 2026-11-25, **Q3** : Atelier. Il est proposé à côté du fil rouge (presque toujours dans Nombres entre les niveaux 8 et 19) : le prendre ne retarde pas la progression, et il croise des cartes plus légères que le fil rouge (poids au moins 50), donc il reste visible.
 - 2026-11-25, **Q4** : le signe de B est ignoré (4 ‖ −7 = 47), celui de A est gardé (−4 ‖ 7 = −47). Le jeu suit la règle « un opérateur produit toujours un résultat » (÷ 0 et ^ négatif aussi). |INT_MIN| est ramené à INT_MAX avant le calcul, puis le résultat est saturé.
+- 2026-11-25, **Q5** : A = 0 sort |B| (0 ‖ 7 = 0 ‖ −7 = 7 ; 0 ‖ 0 = 0). Règle écrite à part, la formule donnant 0 avec signe(0) = 0. Effet de bord accepté : une machine à valeur absolue, sans effet sur la simulation (le modèle ne fabrique pas de négatifs).
 
 Questions ouvertes, la plus importante en premier :
 
@@ -72,7 +73,7 @@ Questions ouvertes, la plus importante en premier :
 2. ~~1 ou 2 exemplaires~~ : tranché.
 3. ~~Atelier ou Nombres~~ : tranché.
 4. ~~B négatif~~ : tranché.
-5. A = 0 : sortir |B| ou ne rien sortir ?
+5. ~~A = 0~~ : tranché.
 6. Piste du multiplicateur ou piste dédiée ?
 7. Vitesse de base × 1 ou × 0,75 ?
 8. Un effet propre pour la légendaire (par exemple autoriser les zéros de tête) ou rien ?
