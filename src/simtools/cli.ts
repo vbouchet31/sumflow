@@ -24,7 +24,7 @@ import {
 import { CostCache } from './cost';
 import { defaultWorkers, WorkerPool } from './pool';
 import { playGame } from './game';
-import { bandStats, jsonReport, markdownReport } from './report';
+import { bandStats, jsonReport, markdownReport, objectNotes } from './report';
 import {
   defaultStrategies,
   drawableCards,
@@ -329,12 +329,16 @@ export function conclusion(r: TuneResult, card: string): string {
   const regressions = r.regressions.map((c) => `\`${c}\``).join(', ');
   const tail =
     'Rien n’est écrit : c’est à l’auteur et à l’agent de revoir l’objet (effet, bornes, critères de sa fiche).';
+  const target = r.control.after.evals.find((e) => e.card === card);
+  const why = target ? objectNotes(target, r.control.after.result) : [];
+  const notes = why.length > 0 ? ['', 'Notes du rapport :', ...why.map((n) => `- ${n}.`)] : [];
   switch (r.outcome) {
     case 'no-solution':
       return [
         `**Aucune valeur dans les bornes ne respecte les critères.** Meilleure valeur trouvée : ${best} (écart ${r.best.distance.toFixed(3)}).`,
         '',
         ...failingLines(r.bestEvaluation, 'de réglage'),
+        ...notes,
         '',
         tail,
       ].join('\n');
@@ -342,10 +346,8 @@ export function conclusion(r: TuneResult, card: string): string {
       return [
         `**Les valeurs trouvées (${best}) ne tiennent pas sur les graines de contrôle** (surapprentissage).`,
         '',
-        ...failingLines(
-          r.control.after.evals.find((e) => e.card === card),
-          'de contrôle',
-        ),
+        ...failingLines(target, 'de contrôle'),
+        ...notes,
         '',
         tail,
       ].join('\n');

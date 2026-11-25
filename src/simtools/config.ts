@@ -35,12 +35,17 @@ export const TUNER = {
  * one item takes when the factory works on the level target only:
  *
  * - an ordinary operation costs `1 / (opsPerSecond × (G + E))`, where `G` is the generic
- *   capacity (`factory`) plus the edition cards, and `E` the limited buildings performing
- *   the same operation (their copies, counted in buildings of the ordinary speed);
+ *   capacity (`factory`) plus the edition cards (each free card adds the speed gain of the
+ *   best operator edition, e.g. 0.5 building for a légendaire), and `E` the limited
+ *   buildings performing the same operation (their copies, in buildings of ordinary speed);
  * - an operation only limited buildings perform costs `1 / (copies × opsPerSecond)`: their
  *   throughput is the cap `copies × speed / uses per item` of §3.2;
  * - a raw item of value v costs `raw.weight × (1 + raw.valuePenalty × (v − 1)) /
- *   (extractor rate × G)` (higher values lie farther from the hub).
+ *   (extractor rate × G)` (higher values lie farther from the hub); the extractor rate is
+ *   capacity × belt speed at the scheduled upgrade levels.
+ *
+ * Speeds come from `config/balance.ts` (`operatorSpeed` per track and upgrade level), the
+ * passives (`PASSIVE_EFFECTS`), the editions (`EDITION_EFFECTS`) and the tuned `speed` knob.
  */
 export const COST = {
   /**
@@ -67,13 +72,15 @@ export const BAND_SIZE = 10;
 
 /** Thresholds of the three criteria of §4. */
 export interface CriteriaThresholds {
-  /** 1. Not essential: index under `below` for more than `maxRun` levels in a row… */
-  essential: {
-    below: number;
-    maxRun: number;
-    /** …in at most 1 − `games` of the games. */ games: number;
-  };
-  /** 2. Not useless: index under `below` on at least `levels` of the levels after the first pick (median). */
+  /**
+   * 1. Not essential: at least `games` of the games never stay more than `maxRun` levels in
+   * a row with an index under `below`.
+   */
+  essential: { below: number; maxRun: number; games: number };
+  /**
+   * 2. Not useless: the median over the games of the share of the levels after the first
+   * pick with an index under `below` is at least `levels`.
+   */
   useful: { below: number; levels: number };
   /** 3. Visible: offered at least once before the benchmark level in `min` to `max` of the games. */
   visible: { min: number; max: number };

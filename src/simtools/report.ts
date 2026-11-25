@@ -10,6 +10,7 @@ import {
   median,
   type ObjectEvaluation,
   quantile,
+  thresholdsOf,
 } from './criteria';
 import type { RunResult, StrategyRun } from './run';
 
@@ -89,20 +90,35 @@ export function objectNotes(e: ObjectEvaluation, result: RunResult): string[] {
   const notes: string[] = [];
   if (e.placeholder) notes.push('objet factice : hors critères, signalé à part');
   if (e.unmodelled) notes.push(`critère 2 sans objet : ${e.unmodelled}`);
-  if (e.naturalLevel !== null)
+  const run = result.runs.get(`object:${e.card}`);
+  const after = run ? indexAfterPick(run, e.card) : null;
+  const useful = e.criteria.useful;
+  if (e.naturalLevel !== null) {
     notes.push(
-      `fil rouge (niveau ${e.naturalLevel}) : la référence le prend aussi, l'indice ne mesure que l'avance prise`,
+      `fil rouge (niveau ${e.naturalLevel}) : la référence le prend aussi ; une fois qu’elle l’a, les deux parties ont les mêmes outils et l’indice revient à 1, le critère 2 ne mesure donc que l’avance prise`,
     );
+  } else if (after !== null && useful.status === 'fail' && after > 1) {
+    notes.push(
+      `le prendre dès qu’il est offert retarde le fil rouge plus qu’il ne rapporte dans le modèle (indice médian ${fmt(after)} après la 1re prise)`,
+    );
+  } else if (after !== null && useful.status === 'fail') {
+    notes.push(
+      `effet faible ou nul dans le modèle : indice médian ${fmt(after)} après la 1re prise (1 = la référence)`,
+    );
+  } else if (after !== null && useful.status === 'pass' && after > 0.97) {
+    notes.push(
+      `utile mais de peu : indice médian ${fmt(after)} après la 1re prise (le critère 2 demande seulement un indice sous ${thresholdsOf(e.card).useful.below})`,
+    );
+  }
   for (const k of CRITERION_IDS) {
     const c = e.criteria[k];
     if (c.note && !(k === 'useful' && e.unmodelled))
       notes.push(`critère ${CRITERION_IDS.indexOf(k) + 1} : ${c.note}`);
   }
-  const run = result.runs.get(`object:${e.card}`);
-  const after = run ? indexAfterPick(run, e.card) : null;
-  if (after !== null && e.criteria.useful.status === 'fail' && after > 0.95 && after <= 1)
+  const visible = e.criteria.visible;
+  if (visible.status === 'fail')
     notes.push(
-      `effet faible dans le modèle : indice médian ${fmt(after)} après la 1re prise (1 = la référence)`,
+      `critère 3 : offert ${visible.value > 0.5 ? 'trop souvent' : 'trop rarement'} avant le niveau ${e.benchmark} (le bouton \`weightScale\` agit sur ce critère)`,
     );
   return notes;
 }

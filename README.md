@@ -88,6 +88,26 @@ npm run dev
 | `npm run format`              | Formate le code avec Prettier                                                         |
 | `npm run typecheck`           | `tsc --noEmit`                                                                        |
 | `npm run bench`               | Bench de la simulation : scénario de référence, échoue au-delà de 4 ms par tick       |
+| `npm run sim`                 | Simulateur d'équilibre : parties simulées, rapport des critères (voir plus bas)       |
+| `npm run tune -- <id>`        | Régleur d'un objet : propose des valeurs ; `--apply` les écrit dans `tuning.json`     |
+
+## Simulateur et régleur
+
+Outils d'équilibrage des objets ([`PLAN-objets.md`](PLAN-objets.md) §3 à §5, choix dans [`docs/DECISIONS.md`](docs/DECISIONS.md)). Ils rejouent les vrais tirages d'offres, sans usine : un modèle de coût donne le temps de chaque niveau. Le code est dans `src/simtools/`, lancé par `scripts/run-ts.mjs` (module runner de Vite, aucune dépendance en plus).
+
+```bash
+npm run sim                                   # 30 graines × 17 stratégies, niveaux 1 à 60
+npm run sim -- --seeds 50 --seed-offset 1000  # autres graines
+npm run sim -- --object ancient-adder         # un seul objet (plus natural, random, new, minimal)
+npm run sim -- --strategies natural,object:mult --max-level 30
+npm run tune -- edition-legendaire            # propose, n'écrit rien
+npm run tune -- edition-legendaire --apply    # écrit src/config/tuning.json (si les critères passent)
+```
+
+- **Sortie** : un rapport Markdown dans le terminal (indices par tranche de niveaux, apparitions, prises, verdict des 3 critères par objet), un JSON détaillé dans `sim-reports/` (ignoré par git). `--json FICHIER` le place ailleurs, `--no-json` ne l'écrit pas.
+- **Options communes** : `--seeds`, `--seed-offset`, `--max-level`, `--workers` (fils d'exécution, par défaut les cœurs ; `1` sans fil, même résultat). Régleur : `--control-offset` (graines de contrôle), `--apply`, `--accept-regressions`. `--help` les liste.
+- **Code de sortie du régleur** : 0 si les valeurs actuelles ou proposées respectent les critères ; 1 sinon (aucune valeur dans les bornes, échec sur les graines de contrôle ou régression d'un autre objet) : rien n'est alors écrit ; 2 pour une commande mal formée.
+- **Durée** sur 4 cœurs : `npm run sim` environ 15 s ; `npm run tune` 30 s à 1 min 30 selon le nombre de boutons.
 
 ## Performances
 

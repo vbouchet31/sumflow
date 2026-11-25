@@ -86,17 +86,22 @@ export async function coordinateSearch(
   const ids = KNOB_IDS.filter((k) => knobs[k]);
   const memo = new Map<string, Scored>();
   const tried: Scored[] = [];
+  let best: Scored = { values: start, distance: Infinity, deviation: 0 };
   const score = async (values: KnobValues): Promise<Scored> => {
     const key = ids.map((k) => `${k}=${values[k]}`).join(',');
     const hit = memo.get(key);
     if (hit) return hit;
+    // Once every criterion passes, only a point closer to the start can win: skip the others
+    // without playing them (they are not recorded as tried).
+    const dev = deviation(values, start);
+    if (best.distance === 0 && dev >= best.deviation - 1e-12) return best;
     const d = await distance(values);
-    const s: Scored = { values, distance: d, deviation: deviation(values, start) };
+    const s: Scored = { values, distance: d, deviation: dev };
     memo.set(key, s);
     tried.push(s);
     return s;
   };
-  let best = await score({ ...start });
+  best = await score({ ...start });
   // Nothing beats the start once it satisfies every criterion (the tie-breaker is the
   // distance to the start).
   if (best.distance === 0) return { best, tried };
