@@ -1,4 +1,6 @@
 import type { Dir } from '../core/grid';
+import type { Track } from './balance';
+import { type OperationDef, type OperationId, OPERATIONS } from './operations';
 
 /** Operators placed without limit once unlocked. */
 export type BaseOperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider' | 'exponent';
@@ -10,26 +12,11 @@ export type BaseOperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider'
  */
 export type SpecialType = 'ancientAdder';
 
+/** Buildings that compute: the ordinary operators and the special buildings. */
+export type OperatorType = BaseOperatorType | SpecialType;
+
 /** Building kinds that occupy tiles (belts and bridges are handled separately). */
 export type BuildingType = 'hub' | 'extractor' | BaseOperatorType | 'storage' | SpecialType;
-
-export interface SpecialDef {
-  /** The ordinary operator it behaves like: same computation and upgrade track. */
-  like: BaseOperatorType;
-  /** Placeholder object of phase 1 (PLAN-recompenses §5.3). */
-  placeholder?: boolean;
-}
-
-/** Special buildings, in build bar order. */
-export const SPECIAL_BUILDINGS: Readonly<Record<SpecialType, SpecialDef>> = {
-  ancientAdder: { like: 'adder', placeholder: true },
-};
-
-export const SPECIAL_TYPES = Object.keys(SPECIAL_BUILDINGS) as SpecialType[];
-
-export function isSpecial(type: string): type is SpecialType {
-  return Object.hasOwn(SPECIAL_BUILDINGS, type);
-}
 
 /** Role of a footprint tile (PLAN §6.1). `any` ports follow the building's `anyRole`. */
 export type PortRole = 'A' | 'B' | 'O' | 'Q' | 'R' | 'any' | 'body';
@@ -66,7 +53,7 @@ const E = 1;
 const S = 2;
 const W = 3;
 
-/** Footprints in rotation 0 (PLAN §6.3). Special buildings take the footprint they imitate. */
+/** Footprints of the ordinary buildings in rotation 0 (PLAN §6.3). */
 const ORDINARY: Record<Exclude<BuildingType, SpecialType>, BuildingDef> = {
   hub: { w: 6, h: 6, tiles: block(6), anyRole: 'input', rotatable: false },
   extractor: { w: 3, h: 3, tiles: block(3), anyRole: 'output', rotatable: false },
@@ -125,9 +112,73 @@ const ORDINARY: Record<Exclude<BuildingType, SpecialType>, BuildingDef> = {
   },
 };
 
+/**
+ * What a computing building performs (PLAN-objets §2): an operation of the registry, sped up
+ * by an upgrade track. Its footprint's A, B and output ports must match the operation's.
+ */
+export interface OperatorDef {
+  op: OperationId;
+  /** Upgrade track setting its speed; absent = the operation's own track. */
+  track?: Track;
+}
+
+/** Operation of each ordinary operator. */
+export const OPERATOR_BUILDINGS: Readonly<Record<BaseOperatorType, OperatorDef>> = {
+  adder: { op: 'add' },
+  multiplier: { op: 'mul' },
+  subtractor: { op: 'sub' },
+  divider: { op: 'div' },
+  exponent: { op: 'pow' },
+};
+
+export interface SpecialDef extends OperatorDef {
+  /** Footprint and ports in rotation 0 (an ordinary one may be reused as is). */
+  footprint: BuildingDef;
+  /** Placeholder object of phase 1 (PLAN-recompenses §5.3). */
+  placeholder?: boolean;
+}
+
+/**
+ * Special buildings, in build bar order. A new one may bring a new operation: add it to
+ * `config/operations.ts`, then declare the building here with its own footprint.
+ */
+export const SPECIAL_BUILDINGS: Readonly<Record<SpecialType, SpecialDef>> = {
+  ancientAdder: { op: 'add', footprint: ORDINARY.adder, placeholder: true },
+};
+
+export const SPECIAL_TYPES = Object.keys(SPECIAL_BUILDINGS) as SpecialType[];
+
+export function isSpecial(type: string): type is SpecialType {
+  return Object.hasOwn(SPECIAL_BUILDINGS, type);
+}
+
 export const BUILDINGS: Readonly<Record<BuildingType, BuildingDef>> = {
   ...ORDINARY,
-  ...(Object.fromEntries(
-    SPECIAL_TYPES.map((t) => [t, ORDINARY[SPECIAL_BUILDINGS[t].like]]),
-  ) as Record<SpecialType, BuildingDef>),
+  ...(Object.fromEntries(SPECIAL_TYPES.map((t) => [t, SPECIAL_BUILDINGS[t].footprint])) as Record<
+    SpecialType,
+    BuildingDef
+  >),
 };
+
+/** Operation and track of every computing building, resolved once (read on every cycle). */
+interface ResolvedOperator {
+  operation: OperationDef;
+  track: Track;
+}
+
+const RESOLVED = Object.fromEntries(
+  Object.entries<OperatorDef>({ ...OPERATOR_BUILDINGS, ...SPECIAL_BUILDINGS }).map(([t, d]) => {
+    const operation = OPERATIONS[d.op];
+    return [t, { operation, track: d.track ?? operation.track }];
+  }),
+) as Record<OperatorType, ResolvedOperator>;
+
+/** The operation `type` performs (ordinary operator or special building). */
+export function operationOf(type: OperatorType): OperationDef {
+  return RESOLVED[type].operation;
+}
+
+/** The upgrade track setting the speed of `type`. */
+export function trackOf(type: OperatorType): Track {
+  return RESOLVED[type].track;
+}

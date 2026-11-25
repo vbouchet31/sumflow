@@ -2,16 +2,24 @@ import { formatFull } from '../core/format';
 import { key } from '../core/grid';
 import { getLocale, t } from '../i18n';
 import { beltStatus, storageCapacity } from '../sim/belts';
-import type { Building } from '../sim/entities';
+import { type Building, OUTPUT_BUFFER } from '../sim/entities';
 import { extractorRate } from '../sim/extractor';
 import { editionEffect } from '../sim/inventory';
 import { connectedOutputs } from '../sim/outputs';
 import { isOperator } from '../sim/entities';
 import { cycleDuration, passiveSpeed } from '../sim/operators';
-import { isSpecial } from '../config/buildings';
+import { isSpecial, operationOf } from '../config/buildings';
+import type { OutputPort } from '../config/operations';
 import { type MessageKey } from '../i18n';
 import type { World } from '../sim/world';
 import { isExtractable } from '../world/deposits';
+
+/** Tooltip line of each output buffer of an operator. */
+const OUTPUT_TIP: Readonly<Record<OutputPort, MessageKey>> = {
+  O: 'tip.bufOut',
+  Q: 'tip.bufQ',
+  R: 'tip.bufR',
+};
 
 /** Lines describing what is at tile `(x, y)` (PLAN §9.1, bottom left). Empty if nothing. */
 export function describeTile(world: World, x: number, y: number): string[] {
@@ -92,10 +100,8 @@ function describeObject(world: World, x: number, y: number): string[] {
     const dur = cycleDuration(world, { type: b.type, edition: b.edition });
     const lines = [t(`tool.${b.type}` as MessageKey)];
     lines.push(t('tip.bufA', { items: list(b.inA) }), t('tip.bufB', { items: list(b.inB) }));
-    if (b.type === 'divider') {
-      lines.push(t('tip.bufQ', { items: list(b.outQ) }), t('tip.bufR', { items: list(b.outR) }));
-    } else {
-      lines.push(t('tip.bufOut', { items: list(b.out) }));
+    for (const port of operationOf(b.type).outputs) {
+      lines.push(t(OUTPUT_TIP[port], { items: list(b[OUTPUT_BUFFER[port]]) }));
     }
     const cycle = b.cycle ?? -1;
     lines.push(

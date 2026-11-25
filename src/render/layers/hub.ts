@@ -1,8 +1,10 @@
 import { HUB } from '../../config/balance';
+import { operationOf } from '../../config/buildings';
 import { BUILDING_COLORS, COLORS, FONT_NUM, FONT_UI, HUB_COLORS } from '../../config/colors';
 import { formatCompact } from '../../core/format';
 import { t } from '../../i18n';
 import { fixedReward, type NaturalStep, offerSlots } from '../../sim/offers';
+import { isOperator } from '../../sim/entities';
 import { cardDef, offerContext } from '../../sim/rewards';
 import type { GameState } from '../../sim/state';
 import type { Camera } from '../camera';
@@ -10,21 +12,15 @@ import { LOD } from '../lod';
 import { drawCardFan } from '../cardArt';
 import { roundRect } from '../shapes';
 
-const OPERATOR_SYMBOLS: Partial<Record<string, string>> = {
-  adder: '+',
-  multiplier: '×',
-  subtractor: '−',
-  divider: '÷',
-  exponent: '^',
-};
-
 /** Glyph and colour of the icon of a fixed reward (levels 1 and 2) drawn on the hub. */
 export function rewardIcon(step: NaturalStep): { glyph: string; color: string } {
   const e = cardDef(step.card)?.effect;
   switch (e?.kind) {
     case 'unlock':
       return {
-        glyph: OPERATOR_SYMBOLS[e.building] ?? e.building.charAt(0).toUpperCase(),
+        glyph: isOperator(e.building)
+          ? operationOf(e.building).symbol
+          : e.building.charAt(0).toUpperCase(),
         color: BUILDING_COLORS[e.building],
       };
     case 'value':

@@ -1,4 +1,4 @@
-import { BUILDINGS, isSpecial } from '../config/buildings';
+import { BUILDINGS, isSpecial, operationOf } from '../config/buildings';
 import type { SpecialEdition } from '../config/cards';
 import {
   BELT_COLORS,
@@ -14,7 +14,7 @@ import { buildingSize, OPERATOR_TYPES, type OperatorType } from '../sim/entities
 import type { Camera } from './camera';
 import { chalkLine, chalkSquare, shade } from './chalk';
 import { editionFrame } from './editions';
-import { drawOperator, OPERATOR_SYMBOL } from './layers/operators';
+import { drawOperator } from './layers/operators';
 
 /** Tools drawn as a picture of what they build in the build bar (special buildings too). */
 export type IconTool = 'belt' | 'extractor' | OperatorType | 'storage' | 'bridge' | 'priority';
@@ -136,7 +136,7 @@ function drawOperatorIcon(
   }
   ctx.fillStyle = COLORS.text;
   ctx.font = `700 ${Math.max(11, 0.66 * s)}px ${FONT_NUM}`;
-  ctx.fillText(OPERATOR_SYMBOL[type], centre.x, centre.y + 1);
+  ctx.fillText(operationOf(type).symbol, centre.x, centre.y + 1);
 }
 
 /** Notches on the 12 outer faces of a 3 × 3 block, as on an extractor. */

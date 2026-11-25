@@ -1,43 +1,17 @@
-import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT, type Track } from '../config/balance';
+import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT } from '../config/balance';
 import { PASSIVE_EFFECTS, type SpecialEdition } from '../config/cards';
-import { add, divmod, mul, pow, sub } from '../core/intmath';
+import { operationOf, trackOf } from '../config/buildings';
+import type { OperationResult } from '../config/operations';
 import { EPS } from './belts';
-import { baseOperator, type Building, isOperator, type OperatorType } from './entities';
-import type { BaseOperatorType } from '../config/buildings';
+import { type Building, isOperator, type OperatorType, OUTPUT_BUFFER } from './entities';
 import { editionEffect } from './inventory';
 import { outputGroup, pushOut } from './outputs';
 import type { GameState } from './state';
 import type { World } from './world';
 
-/** Upgrade track driving each operator's speed (PLAN §7.3). Specials use their model's. */
-export const OPERATOR_TRACK: Record<BaseOperatorType, Track> = {
-  adder: 'adder',
-  multiplier: 'multiplier',
-  subtractor: 'subdiv',
-  divider: 'subdiv',
-  exponent: 'exponent',
-};
-
-/** Result(s) of one operation. The divider emits R only when non-zero (PLAN §6.3). */
-export function compute(
-  type: OperatorType,
-  a: number,
-  b: number,
-): { o?: number; q?: number; r?: number } {
-  switch (baseOperator(type)) {
-    case 'adder':
-      return { o: add(a, b) };
-    case 'multiplier':
-      return { o: mul(a, b) };
-    case 'subtractor':
-      return { o: sub(a, b) };
-    case 'exponent':
-      return { o: pow(a, b) };
-    case 'divider': {
-      const { q, r } = divmod(a, b);
-      return r === 0 ? { q } : { q, r };
-    }
-  }
+/** Result(s) of one cycle of `type`, from the operations registry (`config/operations.ts`). */
+export function compute(type: OperatorType, a: number, b: number): OperationResult {
+  return operationOf(type).compute(a, b);
 }
 
 /**
@@ -48,7 +22,7 @@ export function cycleDuration(
   world: World,
   b: { type: OperatorType; edition?: SpecialEdition | undefined },
 ): number {
-  const track = OPERATOR_TRACK[baseOperator(b.type)];
+  const track = trackOf(b.type);
   const speed = operatorSpeed(track, world.state.upgrades[track]) * passiveSpeed(world.state);
   return 1 / (speed * (editionEffect(b).speed ?? 1));
 }
@@ -64,22 +38,25 @@ function hasRoom(buf: number[] | undefined): boolean {
   return buf !== undefined && buf.length < OUTPUT_BUFFER_SIZE;
 }
 
-function canStart(b: Building): boolean {
+/** Both inputs hold an item and every output port of the operation has room. */
+function canStart(b: Building, type: OperatorType): boolean {
   if (!b.inA?.length || !b.inB?.length) return false;
-  if (isOperator(b.type) && baseOperator(b.type) === 'divider') {
-    return hasRoom(b.outQ) && hasRoom(b.outR);
+  for (const port of operationOf(type).outputs) {
+    if (!hasRoom(b[OUTPUT_BUFFER[port]])) return false;
   }
-  return hasRoom(b.out);
+  return true;
 }
 
 function finishCycle(world: World, b: Building, type: OperatorType): void {
   const a = b.inA?.shift();
   const c = b.inB?.shift();
   if (a === undefined || c === undefined) return;
-  const res = compute(type, a, c);
-  if (res.o !== undefined) b.out?.push(res.o);
-  if (res.q !== undefined) b.outQ?.push(res.q);
-  if (res.r !== undefined) b.outR?.push(res.r);
+  const op = operationOf(type);
+  const res = op.compute(a, c);
+  for (const port of op.outputs) {
+    const v = res[port];
+    if (v !== undefined) b[OUTPUT_BUFFER[port]]?.push(v);
+  }
   b.flashTick = world.state.tick;
 }
 
@@ -115,13 +92,13 @@ export function stepOperators(world: World): void {
     const type = b.type;
     let cycle = b.cycle ?? -1;
     if (cycle < 0) {
-      if (!canStart(b)) continue;
+      if (!canStart(b, type)) continue;
       cycle = cycleDuration(world, { type, edition: b.edition });
     }
     cycle -= TICK_DT;
     while (cycle <= EPS) {
       finishCycle(world, b, type);
-      if (!canStart(b)) {
+      if (!canStart(b, type)) {
         cycle = -1;
         break;
       }

@@ -2,13 +2,12 @@ import {
   type BaseOperatorType,
   BUILDINGS,
   type BuildingType,
-  isSpecial,
+  type OperatorType,
   type PortRole,
-  SPECIAL_BUILDINGS,
   SPECIAL_TYPES,
-  type SpecialType,
 } from '../config/buildings';
 import type { SpecialEdition } from '../config/cards';
+import type { OutputPort } from '../config/operations';
 import {
   type Dir,
   DX,
@@ -116,8 +115,13 @@ export interface Building {
   editionApplied?: boolean;
 }
 
-/** Buildings that compute: the ordinary operators and the special buildings imitating one. */
-export type OperatorType = BaseOperatorType | SpecialType;
+export type { OperatorType } from '../config/buildings';
+
+/** Field of `Building` holding the buffer of each output port. */
+export const OUTPUT_BUFFER = { O: 'out', Q: 'outQ', R: 'outR' } as const satisfies Record<
+  OutputPort,
+  keyof Building
+>;
 
 export const BASE_OPERATORS: readonly BaseOperatorType[] = [
   'adder',
@@ -128,11 +132,6 @@ export const BASE_OPERATORS: readonly BaseOperatorType[] = [
 ];
 
 export const OPERATOR_TYPES: readonly OperatorType[] = [...BASE_OPERATORS, ...SPECIAL_TYPES];
-
-/** The ordinary operator `type` computes like (itself, or the one a special imitates). */
-export function baseOperator(type: OperatorType): BaseOperatorType {
-  return isSpecial(type) ? SPECIAL_BUILDINGS[type].like : type;
-}
 
 export function isOperator(type: string): type is OperatorType {
   return (OPERATOR_TYPES as readonly string[]).includes(type);
