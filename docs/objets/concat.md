@@ -44,10 +44,10 @@
 
 ## 5. Boutons du régleur et bornes
 
-| Bouton                       | Valeur de départ | Borne basse | Borne haute                            |
-| ---------------------------- | ---------------- | ----------- | -------------------------------------- |
-| Facteur de poids de la carte | 1                | 0,2         | 3                                      |
-| Facteur de vitesse           | 1                | 0,3         | 1,2 (au lieu de 1,5 : objet jugé fort) |
+| Bouton                       | Valeur de départ | Borne basse | Borne haute                    |
+| ---------------------------- | ---------------- | ----------- | ------------------------------ |
+| Facteur de poids de la carte | 1                | 0,2         | 3                              |
+| Facteur de vitesse           | 1                | 0,3         | 1,5 (standard, décidé, Q7 bis) |
 
 ## 6. Critères particuliers
 
@@ -68,6 +68,7 @@ Aucun (les 3 critères standard, niveau repère 15).
 - 2026-11-25, **Q5** : A = 0 sort |B| (0 ‖ 7 = 0 ‖ −7 = 7 ; 0 ‖ 0 = 0). Règle écrite à part, la formule donnant 0 avec signe(0) = 0. Effet de bord accepté : une machine à valeur absolue, sans effet sur la simulation (le modèle ne fabrique pas de négatifs).
 - 2026-11-25, **Q6** : piste du multiplicateur (`track: 'multiplier'`). Déjà active (× est un prérequis), cohérente (A ‖ B ≈ A × 10^k + B), sans nouvelle ligne d'interface ni nouveau calendrier dans le modèle.
 - 2026-11-25, **Q7** : vitesse de base × 1. La vitesse se règle par le seul bouton `speed` du régleur, au lieu d'empiler une constante et un bouton ; le régleur peut descendre à 0,3.
+- 2026-11-25, **Q7 bis** : borne haute du bouton `speed` à 1,5 (standard) au lieu de 1,2. Avec le mélange, le risque est plutôt l'inutilité ; même à 1,5, l'indice reste loin de 0,5 (il faudrait environ × 7 avec 1 exemplaire). Pas d'entrée dans `KNOB_OVERRIDES`.
 
 Questions ouvertes, la plus importante en premier :
 
