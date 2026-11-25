@@ -61,6 +61,7 @@ Aucun (les 3 critères standard, niveau repère 15).
 ## 8. Décisions
 
 - 2026-11-25, **Q1** : `special`. Limité ne veut pas dire 1 seul exemplaire : il ne s'obtient que par un choix de fin de niveau, ce qui le limite déjà fortement.
+- 2026-11-25, **modèle de coût** : ajouter le **mélange**. Les bâtiments limités qui effectuent une opération qu'aucun bâtiment ordinaire ne fait (ici ‖) forment une ligne en plus, en parallèle de la ligne ordinaire de l'usine : les débits s'additionnent, au lieu d'imposer à tous les items la recette qui passe par le goulot. À coder dans la phase code (`src/simtools/cost.ts`, `src/simtools/config.ts`), avec un test de monotonie (un exemplaire de plus ne coûte jamais plus cher) et une simulation de tout le catalogue pour vérifier l'absence de régression. Estimation sans les items bruts : 1 exemplaire donne un indice d'environ 0,88 au niveau 8 et 0,91 au niveau 15 ; il en faudrait environ 7 (niveau 8) à 11 (niveau 15) pour passer sous 0,5.
 
 Questions ouvertes, la plus importante en premier :
 
