@@ -30,7 +30,7 @@
 | Champ                | Valeur                                                                                                                                                                                                                                     |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Opération            | `concat` : A ‖ B = A × 10^(chiffres de \|B\|) + signe(A) × \|B\|. B = 0 donne 10 × A ; A = 0 donne \|B\| (décidé, Q5) ; signe de A gardé, signe de B ignoré (décidé, Q4) ; saturé à [INT_MIN ; INT_MAX] ; une sortie `O` ; non commutative |
-| Empreinte et ports   | 2×2 pivotable : A en haut à gauche, B en bas à gauche, `O` sur la colonne de droite (« A puis B ») (à trancher, Q9)                                                                                                                        |
+| Empreinte et ports   | 2×2 pivotable : A en haut à gauche, B en bas à gauche, `O` sur la colonne de droite (« A puis B ») (décidé, Q9)                                                                                                                            |
 | Piste d'amélioration | multiplicateur (décidé, Q6)                                                                                                                                                                                                                |
 | Vitesse de base      | × 1 (décidé, Q7)                                                                                                                                                                                                                           |
 | Dessin               | craie sarcelle, symbole ‖                                                                                                                                                                                                                  |
@@ -70,6 +70,7 @@ Aucun (les 3 critères standard, niveau repère 15).
 - 2026-11-25, **Q7** : vitesse de base × 1. La vitesse se règle par le seul bouton `speed` du régleur, au lieu d'empiler une constante et un bouton ; le régleur peut descendre à 0,3.
 - 2026-11-25, **Q7 bis** : borne haute du bouton `speed` à 1,5 (standard) au lieu de 1,2. Avec le mélange, le risque est plutôt l'inutilité ; même à 1,5, l'indice reste loin de 0,5 (il faudrait environ × 7 avec 1 exemplaire). Pas d'entrée dans `KNOB_OVERRIDES`.
 - 2026-11-25, **Q8** : rien pour la légendaire, effet commun seulement (brillante vitesse × 1,25, légendaire × 1,5), simulé tel quel. Idée gardée pour plus tard si la légendaire paraît fade en partie de test : autoriser des zéros de tête (par exemple B écrit sur au moins 2 chiffres). Peu utile en l'état (405 = 40 ‖ 5, 1003 = 100 ‖ 3) et demanderait un calcul par édition.
+- 2026-11-25, **Q9** : empreinte « A puis B » (2×2 pivotable : A en haut à gauche, B en bas à gauche, `O` sur la colonne de droite). Écart connu : c'est le reflet du + et elle s'écarte de la règle « A à gauche de B » des autres opérateurs. Facile à changer après les parties de test : l'empreinte n'entre pas dans le modèle de coût, donc ni poids ni réglage à refaire.
 
 Questions ouvertes, la plus importante en premier :
 
@@ -81,7 +82,7 @@ Questions ouvertes, la plus importante en premier :
 6. ~~Piste~~ : tranché.
 7. ~~Vitesse de base~~ : tranché.
 8. ~~Effet propre de la légendaire~~ : tranché.
-9. Empreinte « A puis B » ou celle du + à l'identique ?
+9. ~~Empreinte~~ : tranché.
 10. Niveau minimum 8, et baisse du poids en fin de partie ?
 
 Constat à garder en tête (2026-11-25, lecture de `src/simtools/config.ts`) : une opération que seuls des bâtiments limités effectuent coûte `1 / (exemplaires × vitesse)`, alors qu'une opération ordinaire se répartit sur `G(L) = 6 + L` bâtiments (14 au niveau 8, 21 au niveau 15). Un seul Concaténateur à vitesse × 1 est donc un goulot environ 7 à 10 fois plus lent que « × puis + » : le modèle ne le choisira presque jamais (risque d'échec au critère 2).
