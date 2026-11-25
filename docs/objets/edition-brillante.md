@@ -44,14 +44,16 @@ Aucun.
 
 ## 7. Historique des simulations
 
-| Date       | Commande                                    | Verdict (1 / 2 / 3)                                             | Valeurs             | Remarque                                                                             |
-| ---------- | ------------------------------------------- | --------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------ |
-| 2026-11-25 | `npm run sim`                               | ✓ 100 % / ✓ 85 % / ✗ 95 %                                       | `weightScale` = 1   | trop visible avant le niveau 15 (cible 50 à 80 %)                                    |
-| 2026-11-25 | `npm run tune -- edition-brillante --apply` | réglage ✓ / ✓ / ✓ 73 % ; contrôle ✓ / ✓ / ✗ 83 % (à surveiller) | `weightScale` = 0,5 | appliqué après accord de l'auteur ; l'écart du contrôle reste dans la marge de bruit |
+| Date       | Commande                                    | Verdict (1 / 2 / 3)                                             | Valeurs             | Remarque                                                                                                                                    |
+| ---------- | ------------------------------------------- | --------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-25 | `npm run sim`                               | ✓ 100 % / ✓ 85 % / ✗ 95 %                                       | `weightScale` = 1   | trop visible avant le niveau 15 (cible 50 à 80 %)                                                                                           |
+| 2026-11-25 | `npm run tune -- edition-brillante --apply` | réglage ✓ / ✓ / ✓ 73 % ; contrôle ✓ / ✓ / ✗ 83 % (à surveiller) | `weightScale` = 0,5 | appliqué après accord de l'auteur ; l'écart du contrôle reste dans la marge de bruit                                                        |
+| 2026-11-25 | `npm run tune -- edition-brillante --apply` | réglage ✓ / ✓ / ✓ 72 % ; contrôle ✓ / ✓ / ✓ 68 %                | `weightScale` = 0,3 | après le retrait de l'Additionneur ancien (visibilité 92 %) ; appliqué après accord de l'auteur ; `npm run sim` : ✓ 100 % / ✓ 88 % / ✓ 72 % |
 
 ## 8. Décisions
 
 - 2026-11-25 : poids de la carte divisé par 2 (`weightScale` = 0,5), proposé par le régleur et validé par l'auteur. La carte reste proposée souvent, mais moins systématiquement avant le niveau 15.
+- 2026-11-25 : `weightScale` = 0,3 (pilote Concaténateur). Le retrait de l'Additionneur ancien allège l'Atelier et faisait passer la visibilité avant le niveau 15 de 73 % à 92 % ; le régleur la ramène à 68 à 72 %, validé par l'auteur.
 
 ## 9. Retours de parties de test
 
