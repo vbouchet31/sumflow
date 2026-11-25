@@ -37,10 +37,10 @@
 
 ## 4. Éditions
 
-| Édition    | Effet                                            |
-| ---------- | ------------------------------------------------ |
-| Brillante  | effet commun : vitesse × 1,25                    |
-| Légendaire | effet commun : vitesse × 1,5 (effet propre ? Q8) |
+| Édition    | Effet                                     |
+| ---------- | ----------------------------------------- |
+| Brillante  | effet commun : vitesse × 1,25             |
+| Légendaire | effet commun : vitesse × 1,5 (décidé, Q8) |
 
 ## 5. Boutons du régleur et bornes
 
@@ -69,6 +69,7 @@ Aucun (les 3 critères standard, niveau repère 15).
 - 2026-11-25, **Q6** : piste du multiplicateur (`track: 'multiplier'`). Déjà active (× est un prérequis), cohérente (A ‖ B ≈ A × 10^k + B), sans nouvelle ligne d'interface ni nouveau calendrier dans le modèle.
 - 2026-11-25, **Q7** : vitesse de base × 1. La vitesse se règle par le seul bouton `speed` du régleur, au lieu d'empiler une constante et un bouton ; le régleur peut descendre à 0,3.
 - 2026-11-25, **Q7 bis** : borne haute du bouton `speed` à 1,5 (standard) au lieu de 1,2. Avec le mélange, le risque est plutôt l'inutilité ; même à 1,5, l'indice reste loin de 0,5 (il faudrait environ × 7 avec 1 exemplaire). Pas d'entrée dans `KNOB_OVERRIDES`.
+- 2026-11-25, **Q8** : rien pour la légendaire, effet commun seulement (brillante vitesse × 1,25, légendaire × 1,5), simulé tel quel. Idée gardée pour plus tard si la légendaire paraît fade en partie de test : autoriser des zéros de tête (par exemple B écrit sur au moins 2 chiffres). Peu utile en l'état (405 = 40 ‖ 5, 1003 = 100 ‖ 3) et demanderait un calcul par édition.
 
 Questions ouvertes, la plus importante en premier :
 
@@ -79,7 +80,7 @@ Questions ouvertes, la plus importante en premier :
 5. ~~A = 0~~ : tranché.
 6. ~~Piste~~ : tranché.
 7. ~~Vitesse de base~~ : tranché.
-8. Un effet propre pour la légendaire (par exemple autoriser les zéros de tête) ou rien ?
+8. ~~Effet propre de la légendaire~~ : tranché.
 9. Empreinte « A puis B » ou celle du + à l'identique ?
 10. Niveau minimum 8, et baisse du poids en fin de partie ?
 
