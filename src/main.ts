@@ -574,6 +574,9 @@ async function bootstrap(): Promise<void> {
   let unlockedKey = '';
   let last = performance.now();
   const frame = (now: number): void => {
+    // Ask for the next frame first: an error while drawing one frame must not freeze the
+    // game for good (simulation, HUD and camera all run from this loop).
+    requestAnimationFrame(frame);
     const dt = Math.min(MAX_FRAME_DT, Math.max(0, (now - last) / 1000));
     last = now;
 
@@ -651,7 +654,6 @@ async function bootstrap(): Promise<void> {
       zoom: camera.zoom,
       deposit: world.deposits.depositAt(hover.x, hover.y)?.value ?? null,
     });
-    requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
 }
