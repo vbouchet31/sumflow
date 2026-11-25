@@ -1,0 +1,45 @@
+{
+  "$comment": "Tuned values (PLAN-objets §5), read by src/config/tuning.ts which holds the knobs and their bounds. Only npm run tune -- <id> --apply rewrites this file.",
+  "objects": {
+    "value": {
+      "weightScale": 1
+    },
+    "mult": {
+      "weightScale": 1
+    },
+    "sub": {
+      "weightScale": 1
+    },
+    "div": {
+      "weightScale": 1
+    },
+    "exp": {
+      "weightScale": 1
+    },
+    "bridge": {
+      "weightScale": 1
+    },
+    "priorities": {
+      "weightScale": 1
+    },
+    "storage": {
+      "weightScale": 1
+    },
+    "edition-brillante": {
+      "weightScale": 1
+    },
+    "edition-legendaire": {
+      "weightScale": 1
+    },
+    "ancient-adder": {
+      "weightScale": 1,
+      "speed": 1
+    },
+    "passive-operators": {
+      "weightScale": 1
+    },
+    "eventail": {
+      "weightScale": 1
+    }
+  }
+}

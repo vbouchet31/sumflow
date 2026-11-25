@@ -25,6 +25,7 @@ import {
   type Prereq,
   SPECIAL_EDITION_ODDS,
 } from '../config/cards';
+import { TUNED, type TuningValues, weightScale } from '../config/tuning';
 import { hash2, mulberry32, type Rng } from '../core/rng';
 
 /** Everything a draw reads from the game. */
@@ -38,13 +39,15 @@ export interface OfferContext extends GuardView {
   naturalRefusals: number;
 }
 
-/** Cards and guards a draw uses (tests can pass their own). */
+/** Cards, guards and tuned values a draw uses (tests and the simulator can pass their own). */
 export interface Catalogue {
   cards: readonly CardDef[];
   guards: readonly Guard[];
+  /** Weight scale of each card (`config/tuning.ts`); absent = the tuned values. */
+  tuning?: TuningValues;
 }
 
-export const DEFAULT_CATALOGUE: Catalogue = { cards: CARDS, guards: GUARDS };
+export const DEFAULT_CATALOGUE: Catalogue = { cards: CARDS, guards: GUARDS, tuning: TUNED };
 
 /** One element of the natural sequence; `value` is set for value cards. */
 export interface NaturalStep {
@@ -62,7 +65,7 @@ export interface OfferCard {
 /** Weight breakdown of one available card (debug panel). */
 export interface WeightEntry {
   card: string;
-  /** Weight from the card's own curve. */
+  /** Weight from the card's own curve, times its tuned scale (PLAN-objets §5). */
   curve: number;
   /** Boosted weight if it is the natural card, else null. */
   natural: number | null;
@@ -240,7 +243,7 @@ export function isAvailable(card: CardDef, ctx: OfferContext): boolean {
 
 /** Weight breakdown of `card`, given the id of the natural card. Ignores availability. */
 function weigh(card: CardDef, ctx: OfferContext, naturalId: string, cat: Catalogue): WeightEntry {
-  const curve = curveAt(card.weight, ctx.level);
+  const curve = curveAt(card.weight, ctx.level) * weightScale(card.id, cat.tuning);
   let natural: number | null = null;
   let weight = curve;
   if (card.id === naturalId) {
@@ -256,9 +259,9 @@ function weigh(card: CardDef, ctx: OfferContext, naturalId: string, cat: Catalog
 }
 
 /**
- * Weight of `card` at this offer (§3.3): its curve, raised to the natural weight
- * `max(curve, natural × decay^refusals)` if it is the natural card, then guards.
- * Ignores availability (see `isAvailable`).
+ * Weight of `card` at this offer (§3.3): its curve times its tuned scale (PLAN-objets §5),
+ * raised to the natural weight `max(curve, natural × decay^refusals)` if it is the natural
+ * card, then guards. Ignores availability (see `isAvailable`).
  */
 export function cardWeight(
   card: CardDef,

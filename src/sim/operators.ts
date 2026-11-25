@@ -2,8 +2,15 @@ import { OUTPUT_BUFFER_SIZE, operatorSpeed, TICK_DT } from '../config/balance';
 import { PASSIVE_EFFECTS, type SpecialEdition } from '../config/cards';
 import { operationOf, trackOf } from '../config/buildings';
 import type { OperationResult } from '../config/operations';
+import { operatorSpeedFactor } from '../config/tuning';
 import { EPS } from './belts';
-import { type Building, isOperator, type OperatorType, OUTPUT_BUFFER } from './entities';
+import {
+  type Building,
+  isOperator,
+  OPERATOR_TYPES,
+  type OperatorType,
+  OUTPUT_BUFFER,
+} from './entities';
 import { editionEffect } from './inventory';
 import { outputGroup, pushOut } from './outputs';
 import type { GameState } from './state';
@@ -14,16 +21,25 @@ export function compute(type: OperatorType, a: number, b: number): OperationResu
   return operationOf(type).compute(a, b);
 }
 
+/** Tuned speed factor of each computing building (`config/tuning.ts`), read once. */
+const TUNED_SPEED = Object.fromEntries(
+  OPERATOR_TYPES.map((t) => [t, operatorSpeedFactor(t)]),
+) as Record<OperatorType, number>;
+
 /**
- * Seconds per operation of an operator: its track's upgrade level, the passives and its own
- * edition (PLAN-recompenses §3.4), all speed factors multiplied.
+ * Seconds per operation of an operator: its track's upgrade level, the passives, its tuned
+ * factor (PLAN-objets §5, 1 unless tuned) and its own edition (PLAN-recompenses §3.4), all
+ * speed factors multiplied.
  */
 export function cycleDuration(
   world: World,
   b: { type: OperatorType; edition?: SpecialEdition | undefined },
 ): number {
   const track = trackOf(b.type);
-  const speed = operatorSpeed(track, world.state.upgrades[track]) * passiveSpeed(world.state);
+  const speed =
+    operatorSpeed(track, world.state.upgrades[track]) *
+    passiveSpeed(world.state) *
+    TUNED_SPEED[b.type];
   return 1 / (speed * (editionEffect(b).speed ?? 1));
 }
 
