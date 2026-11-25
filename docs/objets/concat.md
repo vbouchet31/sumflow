@@ -16,7 +16,7 @@
 
 | Champ                     | Valeur                                                                                                            |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Genre                     | `special` (à trancher, Q1)                                                                                        |
+| Genre                     | `special` (décidé, Q1)                                                                                            |
 | Emplacement               | Atelier (à trancher, Q3)                                                                                          |
 | Exemplaires par carte     | 1 (à trancher, Q2)                                                                                                |
 | Carte unique (`maxPicks`) | non, reprise possible                                                                                             |
@@ -60,9 +60,11 @@ Aucun (les 3 critères standard, niveau repère 15).
 
 ## 8. Décisions
 
+- 2026-11-25, **Q1** : `special`. Limité ne veut pas dire 1 seul exemplaire : il ne s'obtient que par un choix de fin de niveau, ce qui le limite déjà fortement.
+
 Questions ouvertes, la plus importante en premier :
 
-1. `special` (limité) ou `unlock` (illimité) ?
+1. ~~`special` ou `unlock`~~ : tranché.
 2. 1 ou 2 exemplaires par carte ?
 3. Emplacement Atelier ou Nombres ?
 4. B négatif : ignorer le signe, refuser l'opération, ou laisser passer A ?
