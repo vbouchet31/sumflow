@@ -17,7 +17,7 @@
 | Champ                     | Valeur                                                                                                            |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Genre                     | `special` (décidé, Q1)                                                                                            |
-| Emplacement               | Atelier (à trancher, Q3)                                                                                          |
+| Emplacement               | Atelier (décidé, Q3)                                                                                              |
 | Exemplaires par carte     | 1 (décidé, Q2)                                                                                                    |
 | Carte unique (`maxPicks`) | non, reprise possible                                                                                             |
 | Prérequis                 | × débloquée (`requires: [{ building: 'multiplier' }]`)                                                            |
@@ -63,12 +63,13 @@ Aucun (les 3 critères standard, niveau repère 15).
 - 2026-11-25, **Q1** : `special`. Limité ne veut pas dire 1 seul exemplaire : il ne s'obtient que par un choix de fin de niveau, ce qui le limite déjà fortement.
 - 2026-11-25, **modèle de coût** : ajouter le **mélange**. Les bâtiments limités qui effectuent une opération qu'aucun bâtiment ordinaire ne fait (ici ‖) forment une ligne en plus, en parallèle de la ligne ordinaire de l'usine : les débits s'additionnent, au lieu d'imposer à tous les items la recette qui passe par le goulot. À coder dans la phase code (`src/simtools/cost.ts`, `src/simtools/config.ts`), avec un test de monotonie (un exemplaire de plus ne coûte jamais plus cher) et une simulation de tout le catalogue pour vérifier l'absence de régression. Estimation sans les items bruts : 1 exemplaire donne un indice d'environ 0,88 au niveau 8 et 0,91 au niveau 15 ; il en faudrait environ 7 (niveau 8) à 11 (niveau 15) pour passer sous 0,5.
 - 2026-11-25, **Q2** : 1 exemplaire par carte, reprise possible. Dosage fin (chaque reprise ajoute environ 1/7 de débit au niveau 8), marge laissée au régleur (poids, vitesse), chaque carte a sa propre édition d'origine.
+- 2026-11-25, **Q3** : Atelier. Il est proposé à côté du fil rouge (presque toujours dans Nombres entre les niveaux 8 et 19) : le prendre ne retarde pas la progression, et il croise des cartes plus légères que le fil rouge (poids au moins 50), donc il reste visible.
 
 Questions ouvertes, la plus importante en premier :
 
 1. ~~`special` ou `unlock`~~ : tranché.
 2. ~~1 ou 2 exemplaires~~ : tranché.
-3. Emplacement Atelier ou Nombres ?
+3. ~~Atelier ou Nombres~~ : tranché.
 4. B négatif : ignorer le signe, refuser l'opération, ou laisser passer A ?
 5. A = 0 : sortir |B| ou ne rien sortir ?
 6. Piste du multiplicateur ou piste dédiée ?
