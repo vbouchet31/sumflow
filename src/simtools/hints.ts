@@ -102,4 +102,14 @@ export const OPERATION_HINTS: Readonly<Record<OperationId, OperationHint>> = {
       if (list) for (const [a, e] of list) emit(a, e);
     },
   },
+  concat: {
+    // Every split of the decimal digits n = ⌊n / 10^k⌋ ‖ (n mod 10^k), when the right part
+    // has exactly k digits (no leading zero: 405 = 40 ‖ 5, never 4 ‖ 05).
+    down: (n, _ctx, emit) => {
+      for (let p = 10, low = 1; p <= n; low = p, p *= 10) {
+        const b = n % p;
+        if (b >= low) emit(Math.floor(n / p), b);
+      }
+    },
+  },
 };

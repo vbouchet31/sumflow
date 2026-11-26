@@ -67,3 +67,16 @@ export function pow(a: number, b: number): number {
   }
   return negative ? -result : result;
 }
+
+/**
+ * Concatenation `a ‖ b` (Concaténateur): the digits of `|b|` written after those of `a`,
+ * `a × 10^(digits of |b|) + sign(a) × |b|`. The sign of `b` is ignored (|INT_MIN| counts as
+ * INT_MAX), the sign of `a` is kept; `b = 0` counts as one digit (`a ‖ 0 = 10a`); `a = 0`
+ * gives `|b|`. Saturating like the other operations.
+ */
+export function concat(a: number, b: number): number {
+  const digitsOf = b === INT_MIN ? INT_MAX : Math.abs(b);
+  if (a === 0) return clamp(digitsOf);
+  const shift = 10 ** String(digitsOf).length;
+  return clamp(a * shift + Math.sign(a) * digitsOf);
+}

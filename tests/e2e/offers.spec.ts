@@ -344,7 +344,7 @@ test.describe('on a phone held sideways', () => {
     await page.evaluate(() => window.__sumflow?.setLevel(8));
     await completeLevels(page, 1);
     await page.evaluate(() =>
-      window.__sumflow?.forceOffer(['value', 'edition-legendaire', 'ancient-adder'], 'legendaire'),
+      window.__sumflow?.forceOffer(['value', 'edition-legendaire', 'concat'], 'legendaire'),
     );
     const screen = page.locator('.offer-overlay');
     await expect(screen.locator('.offer-card')).toHaveCount(3);

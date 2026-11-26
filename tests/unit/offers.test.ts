@@ -332,14 +332,16 @@ describe('drawOffer', () => {
     expect(Math.abs(counts.brillante / N - 0.1)).toBeLessThan(0.01);
     expect(Math.abs(counts.legendaire / N - 0.05)).toBeLessThan(0.01);
 
-    const heavy = tweak((c) =>
-      c.id === 'ancient-adder' ? { ...c, weight: [{ level: 1, w: 1e6 }] } : c,
-    );
+    const heavy = tweak((c) => (c.id === 'concat' ? { ...c, weight: [{ level: 1, w: 1e6 }] } : c));
     const inOffers: Record<Edition, number> = { base: 0, brillante: 0, legendaire: 0 };
     const M = 5_000;
     for (let seed = 0; seed < M; seed++) {
-      for (const c of drawOffer(ctxAt(8, { seed }), heavy).cards) {
-        if (c.card === 'ancient-adder') inOffers[c.edition] += 1;
+      const ctx = ctxAt(8, {
+        seed,
+        unlockedBuildings: [...START_BUILDINGS, 'adder', 'multiplier'],
+      });
+      for (const c of drawOffer(ctx, heavy).cards) {
+        if (c.card === 'concat') inOffers[c.edition] += 1;
         else if (c.card === 'edition-brillante') expect(c.edition).toBe('brillante');
         else if (c.card === 'edition-legendaire') expect(c.edition).toBe('legendaire');
         else expect(c.edition).toBe('base');

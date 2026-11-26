@@ -45,11 +45,11 @@ Branche `claude/hub-objectives-reward-choices-kdavx9`. **Phase 1 terminée** (mo
 
 ## Objets répétables (PLAN-objets.md)
 
-| Étape                                 | État       |
-| ------------------------------------- | ---------- |
-| 2a Outillage (registre, sim, régleur) | ✅ terminé |
-| 2b Pilote : Concaténateur             | ⏳ à faire |
-| 2c Retour d'expérience                | ⏳ à faire |
+| Étape                                 | État                            |
+| ------------------------------------- | ------------------------------- |
+| 2a Outillage (registre, sim, régleur) | ✅ terminé                      |
+| 2b Pilote : Concaténateur             | 🚧 codé, partie de test à faire |
+| 2c Retour d'expérience                | ⏳ à faire                      |
 
 ## Direction artistique « Tableau noir »
 

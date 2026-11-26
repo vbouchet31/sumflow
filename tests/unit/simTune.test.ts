@@ -202,7 +202,7 @@ describe('regressions and noise', () => {
 
 describe('tuned values written by --apply', () => {
   it('only the tuned object changes, the file stays canonical and valid', () => {
-    const next = withKnobs(TUNED, 'ancient-adder', { weightScale: 0.5 });
+    const next = withKnobs(TUNED, 'concat', { weightScale: 0.5 });
     expect(validateTuning(next)).toEqual([]);
     const before = serializeTuning(TUNED).split('\n');
     const after = serializeTuning(next).split('\n');
@@ -210,7 +210,7 @@ describe('tuned values written by --apply', () => {
     const changed = after.filter((l, i) => l !== before[i]);
     expect(changed).toEqual(['      "weightScale": 0.5,']);
     // TUNED itself is untouched.
-    expect(currentKnobs('ancient-adder')).toEqual({ weightScale: 1, speed: 1 });
+    expect(currentKnobs('concat')).toEqual({ weightScale: 1, speed: 1 });
     expect(readFileSync(TUNING_FILE, 'utf8')).toBe(serializeTuning(TUNED));
   });
 

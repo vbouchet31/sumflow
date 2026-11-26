@@ -7,10 +7,9 @@ export type BaseOperatorType = 'adder' | 'multiplier' | 'subtractor' | 'divider'
 
 /**
  * Special buildings (PLAN-recompenses §2, §3.5): owned in limited copies, each with a native
- * edition. Phase 1 has a single placeholder, to be removed or replaced in phase 2: every
- * code path reads `SPECIAL_BUILDINGS` and works for any special type.
+ * edition. Every code path reads `SPECIAL_BUILDINGS` and works for any special type.
  */
-export type SpecialType = 'ancientAdder';
+export type SpecialType = 'concat';
 
 /** Buildings that compute: the ordinary operators and the special buildings. */
 export type OperatorType = BaseOperatorType | SpecialType;
@@ -134,16 +133,32 @@ export const OPERATOR_BUILDINGS: Readonly<Record<BaseOperatorType, OperatorDef>>
 export interface SpecialDef extends OperatorDef {
   /** Footprint and ports in rotation 0 (an ordinary one may be reused as is). */
   footprint: BuildingDef;
-  /** Placeholder object of phase 1 (PLAN-recompenses §5.3). */
+  /** Placeholder object, to be removed or replaced. */
   placeholder?: boolean;
 }
+
+/**
+ * Concaténateur (docs/objets/concat.md): "A then B", read top to bottom on the left column,
+ * the result on the right column.
+ */
+const CONCAT: BuildingDef = {
+  w: 2,
+  h: 2,
+  rotatable: true,
+  tiles: [
+    { x: 0, y: 0, role: 'A', faces: [N, W] },
+    { x: 0, y: 1, role: 'B', faces: [S, W] },
+    { x: 1, y: 0, role: 'O', faces: [N, E] },
+    { x: 1, y: 1, role: 'O', faces: [S, E] },
+  ],
+};
 
 /**
  * Special buildings, in build bar order. A new one may bring a new operation: add it to
  * `config/operations.ts`, then declare the building here with its own footprint.
  */
 export const SPECIAL_BUILDINGS: Readonly<Record<SpecialType, SpecialDef>> = {
-  ancientAdder: { op: 'add', footprint: ORDINARY.adder, placeholder: true },
+  concat: { op: 'concat', footprint: CONCAT },
 };
 
 export const SPECIAL_TYPES = Object.keys(SPECIAL_BUILDINGS) as SpecialType[];

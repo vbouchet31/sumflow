@@ -7,10 +7,10 @@
  * building that performs it (`config/buildings.ts`: footprint with matching ports, `op`),
  * its art and its texts.
  */
-import { add, divmod, mul, pow, sub } from '../core/intmath';
+import { add, concat, divmod, mul, pow, sub } from '../core/intmath';
 import type { Track } from './balance';
 
-export type OperationId = 'add' | 'mul' | 'sub' | 'div' | 'pow';
+export type OperationId = 'add' | 'mul' | 'sub' | 'div' | 'pow' | 'concat';
 
 export type InputPort = 'A' | 'B';
 export type OutputPort = 'O' | 'Q' | 'R';
@@ -90,6 +90,16 @@ export const OPERATIONS: Readonly<Record<OperationId, OperationDef>> = {
     compute: (a, b) => ({ O: pow(a, b) }),
     commutative: false,
     track: 'exponent',
+  },
+  concat: {
+    id: 'concat',
+    symbol: '‖',
+    inputs: ['A', 'B'],
+    outputs: ['O'],
+    // Digits of B written after those of A (docs/objets/concat.md).
+    compute: (a, b) => ({ O: concat(a, b) }),
+    commutative: false,
+    track: 'multiplier',
   },
 };
 

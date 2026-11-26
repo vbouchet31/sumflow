@@ -37,7 +37,7 @@ describe('card catalogue', () => {
       storage: [{ level: 12 }],
       'edition-brillante': [],
       'edition-legendaire': [],
-      'ancient-adder': [],
+      concat: [{ building: 'multiplier' }],
       'passive-operators': [],
       eventail: [],
     });
@@ -66,11 +66,15 @@ describe('card catalogue', () => {
     }
     expect(at('edition-brillante', 30)).toBe(6);
     expect(at('edition-legendaire', 30)).toBe(2);
-    expect(at('ancient-adder', 30)).toBe(4);
+    // Concaténateur (docs/objets/concat.md): from level 8, 2 → 5 → 5 → 3.
+    expect(card('concat')).toMatchObject({ slot: 'atelier', minLevel: 8 });
+    expect([8, 10, 12, 20, 25, 30, 60].map((L) => at('concat', L))).toEqual([
+      2, 3.5, 5, 5, 4, 3, 3,
+    ]);
     expect(at('passive-operators', 30)).toBe(3);
     expect(at('eventail', 30)).toBe(3);
     expect(card('eventail')).toMatchObject({ minLevel: 6, maxPicks: 1 });
-    expect(card('ancient-adder').placeholder).toBe(true);
+    expect(card('concat').placeholder).toBeUndefined();
     expect(card('passive-operators').placeholder).toBe(true);
   });
 

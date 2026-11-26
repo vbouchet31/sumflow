@@ -8,6 +8,9 @@ import {
   type CostTools,
   explain,
   itemCost,
+  LINE_SEARCH_SCALES,
+  lineSearches,
+  mixedCost,
   targetCost,
 } from '../../src/simtools/cost';
 import { playGame } from '../../src/simtools/game';
@@ -15,6 +18,7 @@ import { type HintContext, OPERATION_HINTS, type OperationHint } from '../../src
 import {
   costTools,
   extractableValues,
+  pricedOperations,
   scheduledUpgrades,
   throughputOf,
 } from '../../src/simtools/tools';
@@ -183,6 +187,82 @@ describe('cost search: monotone', () => {
   });
 });
 
+describe('cost search: mixing a limited line (docs/objets/concat.md)', () => {
+  it('runs the limited line at full speed and fills the rest with the ordinary recipe', () => {
+    // Level 8 example: × then + costs 2, 4 ‖ 7 is all on a line 14 times slower.
+    expect(mixedCost(14, 14, 2)).toBeCloseTo(1 / (1 / 14 + 1 / 2), 12);
+    // Without an ordinary recipe: the slower of the two lines sets the pace.
+    expect(mixedCost(5, 3, Infinity)).toBeCloseTo(3, 12);
+    expect(mixedCost(5, 1, Infinity)).toBeCloseTo(4, 12);
+    // No limited part, or no generic work saved: the best plain recipe.
+    expect(mixedCost(1.5, 0, 2)).toBe(1.5);
+    expect(mixedCost(3, 1, 2)).toBe(2);
+    expect(mixedCost(Infinity, 0, 2)).toBe(2);
+  });
+
+  it('is never above the ordinary recipe, nor below the work of either line', () => {
+    const rng = mulberry32(99);
+    for (let k = 0; k < 2000; k++) {
+      const limited = 0.1 + 20 * rng();
+      const full = limited + 5 * rng();
+      const ordinary = 0.5 + 10 * rng();
+      const m = mixedCost(full, limited, ordinary);
+      expect(m).toBeLessThanOrEqual(ordinary + 1e-12);
+      expect(m).toBeGreaterThan(0);
+      expect(m).toBeLessThanOrEqual(full + 1e-12);
+    }
+  });
+
+  /** add and mul ordinary, concat on a limited line at `price` (lower = more copies). */
+  function withLine(price: number | null): CostTools {
+    const t = tools(8, { add: 1, mul: 1, sub: 1 }, 0.05, 0.02);
+    return price === null ? t : { ...t, ops: [...t.ops, { op: 'concat', price, limited: true }] };
+  }
+
+  it('a faster line never costs more, and the line never costs more than none', () => {
+    const cache = new CostCache();
+    const prices = [null, 40, 20, 10, 5, 2, 1, 0.5];
+    const all = prices.map((p) =>
+      Array.from({ length: 3000 }, (_, i) => cache.itemCost(withLine(p), i + 1)),
+    );
+    for (let k = 1; k < all.length; k++) {
+      const prev = all[k - 1] ?? [];
+      (all[k] ?? []).forEach((c, i) =>
+        expect(c, `target ${i + 1}, price ${prices[k]}`).toBeLessThanOrEqual(
+          (prev[i] ?? Infinity) + 1e-9,
+        ),
+      );
+    }
+    // Uncached costs agree.
+    for (const n of [47, 891, 1234, 2999]) {
+      expect(itemCost(withLine(10), n)).toBeCloseTo(cache.itemCost(withLine(10), n), 12);
+    }
+  });
+
+  it('a recipe splits into its line part and its generic part', () => {
+    const t = withLine(0.6);
+    const [cost, , limited, generic] = targetCost(t, computeCosts(t, 47), 47);
+    // 47 = 4 ‖ 7: one use of the line plus two raw items.
+    const raw = (v: number): number => 0.05 * (1 + 0.02 * (v - 1));
+    expect(limited).toBeCloseTo(0.6, 12);
+    expect(generic).toBeCloseTo(raw(4) + raw(7), 12);
+    expect(cost).toBeCloseTo(0.6 + raw(4) + raw(7), 12);
+  });
+
+  it('a line search prices the line at multiples of the cheapest ordinary operation', () => {
+    const searches = lineSearches(withLine(30));
+    expect(searches.map((x) => x.tools.ops.find((o) => o.op === 'concat'))).toEqual(
+      LINE_SEARCH_SCALES.map((k) => ({ op: 'concat', price: k, limited: true })),
+    );
+    expect(searches.map((x) => x.scale)).toEqual(LINE_SEARCH_SCALES.map((k) => 30 / k));
+    // 4 ‖ 7 saves an operation: found by a search, mixed at the real (slow) price.
+    const plain = itemCost(withLine(null), 47);
+    const line = itemCost(withLine(30), 47);
+    expect(line).toBeLessThan(plain);
+    expect(line).toBeGreaterThan(0.9 * plain);
+  });
+});
+
 describe('cost search: cache and determinism', () => {
   it('cached costs equal fresh ones whatever the query order', () => {
     const t = tools(9, { add: 1, mul: 0.8, sub: 0.9 }, 0.05, 0.02);
@@ -241,8 +321,8 @@ describe('tool set of a game state', () => {
       stateWith((s) => s.passives.push('operatorsBoost')),
       stateWith((s) => (s.editionCards.brillante = 1)),
       stateWith((s) => (s.editionCards.legendaire = 2)),
-      stateWith((s) => (s.specials['ancientAdder:base'] = 1)),
-      stateWith((s) => (s.specials['ancientAdder:legendaire'] = 1)),
+      stateWith((s) => (s.specials['concat:base'] = 1)),
+      stateWith((s) => (s.specials['concat:legendaire'] = 1)),
     ];
     for (const target of [97, 529, 1234, 4100]) {
       const t0 = itemTime(base, 20, target);
@@ -251,34 +331,53 @@ describe('tool set of a game state', () => {
   });
 
   it('limited copies add their throughput to the ordinary buildings of their operation', () => {
-    const s = stateWith((st) => (st.specials['ancientAdder:base'] = 2));
-    const t = throughputOf(s, 20);
-    const v = t.ordinary.add ?? 0;
-    expect(t.limited.add).toBeCloseTo(2 * v); // same track, base edition
-    const { tools: priced, capacity } = costTools(s, 20);
-    const add = priced.ops.find((o) => o.op === 'add')?.price ?? 0;
-    expect(add).toBeCloseTo((1 / v) * (capacity / (capacity + 2)));
+    const G = 20;
+    const [add] = pricedOperations({ add: 0.5 }, { add: 1 }, G);
+    // 1 op/s of copies = 2 more ordinary buildings at 0.5 op/s.
+    expect(add).toEqual({ op: 'add', price: (1 / 0.5) * (G / (G + 2)) });
   });
 
-  it('an operation only limited buildings perform is capped by their throughput', () => {
-    // No ordinary adder: the ancient adders alone add (copies × speed operations per second).
+  it('an operation only limited buildings perform is priced on its own line', () => {
+    expect(pricedOperations({ add: 0.5 }, { concat: 0.4 }, 20)).toEqual([
+      { op: 'add', price: 2 },
+      { op: 'concat', price: 20 / 0.4, limited: true },
+    ]);
+  });
+
+  it('a Concaténateur alone is capped by its throughput', () => {
+    // No ordinary operator: 12 = 1 ‖ 2 only goes through the copies (speed per second each).
     const level = 20;
     const time = (copies: number): number => {
       const s = createInitialState(1);
       s.maxExtraction = 5;
-      s.specials['ancientAdder:base'] = copies;
+      s.specials['concat:base'] = copies;
       return itemTime(s, level, 12);
     };
     const s1 = createInitialState(1);
-    s1.specials['ancientAdder:base'] = 1;
-    const speed = throughputOf(s1, level).limited.add ?? 0;
-    // 12 = 5 + 7 = 5 + (5 + 2): two additions per item, at most `speed` per second.
-    expect(time(1)).toBeGreaterThanOrEqual(2 / speed);
-    expect(time(1)).toBeLessThan(2 / speed + 1);
+    s1.specials['concat:base'] = 1;
+    const speed = throughputOf(s1, level).limited.concat ?? 0;
+    expect(speed).toBeGreaterThan(0);
+    expect(time(1)).toBeGreaterThanOrEqual(1 / speed - 1e-12);
+    expect(time(1)).toBeLessThan(1 / speed + 1);
     expect(time(2)).toBeLessThan(time(1));
     expect(time(4)).toBeLessThan(time(2));
   });
 
+  it('a Concaténateur adds a line to the ordinary factory, each copy a little more', () => {
+    const level = 20;
+    const time = (copies: number, target: number): number =>
+      itemTime(
+        stateWith((s) => (s.specials['concat:base'] = copies)),
+        level,
+        target,
+      );
+    // 47 = 4 ‖ 7 saves an operation: the line helps, without taking all the items.
+    const plain = time(0, 47);
+    expect(time(1, 47)).toBeLessThan(plain);
+    expect(time(1, 47)).toBeGreaterThan(0.5 * plain);
+    expect(time(2, 47)).toBeLessThan(time(1, 47));
+    expect(time(8, 47)).toBeLessThan(time(2, 47));
+  });
   it('every level of a game has a finite cost, whatever the strategy', () => {
     const cache = new CostCache();
     for (const strategy of [{ kind: 'natural' }, { kind: 'minimal' }] as const) {

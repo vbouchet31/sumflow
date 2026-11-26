@@ -11,7 +11,7 @@ describe('worker pool', () => {
       seeds: 3,
       seedOffset: 5,
       maxLevel: 20,
-      strategies: [{ kind: 'random' }, { kind: 'object', card: 'ancient-adder' }] as const,
+      strategies: [{ kind: 'random' }, { kind: 'object', card: 'concat' }] as const,
     };
     const local = await runSimulation(opts);
     const pool = await WorkerPool.start(2);

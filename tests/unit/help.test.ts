@@ -56,32 +56,49 @@ describe('reward tips (PLAN-recompenses §4.3)', () => {
     expect(legendary.when(a)).toBe(false);
 
     const b = fresh();
-    grantCard(b, 'ancient-adder', 'legendaire');
+    grantCard(b, 'concat', 'legendaire');
     expect(legendary.when(b)).toBe(true);
     expect(shiny.when(b)).toBe(false);
 
     // A base special building brings no edition tip.
     const c = fresh();
-    grantCard(c, 'ancient-adder');
+    grantCard(c, 'concat');
     expect(shiny.when(c)).toBe(false);
     expect(legendary.when(c)).toBe(false);
     // A count back to 0 does not count as owned.
-    c.specials['ancientAdder:brillante'] = 0;
+    c.specials['concat:brillante'] = 0;
     expect(shiny.when(c)).toBe(false);
   });
 
   it('special: the first special building, drawn in its edition', () => {
     const s = fresh();
     expect(tip('special').when(s)).toBe(false);
-    grantCard(s, 'ancient-adder', 'brillante');
+    grantCard(s, 'concat', 'brillante');
     expect(tip('special').when(s)).toBe(true);
     expect(tipContent(tip('special'), s).art).toEqual({
       kind: 'building',
-      tool: 'ancientAdder',
+      tool: 'concat',
       edition: 'brillante',
     });
-    // The special tip comes before the tip of its edition.
-    expect(pendingTips(s).map((t) => t.id)).toEqual(['start', 'special', 'edition.brillante']);
+    // The building's own tip, then the special tip, then the tip of its edition.
+    expect(pendingTips(s).map((t) => t.id)).toEqual([
+      'start',
+      'concat',
+      'special',
+      'edition.brillante',
+    ]);
+  });
+
+  it('concat: once a Concaténateur is owned, drawn as a base one', () => {
+    const s = fresh();
+    expect(tip('concat').when(s)).toBe(false);
+    grantCard(s, 'concat', 'legendaire');
+    expect(tip('concat').when(s)).toBe(true);
+    expect(tipContent(tip('concat'), s).art).toEqual({
+      kind: 'building',
+      tool: 'concat',
+      edition: 'base',
+    });
   });
 
   it('passive: the first passive card', () => {

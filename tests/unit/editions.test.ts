@@ -463,9 +463,9 @@ describe('edition effects (provisional EDITION_EFFECTS)', () => {
 describe('special buildings inventory (data model)', () => {
   it('free = obtained − placed, by native edition', () => {
     const s = setup();
-    s.world.state.specials['ancientAdder:legendaire'] = 2;
-    expect(freeSpecials(s.world.state, 'ancientAdder:legendaire')).toBe(2);
-    expect(freeSpecials(s.world.state, 'ancientAdder:base')).toBe(0);
+    s.world.state.specials['concat:legendaire'] = 2;
+    expect(freeSpecials(s.world.state, 'concat:legendaire')).toBe(2);
+    expect(freeSpecials(s.world.state, 'concat:base')).toBe(0);
   });
 });
 

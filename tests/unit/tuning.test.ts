@@ -66,7 +66,7 @@ describe('tuning file', () => {
     const bad: TuningValues = {
       ...defaultTuning(),
       mult: { weightScale: 5 },
-      'ancient-adder': { weightScale: 1 },
+      concat: { weightScale: 1 },
       value: { weightScale: 1, speed: 1 },
       nope: { weightScale: 1 },
       bridge: { weightScale: Number.NaN },
@@ -74,7 +74,7 @@ describe('tuning file', () => {
     expect(validateTuning(bad)).toEqual(
       expect.arrayContaining([
         'mult.weightScale: 5 outside [0.2, 3]',
-        'ancient-adder.speed: missing',
+        'concat.speed: missing',
         'value.speed: unknown knob',
         'nope: unknown object',
         'bridge.weightScale: not a finite number',
@@ -86,8 +86,8 @@ describe('tuning file', () => {
   it('a missing value reads as the default', () => {
     expect(knobValue('mult', 'weightScale', {})).toBe(1);
     expect(weightScale('mult', { mult: { weightScale: 2 } })).toBe(2);
-    expect(specialSpeedFactor('ancientAdder', { 'ancient-adder': { speed: 0.5 } })).toBe(0.5);
-    expect(operatorSpeedFactor('adder', { 'ancient-adder': { speed: 0.5 } })).toBe(1);
+    expect(specialSpeedFactor('concat', { concat: { speed: 0.5 } })).toBe(0.5);
+    expect(operatorSpeedFactor('adder', { concat: { speed: 0.5 } })).toBe(1);
   });
 });
 
@@ -117,9 +117,10 @@ describe('default values give exactly the untuned game', () => {
       expect(operatorSpeedFactor(t, defaultTuning())).toBe(1);
     }
     world.state.upgrades.adder = 4;
+    world.state.upgrades.multiplier = 4;
     // The live game reads tuning.json: a special building runs at its tuned speed factor.
-    expect(cycleDuration(world, { type: 'ancientAdder' })).toBeCloseTo(
-      1 / (operatorSpeed('adder', 4) * operatorSpeedFactor('ancientAdder')),
+    expect(cycleDuration(world, { type: 'concat' })).toBeCloseTo(
+      1 / (operatorSpeed('multiplier', 4) * operatorSpeedFactor('concat')),
       12,
     );
     expect(cycleDuration(world, { type: 'adder' })).toBe(1 / operatorSpeed('adder', 4));
@@ -146,7 +147,7 @@ describe('the game reads tuning.json', () => {
     vi.doMock('../../src/config/tuning.json', () => ({
       default: {
         $comment: 'test',
-        objects: { bridge: { weightScale: 2 }, 'ancient-adder': { weightScale: 1, speed: 0.5 } },
+        objects: { bridge: { weightScale: 2 }, concat: { weightScale: 1, speed: 0.5 } },
       },
     }));
     const offers = await import('../../src/sim/offers');
@@ -157,8 +158,8 @@ describe('the game reads tuning.json', () => {
     if (!bridge) throw new Error('no bridge card');
     expect(offers.cardWeight(bridge, ctxAt(8))).toBe(2 * curveAt(bridge.weight, 8));
     const world = scenario.makeWorld();
-    expect(ops.cycleDuration(world, { type: 'ancientAdder' })).toBeCloseTo(
-      1 / (0.5 * operatorSpeed('adder', 1)),
+    expect(ops.cycleDuration(world, { type: 'concat' })).toBeCloseTo(
+      1 / (0.5 * operatorSpeed('multiplier', 1)),
       12,
     );
     expect(ops.cycleDuration(world, { type: 'adder' })).toBe(1 / operatorSpeed('adder', 1));

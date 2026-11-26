@@ -26,12 +26,12 @@
       "weightScale": 1
     },
     "edition-brillante": {
-      "weightScale": 0.5
+      "weightScale": 0.3
     },
     "edition-legendaire": {
       "weightScale": 1
     },
-    "ancient-adder": {
+    "concat": {
       "weightScale": 1,
       "speed": 1
     },

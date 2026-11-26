@@ -328,6 +328,8 @@ export const en: Record<MessageKey, string> = {
     'A shiny building runs faster, or extracts and stores more. An edition card goes on a placed building, with the Edition tool (G) or its bubble; demolishing it gives the card back.',
   'help.edition.legendaire':
     'A legendary building does even better than a shiny one. An edition card goes on a placed building, with the Edition tool (G) or its bubble; demolishing it gives the card back.',
+  'help.concat':
+    'Concatenator: the digits of B are written after those of A (4 ‖ 7 = 47, 89 ‖ 1 = 891). A on top, B below, the result on the right. The sign of B is ignored.',
   'help.title.special': 'Special building',
   'help.special':
     'Special buildings are counted: their tool (key 0) shows how many you have left. Demolishing one gives it back, edition included.',
@@ -379,8 +381,9 @@ export const en: Record<MessageKey, string> = {
   'card.editionLegendaire.title': 'Legendary edition',
   'card.editionLegendaire.text':
     'Apply it to a placed building. Demolishing the building gives it back.',
-  'card.ancientAdder.title': 'Ancient adder',
-  'card.ancientAdder.text': 'A special adder, with its edition. Demolishing it gives it back.',
+  'card.concat.title': 'Concatenator',
+  'card.concat.text':
+    'Writes the digits of B after those of A: 4 ‖ 7 = 47. Demolishing it gives it back.',
   'card.passiveOperators.title': 'Operators +{pct}%',
   'card.passiveOperators.text': 'Every operator runs {pct}% faster.',
   'card.eventail.title': 'Fan',
@@ -435,7 +438,7 @@ export const en: Record<MessageKey, string> = {
   'tip.editionApplied': 'Applied (demolishing gives the card back)',
   'tip.editionPermanent': 'Applied (permanent)',
   'tip.editionNative': 'Native',
-  'tool.ancientAdder': 'Ancient adder',
+  'tool.concat': 'Concatenator',
   'tool.specialFree': 'Free copies: {list}',
   'act.specialVariants': '{name} editions',
   'act.specialVariant': '{name}, free copies: {n}',

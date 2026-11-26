@@ -184,7 +184,7 @@ describe('criteria', () => {
     expect(benchmarkOf('edition-legendaire')).toBe(15);
     expect(unmodeledReason('eventail')).not.toBeNull();
     expect(unmodeledReason('bridge')).not.toBeNull();
-    expect(unmodeledReason('ancient-adder')).toBeNull();
+    expect(unmodeledReason('concat')).toBeNull();
     for (const id of Object.keys(UNMODELED)) expect(CARDS.some((c) => c.id === id)).toBe(true);
   });
 
@@ -197,7 +197,7 @@ describe('criteria', () => {
     expect(judgedCards().map((c) => c.id)).toEqual([
       'edition-brillante',
       'edition-legendaire',
-      'ancient-adder',
+      'concat',
       'passive-operators',
       'eventail',
     ]);
@@ -251,7 +251,7 @@ describe('a small run', () => {
     expect(eventail?.criteria.useful).toMatchObject({ status: 'n/a', distance: 0 });
     expect(eventail?.criteria.useful.note).toMatch(/^non modélisé : /);
     expect(evaluateObject(r, card('bridge'))).toBeNull(); // socle: not judged
-    expect(evaluateObject(r, card('ancient-adder'))).toBeNull(); // no object:ancient-adder run
+    expect(evaluateObject(r, card('concat'))).toBeNull(); // no object:concat run
     const legendary = evaluateObject(r, card('edition-legendaire'));
     expect(legendary?.role).toBe('objet');
     const md = markdownReport(

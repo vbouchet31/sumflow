@@ -98,7 +98,7 @@ Outils d'équilibrage des objets ([`PLAN-objets.md`](PLAN-objets.md) §3 à §5,
 ```bash
 npm run sim                                   # 60 graines × 14 stratégies, niveaux 1 à 60
 npm run sim -- --seeds 30 --seed-offset 1000  # autres graines
-npm run sim -- --object ancient-adder         # un seul objet (object: et once:, plus natural, random, new, minimal)
+npm run sim -- --object concat                # un seul objet (object: et once:, plus natural, random, new, minimal)
 npm run sim -- --strategies natural,once:eventail --max-level 30
 npm run tune -- edition-legendaire            # propose, n'écrit rien
 npm run tune -- edition-legendaire --apply    # écrit src/config/tuning.json (si les critères passent)
@@ -108,7 +108,7 @@ npm run tune -- edition-legendaire --apply    # écrit src/config/tuning.json (s
 - **Stratégies d'un objet** : `object:<id>` le prend à chaque offre (critère 1, abus), `once:<id>` la première fois puis joue `natural` (critère 2, vaut-il la carte qu'il remplace).
 - **Options communes** : `--seeds`, `--seed-offset`, `--max-level`, `--workers` (fils d'exécution, par défaut les cœurs ; `1` sans fil, même résultat). Régleur : `--control-seeds`, `--control-offset` (graines de contrôle, tout le catalogue), `--apply`, `--accept-regressions`. `--help` les liste.
 - **Code de sortie du régleur** : 0 si les valeurs actuelles ou proposées respectent les critères (un écart dans la marge de bruit est seulement « à surveiller ») ; 1 sinon (aucune valeur dans les bornes, échec net sur les graines de contrôle ou régression nette d'un autre objet) : rien n'est alors écrit ; 2 pour une commande mal formée (dont une carte du socle, qui ne se règle pas).
-- **Durée** sur 4 cœurs : `npm run sim` environ 35 s (840 parties) ; `npm run tune` de 35 s (`edition-legendaire`, déjà bon) à 1 min 50 (`ancient-adder`, deux boutons).
+- **Durée** sur 4 cœurs : `npm run sim` environ 40 s (840 parties) ; `npm run tune` de 40 s (`concat`, déjà bon, deux boutons) à 1 min 15 (`edition-brillante`).
 
 ## Performances
 

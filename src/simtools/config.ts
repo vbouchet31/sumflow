@@ -45,8 +45,11 @@ export const TUNER = {
  *   capacity (`factory`) plus the edition cards (each free card adds the speed gain of the
  *   best operator edition, e.g. 0.5 building for a légendaire), and `E` the limited
  *   buildings performing the same operation (their copies, in buildings of ordinary speed);
- * - an operation only limited buildings perform costs `1 / (copies × opsPerSecond)`: their
- *   throughput is the cap `copies × speed / uses per item` of §3.2;
+ * - an operation only limited buildings perform costs `1 / (copies × opsPerSecond)` on their
+ *   own line (the cap `copies × speed / uses per item` of §3.2), and that line works **in
+ *   parallel** with the ordinary factory: the best recipe through it is mixed with the best
+ *   ordinary recipe, their throughputs adding up (`mixedCost` in `cost.ts`,
+ *   docs/objets/concat.md);
  * - a raw item of value v costs `raw.weight × (1 + raw.valuePenalty × (v − 1)) /
  *   (extractor rate × G)` (higher values lie farther from the hub); the extractor rate is
  *   capacity × belt speed at the scheduled upgrade levels.

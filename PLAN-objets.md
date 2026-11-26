@@ -1,6 +1,6 @@
 # PLAN-objets.md : ajouter des objets de façon répétable
 
-> **État : phase 2a terminée (outillage) ; prochaine étape 2b, pilote Concaténateur.** Suite de [`PLAN-recompenses.md`](PLAN-recompenses.md) (phase 1 terminée). Les choix faits en cours de route vont dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> **État : phase 2a terminée (outillage) ; 2b, pilote Concaténateur, codé et simulé (fiche [`docs/objets/concat.md`](docs/objets/concat.md)), partie de test à faire.** Suite de [`PLAN-recompenses.md`](PLAN-recompenses.md) (phase 1 terminée). Les choix faits en cours de route vont dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ---
 
