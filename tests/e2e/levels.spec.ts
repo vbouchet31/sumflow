@@ -94,7 +94,7 @@ test('from the first palier an offer waits across a reload; a debug choice takes
   expect(errors).toEqual([]);
 });
 
-test('levels give their reward at once; with ?pick=natural a palier offer is taken by itself', async ({
+test('levels give their reward at once; with ?pick=first a palier offer is taken by itself', async ({
   page,
 }) => {
   await page.goto(gameUrl());

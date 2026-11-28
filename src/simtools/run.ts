@@ -1,16 +1,17 @@
 /**
- * A simulation run (PLAN-objets §3): every strategy on the same seeds, then the difficulty
- * index of each game and level: its level time divided by the `natural` game's on the same
- * seed (1 = as the reference game). Games are independent and deterministic, so a run gives
- * the same result in one process or spread over worker threads (`pool.ts`).
+ * A simulation run (PLAN-objets §3, PLAN-paliers §5): every strategy on the same seeds, then
+ * the difficulty index of each game and level: its level time divided by the `none` game's
+ * on the same seed (1 = the fil rouge alone, without any object). Games are independent and
+ * deterministic, so a run gives the same result in one process or spread over worker threads
+ * (`pool.ts`).
  */
 import { CARDS, type CardDef } from '../config/cards';
 import { TUNED, type TuningValues } from '../config/tuning';
 import { COST } from './config';
 import { CostCache } from './cost';
-import { type GameRecord, playGame } from './game';
+import { GAME_LEVELS, type GameRecord, type LevelSettings, playGame } from './game';
 import { judgedCards } from './roles';
-import { BASE_STRATEGIES, type Strategy, strategyName } from './strategies';
+import { BASE_STRATEGIES, REFERENCE, type Strategy, strategyName } from './strategies';
 
 export interface RunOptions {
   seeds: number;
@@ -18,20 +19,22 @@ export interface RunOptions {
   maxLevel: number;
   strategies: readonly Strategy[];
   tuning?: TuningValues;
+  /** Paliers and quantity factors to play with (the game's by default). */
+  levels?: LevelSettings;
 }
 
 export interface StrategyRun {
   strategy: string;
   /** Games in seed order. */
   games: GameRecord[];
-  /** `index[g][L - 1]`: time of game g at level L / natural time (same seed, same level). */
+  /** `index[g][L - 1]`: time of game g at level L / `none` time (same seed, same level). */
   index: number[][];
 }
 
 export interface RunResult {
   seeds: number[];
   maxLevel: number;
-  /** By strategy name, `natural` first. */
+  /** By strategy name, `none` (the reference) first. */
   runs: Map<string, StrategyRun>;
   ms: number;
   /** Cost tables computed, levels played (timing report). */
@@ -45,6 +48,7 @@ export interface SeedTask {
   strategies: Strategy[];
   maxLevel: number;
   tuning: TuningValues;
+  levels: LevelSettings;
 }
 
 export interface SeedResult {
@@ -64,7 +68,7 @@ export function objectStrategies(card: string): Strategy[] {
 }
 
 /**
- * Default strategies: the four base ones, then `object:<id>` and `once:<id>` for every card
+ * Default strategies: the base ones, then `object:<id>` and `once:<id>` for every card
  * the criteria judge (not the socle, reported from the base strategies).
  */
 export function defaultStrategies(cards: readonly CardDef[] = CARDS): Strategy[] {
@@ -75,9 +79,9 @@ export function seedList(seeds: number, offset: number): number[] {
   return Array.from({ length: seeds }, (_, i) => offset + i);
 }
 
-/** Strategies of a run: `natural` first (the reference), then the others without repeats. */
+/** Strategies of a run: `none` first (the reference), then the others without repeats. */
 export function runStrategies(strategies: readonly Strategy[]): Strategy[] {
-  const out: Strategy[] = [{ kind: 'natural' }];
+  const out: Strategy[] = [REFERENCE];
   for (const s of strategies) {
     if (!out.some((t) => strategyName(t) === strategyName(s))) out.push(s);
   }
@@ -88,7 +92,14 @@ export function runStrategies(strategies: readonly Strategy[]): Strategy[] {
 export function playSeed(task: SeedTask, cache: CostCache): SeedResult {
   const before = cache.computed;
   const games = task.strategies.map((strategy) =>
-    playGame({ seed: task.seed, strategy, maxLevel: task.maxLevel, cache, tuning: task.tuning }),
+    playGame({
+      seed: task.seed,
+      strategy,
+      maxLevel: task.maxLevel,
+      cache,
+      tuning: task.tuning,
+      levels: task.levels,
+    }),
   );
   return { games, tables: cache.computed - before };
 }
@@ -98,7 +109,7 @@ export function localRunner(cache = new CostCache(COST.margin, COST.cacheNumbers
   return (tasks) => Promise.resolve(tasks.map((t) => playSeed(t, cache)));
 }
 
-/** Index of every game against the `natural` game of its seed. */
+/** Index of every game against the `none` game of its seed. */
 function assemble(
   opts: RunOptions,
   seeds: number[],
@@ -111,12 +122,12 @@ function assemble(
     const games = results.map((r) => r.games[k]).filter((g): g is GameRecord => g !== undefined);
     runs.set(strategyName(s), { strategy: strategyName(s), games, index: [] });
   });
-  const natural = runs.get('natural');
+  const reference = runs.get(strategyName(REFERENCE));
   let levels = 0;
   for (const run of runs.values()) {
     run.index = run.games.map((g, i) => {
       levels += g.times.length;
-      const ref = natural?.games[i]?.times ?? [];
+      const ref = reference?.games[i]?.times ?? [];
       return g.times.map((t, l) => t / (ref[l] ?? t));
     });
   }
@@ -133,7 +144,14 @@ export async function runSimulation(
   const seeds = seedList(opts.seeds, opts.seedOffset);
   const strategies = runStrategies(opts.strategies);
   const tuning = opts.tuning ?? TUNED;
-  const tasks = seeds.map((seed) => ({ seed, strategies, maxLevel: opts.maxLevel, tuning }));
+  const levels = opts.levels ?? GAME_LEVELS;
+  const tasks = seeds.map((seed) => ({
+    seed,
+    strategies,
+    maxLevel: opts.maxLevel,
+    tuning,
+    levels,
+  }));
   const results = await runner(tasks);
   return assemble(opts, seeds, strategies, results, performance.now() - start);
 }

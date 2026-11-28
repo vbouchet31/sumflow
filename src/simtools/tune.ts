@@ -31,7 +31,7 @@ import {
   runSimulation,
   type SeedRunner,
 } from './run';
-import type { Strategy } from './strategies';
+import { REFERENCE, type Strategy } from './strategies';
 
 export type KnobValues = Partial<Record<KnobId, number>>;
 
@@ -355,7 +355,7 @@ export async function tune(opts: TuneOptions): Promise<TuneResult> {
   if (!knobs || !def) throw new Error(`${opts.card}: no such object with knobs`);
   const current = currentKnobs(opts.card, base);
   const runner = opts.runner ?? localRunner();
-  const strategies: Strategy[] = [{ kind: 'natural' }, ...objectStrategies(opts.card)];
+  const strategies: Strategy[] = [REFERENCE, ...objectStrategies(opts.card)];
   const evaluations = new Map<string, ObjectEvaluation | null>();
   const evaluate = async (values: KnobValues): Promise<ObjectEvaluation | null> => {
     const key = JSON.stringify(values);

@@ -3,7 +3,7 @@
  * `sim-reports/` folder. Pure functions: the CLI prints and writes them.
  */
 import { CARDS } from '../config/cards';
-import { BAND_SIZE } from './config';
+import { BAND_SIZE, RHYTHM } from './config';
 import {
   CRITERION_IDS,
   type CriterionResult,
@@ -11,7 +11,6 @@ import {
   median,
   type ObjectEvaluation,
   quantile,
-  socleInfo,
   thresholdsOf,
 } from './criteria';
 import type { RunResult, StrategyRun } from './run';
@@ -45,12 +44,33 @@ export function bandStats(run: StrategyRun, maxLevel: number): BandStats[] {
   });
 }
 
+/**
+ * Time between two rewards (PLAN-paliers §5.4): the parts of the levels of each band, cut at
+ * their paliers, pooled over the games of `run`.
+ */
+export function rhythmStats(run: StrategyRun, maxLevel: number): BandStats[] {
+  return bands(maxLevel).map(([from, to]) => {
+    const xs: number[] = [];
+    for (const g of run.games)
+      for (let l = from; l <= to; l++) for (const t of g.segments[l - 1] ?? []) xs.push(t);
+    return { from, to, median: quantile(xs, 0.5), p10: quantile(xs, 0.1), p90: quantile(xs, 0.9) };
+  });
+}
+
+/** Median over the games of `run` of the time played before reaching level `level` + 1. */
+export function timeToLevel(run: StrategyRun, level: number): number {
+  const xs = run.games
+    .filter((g) => g.times.length >= level)
+    .map((g) => g.times.slice(0, level).reduce((s, t) => s + t, 0));
+  return median(xs);
+}
+
 /** Median over the games of the median index after the first pick of `card` (null: never). */
 export function indexAfterPick(run: StrategyRun, card: string): number | null {
   const per: number[] = [];
   run.games.forEach((g, i) => {
     const first = g.picks.find((p) => p.card === card)?.level;
-    const after = first === undefined ? [] : (run.index[i] ?? []).slice(first);
+    const after = first === undefined ? [] : (run.index[i] ?? []).slice(first - 1);
     if (after.length > 0) per.push(median(after));
   });
   return per.length > 0 ? median(per) : null;
@@ -156,13 +176,16 @@ export function markdownReport(
   for (const l of header.lines ?? []) out.push('', l);
   out.push('');
 
-  const natural = result.runs.get('natural');
+  const reference = result.runs.get('none');
   const bs = bands(result.maxLevel);
-  if (natural) {
-    out.push('## Référence (`natural`) : temps d’un niveau dans le modèle (médiane)', '');
+  if (reference) {
+    out.push(
+      '## Référence (`none`, le fil rouge seul) : temps d’un niveau dans le modèle (médiane)',
+      '',
+    );
     const times = bs.map(([from, to]) => {
       const xs: number[] = [];
-      for (const g of natural.games)
+      for (const g of reference.games)
         for (let l = from; l <= to; l++) {
           const t = g.times[l - 1];
           if (t !== undefined) xs.push(t);
@@ -178,10 +201,47 @@ export function markdownReport(
     );
   }
 
+  const rhythmRuns = ['none', 'random']
+    .map((name) => result.runs.get(name))
+    .filter((r): r is StrategyRun => r !== undefined);
+  if (rhythmRuns.length > 0) {
+    const { minSeconds, maxSeconds, from, to } = RHYTHM.target;
+    out.push(
+      '## Rythme des récompenses',
+      '',
+      `Temps entre deux récompenses (un palier ou la fin d’un niveau) : médiane (p10–p90) par tranche de niveaux. Cible : ${duration(minSeconds)} à ${duration(maxSeconds)} entre les niveaux ${from} et ${to}. Puis le temps cumulé pour finir un niveau (médiane).`,
+      '',
+    );
+    out.push(
+      table(
+        ['Stratégie', ...bs.map(([a, b]) => `${a}–${b}`)],
+        rhythmRuns.map((run) => [
+          `\`${run.strategy}\``,
+          ...rhythmStats(run, result.maxLevel).map(
+            (b) => `${duration(b.median)} (${duration(b.p10)}–${duration(b.p90)})`,
+          ),
+        ]),
+      ),
+      '',
+    );
+    const milestones = RHYTHM.milestones.filter((l) => l <= result.maxLevel);
+    if (milestones.length > 0)
+      out.push(
+        table(
+          ['Stratégie', ...milestones.map((l) => `Niveau ${l} fini`)],
+          rhythmRuns.map((run) => [
+            `\`${run.strategy}\``,
+            ...milestones.map((l) => duration(timeToLevel(run, l))),
+          ]),
+        ),
+        '',
+      );
+  }
+
   out.push(
     '## Indice de difficulté par stratégie',
     '',
-    'Temps du niveau / temps de la partie `natural` de même graine, au même niveau : médiane (p10–p90) par tranche de niveaux. Sous 1, la partie est plus facile que la référence.',
+    'Temps du niveau / temps de la partie `none` (le fil rouge seul) de même graine, au même niveau : médiane (p10–p90) par tranche de niveaux. Sous 1, la partie est plus facile que la référence.',
     '',
   );
   const rows = [...result.runs.values()].map((run) => [
@@ -196,11 +256,12 @@ export function markdownReport(
     'Repère',
     'Offert',
     '1re offre',
-    'Pris (nat. / rand. / new / objet / once)',
+    'Pris (rand. / new / objet / once)',
     'Indice après prise (once / objet)',
     '1. Pas indispensable',
     '2. Pas inutile',
     '3. Visible',
+    '4. Pas envahissant',
     'Verdict',
   ];
   const picked = (ex: Record<string, Exposure>, names: readonly string[]): string =>
@@ -221,11 +282,12 @@ export function markdownReport(
       String(e.benchmark),
       obj ? pct(obj.offered) : '–',
       obj?.firstOffer != null ? `niv. ${Math.round(obj.firstOffer)}` : '–',
-      picked(e.exposure, ['natural', 'random', 'new', `object:${e.card}`, `once:${e.card}`]),
+      picked(e.exposure, ['random', 'new', `object:${e.card}`, `once:${e.card}`]),
       `${once === null ? '–' : fmt(once)} / ${every === null ? '–' : fmt(every)}`,
       cell(e.criteria.essential),
       cell(e.criteria.useful),
       cell(e.criteria.visible),
+      cell(e.criteria.invasive),
       e.pass ? '**OK**' : '**à revoir**',
     ];
   };
@@ -239,40 +301,6 @@ export function markdownReport(
     out.push('## Objets factices (signalés à part, hors verdict)', '');
     out.push(table(head, fake.map(objectRow)), '');
   }
-  const socle = socleInfo(result);
-  if (socle.length > 0) {
-    out.push(
-      '## Socle (fil rouge), pour information',
-      '',
-      'Les cartes de la suite naturelle (`naturalSequence()`) sont le chemin de référence du jeu : les critères ne s’y appliquent pas, elles ne comptent ni dans le verdict ni comme régression.',
-      '',
-    );
-    out.push(
-      table(
-        [
-          'Carte',
-          'Genre',
-          'Fil rouge',
-          'Offert (natural)',
-          '1re offre (natural)',
-          'Pris (nat. / rand. / new / minimal)',
-        ],
-        socle.map((x) => {
-          const def = CARDS.find((c) => c.id === x.card);
-          const nat = x.exposure.natural;
-          return [
-            `\`${x.card}\``,
-            KIND[def?.effect.kind ?? ''] ?? '',
-            `niv. ${x.naturalLevel}`,
-            nat ? pct(nat.offered) : '–',
-            nat?.firstOffer != null ? `niv. ${Math.round(nat.firstOffer)}` : '–',
-            picked(x.exposure, ['natural', 'random', 'new', 'minimal']),
-          ];
-        }),
-      ),
-      '',
-    );
-  }
   const notes = evals.flatMap((e) => {
     const n = objectNotes(e, result);
     return n.length > 0 ? [`- \`${e.card}\` : ${n.join(' ; ')}.`] : [];
@@ -282,9 +310,9 @@ export function markdownReport(
   out.push(
     '## Légende',
     '',
-    '- **Stratégies** : `object:<id>` prend l’objet à chaque offre (critères 1 et 3), `once:<id>` la première fois seulement, puis joue `natural` (critère 2).',
+    '- **Stratégies** : chaque niveau donne son fil rouge d’office. `none` ne prend aucun objet (la référence), `random` en prend un au hasard, `new` une nouveauté ; `object:<id>` prend l’objet à chaque offre et rien d’autre (critères 1, 3 et 4), `once:<id>` la première fois seulement (critère 2).',
     '- **Offert** : parties où l’objet apparaît au moins une fois dans une offre (stratégie `object`) ; **1re offre** : niveau médian de sa première apparition ; **Pris** : parties où il est pris au moins une fois, par stratégie ; **Indice après prise** : médiane des parties de la médiane de l’indice après la 1re prise.',
-    `- **1. Pas indispensable** : ${real[0]?.criteria.essential.target ?? 'voir config.ts'}. **2. Pas inutile** : ${real[0]?.criteria.useful.target ?? ''}. **3. Visible** : part des parties où il est offert avant son niveau repère, attendue entre les bornes (seuils dans \`src/simtools/config.ts\`).`,
+    `- **1. Pas indispensable** : ${real[0]?.criteria.essential.target ?? 'voir config.ts'}. **2. Pas inutile** : ${real[0]?.criteria.useful.target ?? ''}. **3. Visible** : part des parties où il est offert avant son niveau repère, attendue entre les bornes. **4. Pas envahissant** : ${real[0]?.criteria.invasive.target ?? ''} (seuils dans \`src/simtools/config.ts\`).`,
     '',
     failed.length > 0
       ? `**Verdict** : ${real.length - failed.length} objets sur ${real.length} respectent les critères ; à revoir : ${failed.join(', ')}.`
@@ -307,8 +335,11 @@ export function jsonReport(
       index: (run.index[i] ?? []).map((x) => Number(x.toFixed(4))),
       times: g.times.map((t) => Number(t.toFixed(1))),
       targets: g.targets,
-      picks: g.picks.map((p) => [p.level, p.card, p.edition]),
+      segments: g.segments.map((parts) => parts.map((t) => Number(t.toFixed(1)))),
+      picks: g.picks.map((p) => [p.level, p.palier, p.card, p.edition]),
       firstOffered: g.firstOffered,
+      offered: g.offered,
+      available: g.available,
     })),
   }));
   return {
@@ -318,7 +349,6 @@ export function jsonReport(
     ms: Math.round(result.ms),
     tables: result.tables,
     objects: evals,
-    socle: socleInfo(result),
     runs,
   };
 }

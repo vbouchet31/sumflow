@@ -23,7 +23,7 @@ import {
 } from './criteria';
 import { CostCache } from './cost';
 import { defaultWorkers, WorkerPool } from './pool';
-import { playGame } from './game';
+import { GAME_LEVELS, type LevelSettings, playGame } from './game';
 import { bandStats, jsonReport, markdownReport, objectNotes } from './report';
 import { drawableCards, isSocle, judgedCards } from './roles';
 import {
@@ -31,15 +31,17 @@ import {
   localRunner,
   objectStrategies,
   runSimulation,
+  runStrategies,
   type SeedRunner,
 } from './run';
-import { BASE_STRATEGIES, parseStrategy, type Strategy } from './strategies';
+import { BASE_STRATEGIES, parseStrategy, REFERENCE, type Strategy } from './strategies';
 import { type KnobValues, tune, type TuneResult, withKnobs } from './tune';
 
 const CRITERION_NAMES: Record<CriterionId, string> = {
   essential: '1. Pas indispensable',
   useful: '2. Pas inutile',
   visible: '3. Visible',
+  invasive: '4. Pas envahissant',
 };
 
 export interface CliArgs {
@@ -86,6 +88,76 @@ function intFlag(args: CliArgs, name: string, fallback: number, min = 1): number
 function checkFlags(args: CliArgs, known: readonly string[]): void {
   for (const k of args.flags.keys())
     if (!known.includes(k)) throw new UsageError(`option inconnue --${k}`);
+}
+
+/** A fraction written `1/3` or `0.25`, strictly between 0 and 1. */
+function fraction(text: string, flag: string): number {
+  const [a, b] = text.split('/');
+  const x = b === undefined ? Number(a) : Number(a) / Number(b);
+  if (!(x > 0 && x < 1)) throw new UsageError(`--${flag} : fraction invalide « ${text} »`);
+  return x;
+}
+
+/** A level number `from` of a range, at least 1. */
+function fromLevel(text: string, flag: string): number {
+  const n = Number(text);
+  if (!(Number.isInteger(n) && n >= 1))
+    throw new UsageError(`--${flag} : niveau invalide « ${text} »`);
+  return n;
+}
+
+/**
+ * Level settings of `npm run sim` (PLAN-paliers §5.4), the game's unless overridden:
+ * - `--quantity-factor 0.6` keeps the levels of the game's ranges with this factor;
+ *   `--quantity-factor 16:0.75,25:0.7` gives the ranges;
+ * - `--paliers "6:1/2;12:1/3,2/3;16:1/4,1/2,3/4"` gives the ranges, `--paliers none` none.
+ */
+export function simLevels(args: CliArgs): LevelSettings {
+  const q = args.flags.get('quantity-factor');
+  const p = args.flags.get('paliers');
+  if (q === true || p === true)
+    throw new UsageError('--quantity-factor et --paliers attendent une valeur');
+  let quantityFactor = GAME_LEVELS.quantityFactor;
+  if (q !== undefined) {
+    const factor = (text: string): number => {
+      const x = Number(text);
+      if (!(x > 0)) throw new UsageError(`--quantity-factor : facteur invalide « ${text} »`);
+      return x;
+    };
+    if (!q.includes(':')) {
+      const x = factor(q);
+      const froms = GAME_LEVELS.quantityFactor.map((r) => r.from);
+      quantityFactor = (froms.length > 0 ? froms : [1]).map((from) => ({ from, factor: x }));
+    } else {
+      quantityFactor = q.split(',').map((part) => {
+        const [from = '', x = ''] = part.split(':');
+        return { from: fromLevel(from, 'quantity-factor'), factor: factor(x) };
+      });
+    }
+  }
+  let paliers = GAME_LEVELS.paliers;
+  if (p !== undefined) {
+    paliers =
+      p.trim() === 'none'
+        ? []
+        : p.split(';').map((part) => {
+            const [from = '', list = ''] = part.split(':');
+            const at = list.split(',').map((f) => fraction(f.trim(), 'paliers'));
+            if (at.some((f, i) => i > 0 && f <= (at[i - 1] ?? 0)))
+              throw new UsageError(`--paliers : fractions non croissantes « ${list} »`);
+            return { from: fromLevel(from.trim(), 'paliers'), at };
+          });
+  }
+  return { paliers, quantityFactor };
+}
+
+/** Readable level settings for the report header. */
+export function levelsText(levels: LevelSettings): string {
+  const pal = levels.paliers.map(
+    (r) => `dès ${r.from} : ${r.at.map((f) => `${Math.round(f * 100)} %`).join(', ')}`,
+  );
+  const qty = levels.quantityFactor.map((r) => `× ${r.factor} dès ${r.from}`);
+  return `Paliers : ${pal.length > 0 ? pal.join(' ; ') : 'aucun'}. Quantités : ${qty.length > 0 ? qty.join(' ; ') : 'celles du tableau'}.`;
 }
 
 /** Strategies of `npm run sim` from `--strategies` and `--object`. */
@@ -149,18 +221,21 @@ export async function simMain(argv: readonly string[]): Promise<number> {
     'json',
     'no-json',
     'workers',
+    'quantity-factor',
+    'paliers',
   ]);
   if (args.positional.length > 0)
     throw new UsageError(`argument inattendu : ${args.positional[0]}`);
+  const levels = simLevels(args);
   const seeds = intFlag(args, 'seeds', RUN_DEFAULTS.seeds);
   const seedOffset = intFlag(args, 'seed-offset', RUN_DEFAULTS.seedOffset, 0);
   const maxLevel = intFlag(args, 'max-level', RUN_DEFAULTS.maxLevel, 3);
   const strategies = simStrategies(args);
   err(
-    `npm run sim : ${seeds} graines × ${strategies.length + (strategies.some((s) => s.kind === 'natural') ? 0 : 1)} stratégies, niveaux 1 à ${maxLevel}…`,
+    `npm run sim : ${seeds} graines × ${runStrategies(strategies).length} stratégies, niveaux 1 à ${maxLevel}…`,
   );
   const result = await withRunner(args, (runner) =>
-    runSimulation({ seeds, seedOffset, maxLevel, strategies }, runner),
+    runSimulation({ seeds, seedOffset, maxLevel, strategies, levels }, runner),
   );
   const evals = evaluateCatalogue(result);
   const partial = strategies.length < defaultStrategies().length;
@@ -168,13 +243,15 @@ export async function simMain(argv: readonly string[]): Promise<number> {
     title: 'Simulation Sumflow',
     lines: [
       `Valeurs réglées : \`${TUNING_FILE}\` (actuelles).${partial ? ' Catalogue partiel (options `--object` ou `--strategies`).' : ''}`,
+      levelsText(levels),
     ],
   });
   const recipes = playGame({
     seed: seedOffset,
-    strategy: { kind: 'natural' },
+    strategy: REFERENCE,
     maxLevel,
     cache: new CostCache(),
+    levels,
     explain: true,
   });
   const file = writeJson(args, 'sim.json', {
@@ -235,7 +312,7 @@ export function tuneReport(
   const def = CARDS.find((c) => c.id === r.card);
   o.push(`# Réglage de \`${r.card}\`${def?.placeholder ? ' (objet factice)' : ''}`, '');
   o.push(
-    `Recherche sur les graines ${opts.seedOffset} à ${opts.seedOffset + opts.seeds - 1} (stratégies \`natural\` et \`object:${r.card}\`), ` +
+    `Recherche sur les graines ${opts.seedOffset} à ${opts.seedOffset + opts.seeds - 1} (stratégies \`none\`, \`object:${r.card}\` et \`once:${r.card}\`), ` +
       `${r.tried.length} points essayés ; contrôle sur les graines ${opts.controlSeedOffset} à ${opts.controlSeedOffset + opts.controlSeeds - 1}, tout le catalogue. ` +
       `Temps : ${(r.ms / 1000).toFixed(1)} s.`,
     '',
@@ -518,13 +595,15 @@ const HELP = `npm run sim -- [options]
   --seeds N          parties par stratégie (défaut ${RUN_DEFAULTS.seeds})
   --seed-offset N    première graine (défaut ${RUN_DEFAULTS.seedOffset})
   --max-level N      dernier niveau joué (défaut ${RUN_DEFAULTS.maxLevel})
-  --object a,b       seulement ces objets : object:<id> et once:<id> (plus natural, random, new, minimal)
-  --strategies s,t   liste exacte : natural, random, new, minimal, object:<id>, once:<id>
+  --object a,b       seulement ces objets : object:<id> et once:<id> (plus none, random, new)
+  --strategies s,t   liste : none, random, new, object:<id>, once:<id> (none, la référence, est toujours jouée)
+  --quantity-factor  facteur des quantités : 0.6 (tranches du jeu) ou 16:0.75,25:0.7
+  --paliers          paliers : "6:1/2;12:1/3,2/3;16:1/4,1/2,3/4", ou none
   --json FICHIER     JSON détaillé (défaut ${REPORT_DIR}/sim.json) ; --no-json pour ne rien écrire
   --workers N        fils d’exécution (défaut : les cœurs, 8 au plus ; 1 = sans fil)
 
 npm run tune -- <cardId> [options]
-  --seeds N          parties par stratégie et par point essayé (défaut ${TUNER.seeds} ; natural, object, once)
+  --seeds N          parties par stratégie et par point essayé (défaut ${TUNER.seeds} ; none, object, once)
   --seed-offset N    première graine du réglage (défaut ${TUNER.seedOffset})
   --control-seeds N  parties par stratégie du contrôle, tout le catalogue (défaut ${TUNER.controlSeeds})
   --control-offset N première graine du contrôle (défaut ${TUNER.controlSeedOffset})

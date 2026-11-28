@@ -1,11 +1,11 @@
 /**
- * The three balance criteria of PLAN-objets §4, evaluated on a run, object by object, against
- * the `natural` games of the same seeds:
+ * The balance criteria of PLAN-objets §4 and PLAN-paliers §5.3, evaluated on a run, object by
+ * object, against the `none` games of the same seeds (the fil rouge alone):
  * 1. not essential, with `object:<id>` (taken every time it is offered: the abuse test);
- * 2. not useless, with `once:<id>` (taken the first time, then `natural`: is it worth the
- *    natural card it replaces);
- * 3. visible (offered before its benchmark level).
- * Thresholds in `config.ts`. The socle (natural sequence) is not judged (`roles.ts`).
+ * 2. not useless, with `once:<id>` (taken the first time only: is it worth a choice);
+ * 3. visible (offered before its benchmark level);
+ * 4. not invasive (not in too many of the offers drawn while it is available).
+ * Thresholds in `config.ts`. The socle (natural sequence) is never drawn nor judged.
  */
 import { type CardDef, CARDS } from '../config/cards';
 import { firstPalierLevel } from '../sim/levels';
@@ -17,11 +17,11 @@ import {
   DEFAULT_BENCHMARK,
   INDEX_EPSILON,
 } from './config';
-import { type CardRole, isSocle, naturalLevelOf, roleOf, unmodeledReason } from './roles';
+import { type CardRole, isSocle, naturalLevelOf, unmodeledReason } from './roles';
 import type { RunResult, StrategyRun } from './run';
 
-export type CriterionId = 'essential' | 'useful' | 'visible';
-export const CRITERION_IDS: readonly CriterionId[] = ['essential', 'useful', 'visible'];
+export type CriterionId = 'essential' | 'useful' | 'visible' | 'invasive';
+export const CRITERION_IDS: readonly CriterionId[] = ['essential', 'useful', 'visible', 'invasive'];
 
 export interface CriterionResult {
   status: 'pass' | 'fail' | 'n/a';
@@ -70,6 +70,7 @@ export function thresholdsOf(card: string): CriteriaThresholds {
     essential: { ...CRITERIA.essential, ...o.essential },
     useful: { ...CRITERIA.useful, ...o.useful },
     visible: { ...CRITERIA.visible, ...o.visible },
+    invasive: { ...CRITERIA.invasive, ...o.invasive },
   };
 }
 
@@ -157,8 +158,8 @@ export function usefulCriterion(
     const first = g.picks.find((p) => p.card === card)?.level;
     const ix = run.index[i];
     if (first === undefined || !ix) return;
-    // The card picked at the offer of level p plays from level p + 1.
-    const after = ix.slice(first);
+    // The card picked at a palier of level p already plays in the rest of level p.
+    const after = ix.slice(first - 1);
     if (after.length === 0) return;
     shares.push(after.filter((x) => x < below - INDEX_EPSILON).length / after.length);
   });
@@ -205,7 +206,38 @@ export function visibleCriterion(
 }
 
 /**
- * The three criteria and the exposure of `card` in `result`: criteria 1 and 3 on its
+ * Criterion 4: median over the games of the share of the offers showing the card among those
+ * drawn while it was available. Games where it never was available do not count. It does not
+ * apply to a card with `maxPicks` (taken the first time it shows, it cannot come back).
+ */
+export function invasiveCriterion(
+  run: StrategyRun,
+  card: string,
+  t: CriteriaThresholds,
+): CriterionResult {
+  const { max } = t.invasive;
+  const target = `offert dans ≤ ${pct(max)} des offres où il est disponible (médiane)`;
+  const def = CARDS.find((c) => c.id === card);
+  if (def?.maxPicks !== undefined)
+    return { status: 'n/a', value: 0, distance: 0, target, n: 0, note: 'nombre de prises limité' };
+  const shares = run.games.flatMap((g) => {
+    const available = g.available[card] ?? 0;
+    return available > 0 ? [(g.offered[card] ?? 0) / available] : [];
+  });
+  if (shares.length === 0)
+    return { status: 'n/a', value: 0, distance: 0, target, n: 0, note: 'jamais disponible' };
+  const value = median(shares);
+  return {
+    status: value <= max ? 'pass' : 'fail',
+    value,
+    distance: Math.max(0, value - max),
+    target,
+    n: shares.length,
+  };
+}
+
+/**
+ * The criteria and the exposure of `card` in `result`: criteria 1, 3 and 4 on its
  * `object:<id>` run, criterion 2 on its `once:<id>` run (the `object:<id>` one if absent).
  * Null for a socle card (not judged) or without an `object:<id>` run.
  */
@@ -225,6 +257,7 @@ export function evaluateObject(result: RunResult, card: CardDef): ObjectEvaluati
       ? { ...useful, status: 'n/a', distance: 0, note: `non modélisé : ${unmodeled}` }
       : useful,
     visible: visibleCriterion(run, card.id, benchmark, t),
+    invasive: invasiveCriterion(run, card.id, t),
   };
   const applicable = CRITERION_IDS.map((k) => criteria[k]).filter((c) => c.status !== 'n/a');
   return {
@@ -248,25 +281,5 @@ export function evaluateCatalogue(
   return cards.flatMap((c) => {
     const e = evaluateObject(result, c);
     return e ? [e] : [];
-  });
-}
-
-/** What the report shows of a socle card: information only, no criterion. */
-export interface SocleInfo {
-  card: string;
-  /** Level of the natural sequence giving it. */
-  naturalLevel: number;
-  /** By strategy (the base ones, and `object:` / `once:` if they were run). */
-  exposure: Record<string, Exposure>;
-}
-
-/** Socle cards of the catalogue (natural sequence, drawable), in catalogue order. */
-export function socleInfo(result: RunResult, cards: readonly CardDef[] = CARDS): SocleInfo[] {
-  return cards.flatMap((c) => {
-    const level = naturalLevelOf(c.id);
-    if (level === null || roleOf(c) !== 'socle') return [];
-    const exposure: Record<string, Exposure> = {};
-    for (const [name, r] of result.runs) exposure[name] = exposureOf(r, c.id);
-    return [{ card: c.id, naturalLevel: level, exposure }];
   });
 }

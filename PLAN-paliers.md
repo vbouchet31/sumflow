@@ -1,6 +1,6 @@
 # PLAN-paliers.md : des récompenses plus fréquentes, des choix sur les objets
 
-> **État : jalons P1 à P4 faits (réglages ; fil rouge d’office et paliers ; tirage en un seul tas, Éventail I et II, filet de sécurité ; interface).** Branche `ccr-ef7ff23f-njv12p`. Ce plan **remplace une partie** de [`PLAN-recompenses.md`](PLAN-recompenses.md) (fil rouge dans les offres, emplacements Nombres / Atelier / Joker, refus) et complète [`PLAN-objets.md`](PLAN-objets.md) (simulateur, critères). Les choix faits en cours de route iront dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> **État : jalons P1 à P5 faits (réglages ; fil rouge d’office et paliers ; tirage en un seul tas, Éventail I et II, filet de sécurité ; interface ; simulateur).** Branche `ccr-ef7ff23f-njv12p`. Ce plan **remplace une partie** de [`PLAN-recompenses.md`](PLAN-recompenses.md) (fil rouge dans les offres, emplacements Nombres / Atelier / Joker, refus) et complète [`PLAN-objets.md`](PLAN-objets.md) (simulateur, critères). Les choix faits en cours de route iront dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ---
 
@@ -209,12 +209,14 @@ Le simulateur (`npm run sim`) et le régleur (`npm run tune`) suivent le nouveau
 | `none`        | **référence** : aucun objet (le simulateur seul a le droit de ne rien prendre) |
 | `random`      | une carte au hasard                                                            |
 | `new`         | une nouveauté si possible, sinon au hasard                                     |
-| `object:<id>` | l'objet chaque fois qu'il est proposé, sinon au hasard                         |
-| `once:<id>`   | l'objet la première fois, puis au hasard                                       |
+| `object:<id>` | l'objet chaque fois qu'il est proposé, rien d'autre (sauf ses prérequis)       |
+| `once:<id>`   | l'objet la première fois, puis rien                                            |
 
 - `natural` et `minimal` disparaissent (le fil rouge n'est plus un choix).
+- **Choix fait au jalon P5** : `object` et `once` ne prennent rien d'autre que l'objet (et les cartes qu'il exige, comme Éventail I pour Éventail II), au lieu de « sinon au hasard ». Leur indice contre `none` mesure ainsi l'objet seul, sans le bruit des autres cartes.
+- **Critère 4 et cartes uniques** : une carte à `maxPicks` est prise dès sa première apparition avec `object` ; le critère 4 ne s'y applique pas (« n/a »).
 - **Indice de difficulté** : temps du niveau divisé par celui de la stratégie `none` pour la même graine. 1,0 veut dire « fil rouge seul ».
-- Le mode `?pick=` du jeu (`autoPick.ts`) suit les mêmes modes.
+- Le mode `?pick=` du jeu (`autoPick.ts`) garde `first`, `random` et `none` (l’écran) ; `natural` disparaît.
 
 ### 5.3 Critères (`PLAN-objets.md` §4, à revoir avec l'auteur)
 

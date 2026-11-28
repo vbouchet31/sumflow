@@ -16,7 +16,7 @@ export const RUN_DEFAULTS = {
 
 /** Tuner settings (§5). */
 export const TUNER = {
-  /** Seeds of the search (each point plays `natural`, `object:<id>` and `once:<id>`). */
+  /** Seeds of the search (each point plays `none`, `object:<id>` and `once:<id>`). */
   seeds: 60,
   seedOffset: 1,
   /** Seeds of the control run, whole catalogue, disjoint from the search seeds. */
@@ -77,6 +77,15 @@ export const COST = {
   cacheNumbers: 12_000_000,
 } as const;
 
+/**
+ * Reward rhythm of the report (PLAN-paliers §5.4): the target interval between two rewards
+ * over a band of levels, and the levels whose cumulated time is shown.
+ */
+export const RHYTHM = {
+  target: { minSeconds: 180, maxSeconds: 240, from: 11, to: 30 },
+  milestones: [10, 20, 30],
+} as const;
+
 /** Level bands of the report (inclusive). The last one ends at the max level. */
 export const BAND_SIZE = 10;
 
@@ -94,12 +103,18 @@ export interface CriteriaThresholds {
   useful: { below: number; levels: number };
   /** 3. Visible: offered at least once before the benchmark level in `min` to `max` of the games. */
   visible: { min: number; max: number };
+  /**
+   * 4. Not invasive (PLAN-paliers §5.3): the median over the games of the share of the offers
+   * showing it, among those drawn while it was available, is at most `max`.
+   */
+  invasive: { max: number };
 }
 
 export const CRITERIA: CriteriaThresholds = {
   essential: { below: 0.5, maxRun: 3, games: 0.9 },
   useful: { below: 1, levels: 1 / 3 },
   visible: { min: 0.5, max: 0.8 },
+  invasive: { max: 0.4 },
 };
 
 /**
@@ -111,7 +126,8 @@ export const UNMODELED: Readonly<Record<string, string>> = {
   bridge: 'un pont ne calcule rien',
   priorities: 'les priorités ne changent aucun coût',
   storage: 'un stockage ne calcule rien',
-  eventail: 'l’emplacement d’offre en plus ne change aucun coût',
+  eventail: 'la carte d’offre en plus ne change aucun coût',
+  'eventail-2': 'la carte d’offre en plus ne change aucun coût',
 };
 
 /**

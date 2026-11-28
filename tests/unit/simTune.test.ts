@@ -8,7 +8,8 @@ import {
   TUNING_FILE,
   validateTuning,
 } from '../../src/config/tuning';
-import { conclusion, parseArgs, UsageError } from '../../src/simtools/cli';
+import { conclusion, levelsText, parseArgs, simLevels, UsageError } from '../../src/simtools/cli';
+import { GAME_LEVELS } from '../../src/simtools/game';
 import {
   coordinateSearch,
   currentKnobs,
@@ -144,7 +145,12 @@ function evalOf(card: string, visible: CriterionResult, placeholder = false): Ob
     unmodeled: null,
     benchmark: 15,
     exposure: {},
-    criteria: { essential: crit(1, true), useful: crit(0.5, true), visible },
+    criteria: {
+      essential: crit(1, true),
+      useful: crit(0.5, true),
+      visible,
+      invasive: crit(0.2, true),
+    },
     pass: visible.status === 'pass',
     distance: visible.distance,
   };
@@ -253,5 +259,38 @@ describe('tuner on a tiny run', () => {
     expect(['unchanged', 'proposed', 'no-solution', 'overfit', 'regression']).toContain(r.outcome);
     expect(conclusion(r, r.card).length).toBeGreaterThan(20);
     expect(readFileSync(TUNING_FILE, 'utf8')).toBe(file);
+  });
+});
+
+describe('level settings of npm run sim (PLAN-paliers §5.4)', () => {
+  const levels = (...argv: string[]) => simLevels(parseArgs(argv, []));
+
+  it('the game settings by default', () => {
+    expect(levels()).toEqual(GAME_LEVELS);
+    expect(levelsText(levels())).toBe(
+      'Paliers : dès 6 : 50 % ; dès 12 : 33 %, 67 % ; dès 16 : 25 %, 50 %, 75 %. Quantités : × 0.75 dès 16.',
+    );
+  });
+
+  it('--quantity-factor: one factor on the game ranges, or ranges', () => {
+    expect(levels('--quantity-factor', '0.6').quantityFactor).toEqual([{ from: 16, factor: 0.6 }]);
+    expect(levels('--quantity-factor=16:0.75,25:0.7').quantityFactor).toEqual([
+      { from: 16, factor: 0.75 },
+      { from: 25, factor: 0.7 },
+    ]);
+    for (const bad of ['0', '-1', 'x', '0:0.5', '3:'])
+      expect(() => levels('--quantity-factor', bad)).toThrow(UsageError);
+  });
+
+  it('--paliers: ranges of fractions, or none', () => {
+    expect(levels('--paliers', '6:1/2;12:1/3,2/3').paliers).toEqual([
+      { from: 6, at: [0.5] },
+      { from: 12, at: [1 / 3, 2 / 3] },
+    ]);
+    expect(levels('--paliers', '4:0.25,0.5').paliers).toEqual([{ from: 4, at: [0.25, 0.5] }]);
+    expect(levels('--paliers', 'none').paliers).toEqual([]);
+    expect(levelsText(levels('--paliers', 'none'))).toContain('Paliers : aucun.');
+    for (const bad of ['6:1', '6:2/3,1/3', 'x:1/2', '6:'])
+      expect(() => levels('--paliers', bad)).toThrow(UsageError);
   });
 });

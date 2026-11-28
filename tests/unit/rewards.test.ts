@@ -465,25 +465,22 @@ describe('automatic choice (?pick=)', () => {
     expect(DEFAULT_PICK_MODE).toBe('none');
     expect(parsePickMode(null)).toBe('none');
     expect(parsePickMode('bogus')).toBe('none');
-    expect(parsePickMode('natural')).toBe('natural');
+    expect(parsePickMode('natural')).toBe('none'); // gone with the fil rouge offers
     expect(parsePickMode('first')).toBe('first');
     expect(parsePickMode('random')).toBe('random');
     expect(parsePickMode('none')).toBe('none');
   });
 
-  it('natural, first, random and none', () => {
+  it('first, random and none', () => {
     const s = atLevel3();
     force(s, 'bridge', 'edition-brillante');
     const offer = s.currentOffer;
     if (!offer) throw new Error('no offer');
-    expect(autoPickIndex(s, offer, 'natural')).toBe(0); // the bridge is the next item
     expect(autoPickIndex(s, offer, 'first')).toBe(0);
     expect(autoPickIndex(s, offer, 'none')).toBeNull();
     const r = autoPickIndex(s, offer, 'random');
     expect([0, 1]).toContain(r);
     expect(autoPickIndex(s, offer, 'random')).toBe(r); // seeded
-    force(s, 'edition-brillante', 'mult');
-    expect(s.currentOffer && autoPickIndex(s, s.currentOffer, 'natural')).toBe(0); // fallback
     expect(resolvePending(s, 'none')).toBe(0);
     s.pendingOffers.push({ level: 3, palier: 2 });
     expect(resolvePending(s, 'random')).toBe(2);

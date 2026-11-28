@@ -380,7 +380,7 @@ describe('tool set of a game state', () => {
   });
   it('every level of a game has a finite cost, whatever the strategy', () => {
     const cache = new CostCache();
-    for (const strategy of [{ kind: 'natural' }, { kind: 'minimal' }] as const) {
+    for (const strategy of [{ kind: 'none' }, { kind: 'random' }] as const) {
       const g = playGame({ seed: 3, strategy, maxLevel: 60, cache });
       expect(g.times).toHaveLength(60);
       for (const t of g.times) {

@@ -242,7 +242,7 @@ async function bootstrap(): Promise<void> {
   };
   // `?tutorial=0` keeps the cards from opening by themselves (end-to-end tests).
   const autoTutorials = new URLSearchParams(location.search).get('tutorial') !== '0';
-  // `?pick=natural|first|random` chooses the pending offers by itself (end-to-end tests);
+  // `?pick=first|random` chooses the pending offers by itself (end-to-end tests);
   // without it (or with `none`) the player chooses on the screen.
   const pickMode = parsePickMode(new URLSearchParams(location.search).get('pick'));
   const choiceScreen = pickMode === 'none';

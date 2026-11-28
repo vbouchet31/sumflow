@@ -3,17 +3,12 @@
  * end-to-end tests and quick play-throughs. Without it, the player chooses on the screen.
  */
 import { hash2, mulberry32 } from '../core/rng';
-import { naturalAt } from './offers';
 import { chooseCard, type Emit, ensureOffer } from './progression';
-import { offerContext } from './rewards';
 import type { GameState, StoredOffer } from './state';
 
-/**
- * `natural`: the natural card if offered, else the first; `none`: never choose by itself
- * (the choice screen does).
- */
-export type PickMode = 'natural' | 'first' | 'random' | 'none';
-export const PICK_MODES: readonly PickMode[] = ['natural', 'first', 'random', 'none'];
+/** `first`: the first card; `random`: one at random (seeded); `none`: the screen chooses. */
+export type PickMode = 'first' | 'random' | 'none';
+export const PICK_MODES: readonly PickMode[] = ['first', 'random', 'none'];
 /** Mode without `?pick=` (or with an unknown one): the player chooses on the screen. */
 export const DEFAULT_PICK_MODE: PickMode = 'none';
 
@@ -29,15 +24,8 @@ export function parsePickMode(param: string | null): PickMode {
 export function autoPickIndex(state: GameState, offer: StoredOffer, mode: PickMode): number | null {
   if (mode === 'none' || offer.cards.length === 0) return null;
   if (mode === 'first') return 0;
-  if (mode === 'random') {
-    const rng = mulberry32(hash2(state.seed ^ PICK_SALT, offer.level, state.picks.length));
-    return Math.floor(rng() * offer.cards.length);
-  }
-  const natural = naturalAt(offerContext(state, offer.level)).card;
-  return Math.max(
-    0,
-    offer.cards.findIndex((c) => c.card === natural),
-  );
+  const rng = mulberry32(hash2(state.seed ^ PICK_SALT, offer.level, state.picks.length));
+  return Math.floor(rng() * offer.cards.length);
 }
 
 /** Resolve every pending offer with `mode`, in order. Returns the number of cards taken. */

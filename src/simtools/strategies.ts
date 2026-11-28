@@ -1,43 +1,42 @@
 /**
- * Choice strategies of the simulator (PLAN-objets §3.1). Each one picks a card index in an
- * offer, reading the game state with the game's own functions.
+ * Choice strategies of the simulator (PLAN-paliers §5.2). Each one picks a card index in a
+ * palier offer, or none, reading the game state with the game's own functions. Every level
+ * gives its fil rouge card whatever the strategy: only the objects differ.
  */
-import type { CardDef } from '../config/cards';
+import { CARDS, type CardDef } from '../config/cards';
 import { autoPickIndex } from '../sim/autoPick';
-import { naturalAt } from '../sim/offers';
-import { cardDef, offerContext } from '../sim/rewards';
 import type { GameState, StoredOffer } from '../sim/state';
 import { offerTags } from '../ui/offerInfo';
 
 export type Strategy =
-  /** The natural card ("fil rouge") when offered, else the first card. */
-  | { kind: 'natural' }
+  /** The reference: no object at all (only the simulator may leave an offer). */
+  | { kind: 'none' }
   /** A card at random (seeded, the game's `random` pick mode). */
   | { kind: 'random' }
-  /** A card never obtained in this game (the first one), else as `natural`. */
+  /** A card never obtained in this game (the first one), else at random. */
   | { kind: 'new' }
-  /** Never a value card when another card is offered; among the others, as `natural`. */
-  | { kind: 'minimal' }
-  /** The object every time it is offered, else as `natural` (criterion 1: abuse). */
+  /** The object every time it is offered, nothing else (criteria 1, 3 and 4). */
   | { kind: 'object'; card: string }
-  /** The object the first time it is offered, then as `natural` (criterion 2: is it worth it). */
+  /** The object the first time it is offered, nothing else (criterion 2: is it worth it). */
   | { kind: 'once'; card: string };
 
+/** The strategy every index is measured against. */
+export const REFERENCE: Strategy = { kind: 'none' };
+
 export const BASE_STRATEGIES: readonly Strategy[] = [
-  { kind: 'natural' },
+  { kind: 'none' },
   { kind: 'random' },
   { kind: 'new' },
-  { kind: 'minimal' },
 ];
 
 export function strategyName(s: Strategy): string {
   return s.kind === 'object' || s.kind === 'once' ? `${s.kind}:${s.card}` : s.kind;
 }
 
-/** Parse `natural`, `random`, `new`, `minimal`, `object:<cardId>` or `once:<cardId>`. */
+/** Parse `none`, `random`, `new`, `object:<cardId>` or `once:<cardId>`. */
 export function parseStrategy(text: string, cards: readonly CardDef[]): Strategy | null {
   const t = text.trim();
-  if (t === 'natural' || t === 'random' || t === 'new' || t === 'minimal') return { kind: t };
+  if (t === 'none' || t === 'random' || t === 'new') return { kind: t };
   for (const kind of ['object', 'once'] as const) {
     if (!t.startsWith(`${kind}:`)) continue;
     const card = t.slice(kind.length + 1);
@@ -46,45 +45,53 @@ export function parseStrategy(text: string, cards: readonly CardDef[]): Strategy
   return null;
 }
 
-/** Index of the natural card in `cards` (indices into the offer), or -1. */
-function naturalIn(state: GameState, offer: StoredOffer, indices: readonly number[]): number {
-  const natural = naturalAt(offerContext(state, offer.level)).card;
-  return indices.find((i) => offer.cards[i]?.card === natural) ?? -1;
+/** Cards `card` requires, directly or through them (`requires: [{ card }]`). */
+export function cardPrerequisites(card: string, cards: readonly CardDef[] = CARDS): string[] {
+  const out: string[] = [];
+  const visit = (id: string): void => {
+    for (const p of cards.find((c) => c.id === id)?.requires ?? []) {
+      if (!('card' in p) || out.includes(p.card)) continue;
+      out.push(p.card);
+      visit(p.card);
+    }
+  };
+  visit(card);
+  return out;
 }
 
-/** Index of the card `strategy` takes in `offer` (non-empty). */
-export function pickIndex(state: GameState, offer: StoredOffer, strategy: Strategy): number {
-  const all = offer.cards.map((_, i) => i);
-  const natural = (): number => autoPickIndex(state, offer, 'natural') ?? 0;
+/** Index of `card` in `offer`, else of a card it still needs (Éventail I for II), or -1. */
+function targetIndex(state: GameState, offer: StoredOffer, card: string): number {
+  const i = offer.cards.findIndex((c) => c.card === card);
+  if (i >= 0) return i;
+  const needed = cardPrerequisites(card).filter((id) => !state.picks.some((p) => p.card === id));
+  return offer.cards.findIndex((c) => needed.includes(c.card));
+}
+
+/**
+ * Index of the card `strategy` takes in `offer`, or null to take nothing. `object` and `once`
+ * take nothing else (but the cards their object requires), so their index measures that
+ * object alone against `none`.
+ */
+export function pickIndex(state: GameState, offer: StoredOffer, strategy: Strategy): number | null {
+  if (offer.cards.length === 0) return null;
+  const random = (): number => autoPickIndex(state, offer, 'random') ?? 0;
   switch (strategy.kind) {
-    case 'natural':
-      return natural();
+    case 'none':
+      return null;
     case 'random':
-      return autoPickIndex(state, offer, 'random') ?? 0;
+      return random();
     case 'new': {
-      const i = all.find((k) => {
-        const card = offer.cards[k];
-        return card !== undefined && offerTags(state, card).includes('new');
-      });
-      return i ?? natural();
-    }
-    case 'minimal': {
-      const others = all.filter((k) => {
-        const card = offer.cards[k];
-        return card !== undefined && cardDef(card.card)?.effect.kind !== 'value';
-      });
-      if (others.length === 0) return natural();
-      const n = naturalIn(state, offer, others);
-      return n >= 0 ? n : (others[0] ?? 0);
+      const i = offer.cards.findIndex((c) => offerTags(state, c).includes('new'));
+      return i >= 0 ? i : random();
     }
     case 'object': {
-      const i = offer.cards.findIndex((c) => c.card === strategy.card);
-      return i >= 0 ? i : natural();
+      const i = targetIndex(state, offer, strategy.card);
+      return i >= 0 ? i : null;
     }
     case 'once': {
-      if (state.picks.some((p) => p.card === strategy.card)) return natural();
-      const i = offer.cards.findIndex((c) => c.card === strategy.card);
-      return i >= 0 ? i : natural();
+      if (state.picks.some((p) => p.card === strategy.card)) return null;
+      const i = targetIndex(state, offer, strategy.card);
+      return i >= 0 ? i : null;
     }
   }
 }
