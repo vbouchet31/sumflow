@@ -1,5 +1,6 @@
 import { CARDS, type CardDef, type Edition, PASSIVE_EFFECTS } from '../config/cards';
 import { getLocale, t } from '../i18n';
+import { paliersFor } from '../sim/levels';
 import { naturalAt, naturalStep } from '../sim/offers';
 import { cardDef, offerContext } from '../sim/rewards';
 import type { GameState } from '../sim/state';
@@ -29,6 +30,17 @@ export function cardLabel(card: { card: string; edition?: Edition; value?: numbe
 export function nextRewardLabel(state: GameState, level: number): string {
   const step = level === state.level ? naturalAt(offerContext(state, level)) : naturalStep(level);
   return cardLabel(step);
+}
+
+/**
+ * Reward column of the Levels panel (PLAN-paliers §4.3): the fil rouge card of `level` and
+ * the number of choices its paliers give ("× · 3 choix").
+ */
+export function levelRewardLabel(state: GameState, level: number): string {
+  const reward = nextRewardLabel(state, level);
+  const n = paliersFor(level).length;
+  if (n === 0) return reward;
+  return t(n === 1 ? 'reward.withChoice' : 'reward.withChoices', { reward, n });
 }
 
 /**

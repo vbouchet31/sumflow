@@ -6,12 +6,18 @@ import { el, releaseFocus, trapTab } from './dom';
 import { cardLabel, formatDuration } from './labels';
 
 /**
- * "Your picks" (PLAN-recompenses §4.6): every card obtained, level by level, with its
- * edition and value, as items of a list. A card given outside an offer (debug) says so.
+ * "Your picks" (PLAN-recompenses §4.6, PLAN-paliers §4.3): every card obtained, in order,
+ * with its edition and value, as items of a list: the level for its reward, the level and the
+ * palier for a choice. A card given outside an offer (debug) says so.
  */
 export function picksRecap(state: GameState): { level: string; card: string }[] {
   return state.picks.map((p) => ({
-    level: p.level > 0 ? t('end.pickLevel', { n: p.level }) : t('end.pickGranted'),
+    level:
+      p.level <= 0
+        ? t('end.pickGranted')
+        : p.palier !== undefined
+          ? t('end.pickPalier', { n: p.level, i: p.palier })
+          : t('end.pickLevel', { n: p.level }),
     card: cardLabel(p),
   }));
 }

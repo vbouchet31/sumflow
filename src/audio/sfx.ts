@@ -87,6 +87,12 @@ export class Sfx {
     [523.25, 659.25, 783.99].forEach((f, i) => this.tone(f, i * 0.11, 0.35, 'triangle', 0.25));
   }
 
+  /** A palier reached (PLAN-paliers §4.2): a light rising pair, softer than a level. */
+  palierReached(): void {
+    this.tone(659.25, 0, 0.2, 'triangle', 0.14);
+    this.tone(987.77, 0.09, 0.3, 'triangle', 0.12);
+  }
+
   /** Soft two-note chime. */
   upgradeReady(): void {
     this.tone(880, 0, 0.18, 'sine', 0.12);

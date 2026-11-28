@@ -24,8 +24,35 @@ test('HUD, levels panel and level-complete toast', async ({ page }) => {
   expect(state?.level).toBe(2);
   expect(state?.unlockedBuildings).toContain('adder');
   await expect(page.locator('.hud-target')).toHaveText('2');
+  // No palier before level 6: no mark, no next palier.
+  await expect(page.locator('.hud-tick')).toHaveCount(0);
+  await expect(page.locator('.hud-palier')).toBeHidden();
 
   expect(errors).toEqual([]);
+});
+
+test('the paliers of a level: marks on the HUD bar, the next one, the Levels panel', async ({
+  page,
+}) => {
+  await page.goto(gameUrl('', 'none'));
+  await page.evaluate(() => window.__sumflow?.setLevel(16));
+  // Level 16: 3 000 items, paliers at 750, 1 500 and 2 250.
+  const ticks = page.locator('.hud-bar .hud-tick');
+  await expect(ticks).toHaveCount(3);
+  await expect(page.locator('.hud-palier')).toHaveText(/750 \(1 \/ 3\)/);
+  await page.evaluate(() => {
+    const r = window.__sumflow?.getState().levelRequirement;
+    if (r) window.__sumflow?.deliver(r.value, 800);
+  });
+  await expect(page.locator('.hud-tick.is-reached')).toHaveCount(1);
+  await expect(page.locator('.hud-palier')).toHaveText(/1[\s,.]?500 \(2 \/ 3\)/);
+  await expect(page.locator('.toast', { hasText: /1 \/ 3/ })).toBeVisible();
+
+  await expect(page.locator('.offer-overlay')).toBeVisible();
+  await page.keyboard.press('Escape'); // See the map
+  await page.keyboard.press('l');
+  const first = page.locator('.levels-panel tbody tr').first();
+  await expect(first).toContainText('3 choi');
 });
 
 test('from the first palier an offer waits across a reload; a debug choice takes it and the screen follows', async ({

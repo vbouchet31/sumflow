@@ -95,6 +95,9 @@ export const HUB_COLORS = {
   innerFrame: '#f3e08a',
   barTrack: '#1f2a24',
   barFill: '#f3e08a',
+  /** Palier marks on the bar (PLAN-paliers §4.3): to come, then passed. */
+  palierTick: '#f29bb8',
+  palierTickReached: '#1f2a24',
   textMuted: '#d8dccf',
   /** Behind the reward icons. */
   rewardExtraction: '#5f7166',

@@ -4,6 +4,7 @@ import { BUILDING_COLORS, COLORS, FONT_NUM, FONT_UI, HUB_COLORS } from '../../co
 import { formatCompact } from '../../core/format';
 import { t } from '../../i18n';
 import { naturalAt, type NaturalStep } from '../../sim/offers';
+import { levelPaliers } from '../../sim/progression';
 import { isOperator } from '../../sim/entities';
 import { cardDef, offerContext } from '../../sim/rewards';
 import type { GameState } from '../../sim/state';
@@ -133,6 +134,13 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
     ctx.fillStyle = HUB_COLORS.barFill;
     roundRect(ctx, barX, barY, Math.max(barH, barW * ratio), barH, barH / 2);
     ctx.fill();
+  }
+  // Palier marks (PLAN-paliers §4.3): pink ahead, dark once passed.
+  const tickW = Math.max(1, 0.06 * s);
+  for (const at of levelPaliers(state)) {
+    ctx.fillStyle = at <= req.delivered ? HUB_COLORS.palierTickReached : HUB_COLORS.palierTick;
+    const tx = barX + (barW * at) / Math.max(1, req.required);
+    ctx.fillRect(tx - tickW / 2, barY - 0.08 * s, tickW, barH + 0.16 * s);
   }
 
   // Next reward icon: the fil rouge card the level gives (PLAN-paliers §3.1).

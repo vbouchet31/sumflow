@@ -156,7 +156,9 @@ test('an edition frames the building in its chalk, the operator keeps its colour
   expect(purpleEdition).toBeGreaterThan(purpleBase * 0.6);
 });
 
-test('end screen: "Your picks" lists the cards level by level', async ({ page }) => {
+test('end screen: "Your picks" lists the cards, level by level and palier by palier', async ({
+  page,
+}) => {
   await page.goto(gameUrl('', 'none'));
   await page.evaluate(() => {
     const api = window.__sumflow;
@@ -186,8 +188,8 @@ test('end screen: "Your picks" lists the cards level by level', async ({ page })
   await expect(picks.nth(2)).toHaveText(/Lv\. 3\s*Value 2/);
   // Each level is delivered at once here: its reward comes before the choice of its palier.
   await expect(picks.nth(5)).toHaveText(/Lv\. 6\s*Value 4/);
-  await expect(picks.nth(6)).toHaveText(/Lv\. 6\s*Concatenator \(legendary\)/);
-  await expect(picks.nth(8)).toHaveText(/Lv\. 7\s*Shiny edition/);
+  await expect(picks.nth(6)).toHaveText(/Lv\. 6 · milestone 1\s*Concatenator \(legendary\)/);
+  await expect(picks.nth(8)).toHaveText(/Lv\. 7 · milestone 1\s*Shiny edition/);
   // Long: it scrolls inside the card, the button stays on screen.
   expect(await picks.count()).toBeGreaterThan(20);
   await expect(end.locator('.primary-btn')).toBeInViewport();

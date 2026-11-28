@@ -621,11 +621,38 @@ body::after {
 }
 
 .hud-bar {
+  position: relative;
   height: 6px;
   margin: 6px 0;
   border-radius: 3px;
   background: var(--board-deep);
   overflow: hidden;
+}
+
+/* Palier marks on the level bar (PLAN-paliers §4.3). */
+.hud-ticks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hud-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--chalk-pink);
+}
+
+.hud-tick.is-reached {
+  background: var(--board-deep);
+  opacity: 0.7;
+}
+
+.hud-palier {
+  font-size: 12px;
+  color: var(--chalk-pink);
 }
 
 .hud-bar-fill {
@@ -1822,11 +1849,13 @@ body::after {
   margin: 2px 0 0;
 }
 
+.ui-compact .hud-palier,
 .ui-compact .hud-rate,
 .ui-compact .hud-reward {
   grid-column: 1 / -1;
 }
 
+.ui-compact .hud:not(.is-open) .hud-palier,
 .ui-compact .hud:not(.is-open) .hud-rate,
 .ui-compact .hud:not(.is-open) .hud-reward {
   display: none;

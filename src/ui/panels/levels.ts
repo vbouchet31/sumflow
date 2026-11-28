@@ -4,7 +4,7 @@ import { getLocale, t } from '../../i18n';
 import { ensureLevels } from '../../sim/levels';
 import type { World } from '../../sim/world';
 import { el } from '../dom';
-import { nextRewardLabel } from '../labels';
+import { levelRewardLabel } from '../labels';
 import { Panel } from './panel';
 
 /** Levels panel (PLAN §7.2): the current level and the next ones (12 in total). */
@@ -54,7 +54,7 @@ export class LevelsPanel extends Panel {
             el('td', undefined, `${n}${tag}`),
             el('td', 'num', formatFull(def.target, loc)),
             el('td', 'num', formatFull(def.quantity, loc)),
-            el('td', undefined, nextRewardLabel(state, n)),
+            el('td', undefined, levelRewardLabel(state, n)),
           ),
         );
         if (def.final) break;

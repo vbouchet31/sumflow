@@ -458,6 +458,7 @@ async function bootstrap(): Promise<void> {
     if (final && world.state.pendingOffers.length === 0) endScreen.show(world.state);
   });
   world.events.on('palierReached', ({ level, palier, of }) => {
+    sfx.palierReached();
     toasts.show(t('toast.palier', { i: palier, n: of, level }));
   });
   world.events.on('cardChosen', (card) => {
