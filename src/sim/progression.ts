@@ -1,18 +1,31 @@
 import { type Track, TRACKS } from '../config/balance';
 import type { Edition } from '../config/cards';
-import { drawOffer, fixedReward, isNaturalOwned, naturalStep, type OfferCard } from './offers';
+import { palierThresholds, paliersFor } from './levels';
+import { drawOffer, isNaturalOwned, naturalAt, naturalStep, type OfferCard } from './offers';
 import { grantCard, obtainCard, offerContext } from './rewards';
-import { type GameState, requirementFor, type StoredOffer } from './state';
+import { type GameState, MAX_PALIERS, requirementFor, type StoredOffer } from './state';
 import { buyUpgrade, isUpgradeReady } from './upgrades';
 
 export type ProgressionEvents = {
   delivered: { value: number };
-  /** `reward`: the card of a fixed level (1 and 2); null when the level gives an offer. */
+  /** `reward`: the fil rouge card the level gave (PLAN-paliers §3.1), null if none was left. */
   levelCompleted: { level: number; reward: OfferCard | null; final: boolean };
-  /** An offer was drawn for `level`; `pending` counts the offers waiting, this one included. */
-  offerReady: { level: number; cards: OfferCard[]; pending: number };
-  /** A card of the offer of `level` was taken. `final`: that level was the last one. */
-  cardChosen: { level: number; card: string; edition: Edition; value?: number; final: boolean };
+  /** Palier `palier` of `of` of `level` was reached; its offer joined the queue. */
+  palierReached: { level: number; palier: number; of: number; pending: number };
+  /** An offer was drawn; `pending` counts the offers waiting, this one included. */
+  offerReady: { level: number; palier: number; cards: OfferCard[]; pending: number };
+  /**
+   * A card of the offer of `level`, `palier` was taken. `final`: the game is finished and no
+   * offer waits any more (the end screen may open).
+   */
+  cardChosen: {
+    level: number;
+    palier: number;
+    card: string;
+    edition: Edition;
+    value?: number;
+    final: boolean;
+  };
   upgradeReady: { track: Track };
   upgradeBought: { track: Track; level: number };
 };
@@ -23,9 +36,20 @@ export type Emit = <K extends keyof ProgressionEvents>(
 ) => void;
 
 /**
+ * Delivered counts at which the paliers of the current level are reached (PLAN-paliers §3.2),
+ * increasing; empty without palier or in free play.
+ */
+export function levelPaliers(state: GameState): number[] {
+  const req = state.levelRequirement;
+  if (!req) return [];
+  return palierThresholds(paliersFor(state.level).slice(0, MAX_PALIERS), req.required);
+}
+
+/**
  * Count one item of `value` delivered to the hub (PLAN §7.1). Every active, incomplete
  * requirement of that value advances: the level's and each track's next upgrade. One item
- * can therefore count several times; items beyond a requirement are lost.
+ * can therefore count several times; items beyond a requirement are lost. Reaching a palier
+ * queues its offer, before the level ends if the same item ends it (PLAN-paliers §3.2).
  */
 export function deliver(state: GameState, value: number, emit?: Emit): void {
   state.totalDelivered += 1;
@@ -47,6 +71,18 @@ export function deliver(state: GameState, value: number, emit?: Emit): void {
   const req = state.levelRequirement;
   if (req && req.value === value && req.delivered < req.required) {
     req.delivered += 1;
+    const thresholds = levelPaliers(state);
+    thresholds.forEach((at, i) => {
+      if (at !== req.delivered) return;
+      const palier = i + 1;
+      state.pendingOffers.push({ level: state.level, palier });
+      emit?.('palierReached', {
+        level: state.level,
+        palier,
+        of: thresholds.length,
+        pending: state.pendingOffers.length,
+      });
+    });
     if (req.delivered >= req.required) completeLevel(state, emit);
   }
 }
@@ -67,17 +103,15 @@ export function setAutoBuy(state: GameState, on: boolean, emit?: Emit): void {
 }
 
 /**
- * Finish the current level (PLAN-recompenses §4.1): levels 1 and 2 give their fixed card at
- * once; every later level, the final one included, joins the queue of pending offers. The
+ * Finish the current level (PLAN-paliers §3.1): it gives its fil rouge card at once, the
+ * first item of the sequence not owned yet (so a reward is never lost, nor given twice). The
  * next level starts immediately; after the final one the game switches to free play.
  */
 export function completeLevel(state: GameState, emit?: Emit): void {
   const done = state.level;
   const def = state.levels[done - 1];
-  const fixed = fixedReward(done);
-  let reward: OfferCard | null = null;
-  if (fixed) reward = grantCard(state, fixed.card, 'base', done) ?? null;
-  else state.pendingLevels.push(done);
+  const step = naturalAt(offerContext(state, done));
+  const reward = grantCard(state, step.card, 'base', done) ?? null;
   const final = def?.final ?? false;
   if (final) {
     state.levelRequirement = null;
@@ -90,44 +124,52 @@ export function completeLevel(state: GameState, emit?: Emit): void {
 }
 
 /**
- * The offer of the first pending level, drawn now if it is not yet (PLAN-recompenses §4.4):
+ * The offer of the first pending palier, drawn now if it is not yet (PLAN-recompenses §4.4):
  * drawn late so it accounts for the earlier choices, stored so a reload shows the same
  * cards. Null when no offer is pending.
  */
 export function ensureOffer(state: GameState, emit?: Emit): StoredOffer | null {
-  const level = state.pendingLevels[0];
-  if (level === undefined) {
+  const next = state.pendingOffers[0];
+  if (next === undefined) {
     state.currentOffer = null;
     return null;
   }
-  if (state.currentOffer?.level === level) return state.currentOffer;
-  const offer = drawOffer(offerContext(state, level));
-  state.currentOffer = { level, cards: offer.cards };
+  const cur = state.currentOffer;
+  if (cur?.level === next.level && cur.palier === next.palier) return cur;
+  const offer = drawOffer(offerContext(state, next.level, next.palier));
+  state.currentOffer = { level: next.level, palier: next.palier, cards: offer.cards };
   emit?.('offerReady', {
-    level,
+    level: next.level,
+    palier: next.palier,
     cards: offer.cards.map((c) => ({ ...c })),
-    pending: state.pendingLevels.length,
+    pending: state.pendingOffers.length,
   });
   return state.currentOffer;
 }
 
 /**
- * Take card `index` of the current offer (drawn first if needed): apply it, record it, update
- * the refusal counter, then move on to the next pending level. False if there is no such card.
+ * Take card `index` of the current offer (drawn first if needed): apply it, record it, then
+ * move on to the next pending palier. False if there is no such card.
  */
 export function chooseCard(state: GameState, index: number, emit?: Emit): boolean {
   const offer = ensureOffer(state, emit);
   const card = offer?.cards[index];
   if (!offer || !card) return false;
-  const obtained = obtainCard(state, card, offer.level, offer.cards);
-  state.pendingLevels.shift();
+  const obtained = obtainCard(state, card, offer.level, offer.palier);
+  state.pendingOffers.shift();
   state.currentOffer = null;
   emit?.('cardChosen', {
     level: offer.level,
+    palier: offer.palier,
     ...obtained,
-    final: state.levels[offer.level - 1]?.final ?? false,
+    final: isFinished(state) && state.pendingOffers.length === 0,
   });
   return true;
+}
+
+/** True once the final level is done (free play). */
+export function isFinished(state: GameState): boolean {
+  return state.finishedAtTick !== null;
 }
 
 /**
@@ -140,9 +182,8 @@ export function setLevel(state: GameState, level: number): void {
     const step = naturalStep(n);
     if (!isNaturalOwned(step, offerContext(state, n))) grantCard(state, step.card, 'base', n);
   }
-  state.pendingLevels = [];
+  state.pendingOffers = [];
   state.currentOffer = null;
-  state.naturalRefusals = 0;
   state.level = target;
   state.finishedAtTick = null;
   state.levelRequirement = requirementFor(state, target);

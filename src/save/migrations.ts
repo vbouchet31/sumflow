@@ -4,10 +4,10 @@ import { SAVE_VERSION } from './schema';
 export type Migration = (data: Record<string, unknown>) => Record<string, unknown>;
 
 /**
- * Oldest save version this build reads. Version 1 (fixed level rewards) is refused without
- * migration (PLAN-recompenses §1): it has no reward cards to rebuild.
+ * Oldest save version this build reads. Version 1 (fixed level rewards) and version 2 (offers
+ * at the end of levels) are refused without migration (PLAN-recompenses §1, PLAN-paliers §1).
  */
-export const FIRST_SUPPORTED_VERSION = 2;
+export const FIRST_SUPPORTED_VERSION = 3;
 
 /**
  * Ordered migrations (PLAN §11.4): `MIGRATIONS[i]` turns version `FIRST_SUPPORTED_VERSION + i`

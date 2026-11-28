@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { LEVEL_TABLE, LEVELS, PALIERS, QUANTITY_FACTOR } from '../../src/config/balance';
-import { resolvePending } from '../../src/sim/autoPick';
 import {
   ensureLevels,
   type GeneratedLevel,
@@ -161,7 +160,7 @@ describe('progression', () => {
     expect(s.levels.length).toBe(1 + LEVELS.lookahead);
   });
 
-  it('applies rewards: adder, upgrades, then the natural card of each offer', () => {
+  it('applies rewards at once: adder, upgrades, value 2, bridge, value 3', () => {
     const s = createInitialState(42);
     deliver(s, 1, undefined);
     for (let i = 0; i < 10; i++) deliver(s, 1);
@@ -171,16 +170,13 @@ describe('progression', () => {
     completeLevel(s);
     expect(s.unlockedFeatures).toContain('upgrades');
     completeLevel(s);
-    expect(s.maxExtraction).toBe(1); // level 3 gives an offer, not chosen yet
-    resolvePending(s, 'natural');
     expect(s.maxExtraction).toBe(2);
     completeLevel(s);
-    resolvePending(s, 'natural');
     expect(s.unlockedBuildings).toContain('bridge');
     completeLevel(s);
-    resolvePending(s, 'natural');
     expect(s.maxExtraction).toBe(3);
     expect(s.level).toBe(6);
+    expect(s.pendingOffers).toEqual([]);
   });
 
   it('only counts the target value and never exceeds the quantity', () => {
@@ -211,7 +207,7 @@ describe('progression', () => {
     expect(s.maxExtraction).toBe(15);
   });
 
-  it('finishing the final level switches to free play, its offer still to choose', () => {
+  it('finishing the final level switches to free play, its reward given at once', () => {
     const s = createInitialState(1);
     const levels = ensureLevels(s.seed, s.levels, 5000);
     setLevel(s, levels.length);
@@ -220,16 +216,14 @@ describe('progression', () => {
     expect(s.levelRequirement).toBeNull();
     expect(s.finishedAtTick).toBe(s.tick);
     expect(events).toEqual([
-      { type: 'levelCompleted', payload: expect.objectContaining({ final: true, reward: null }) },
+      {
+        type: 'levelCompleted',
+        payload: expect.objectContaining({ final: true, reward: expect.anything() }),
+      },
     ]);
-    expect(s.pendingLevels).toEqual([levels.length]);
+    expect(s.pendingOffers).toEqual([]);
     deliver(s, 5); // no crash in free play
     expect(s.totalDelivered).toBe(1);
-    expect(chooseCard(s, 0, (type, payload) => events.push({ type, payload }))).toBe(true);
-    expect(events.at(-1)).toEqual({
-      type: 'cardChosen',
-      payload: expect.objectContaining({ level: levels.length, final: true }),
-    });
-    expect(s.pendingLevels).toEqual([]);
+    expect(chooseCard(s, 0)).toBe(false);
   });
 });

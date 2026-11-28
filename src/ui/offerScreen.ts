@@ -82,12 +82,18 @@ export class OfferScreen {
    * each time a new offer appears.
    */
   show(view: OfferView): void {
-    const key = JSON.stringify([view.level, view.index, view.total, view.cards.map((c) => c.card)]);
+    const key = JSON.stringify([
+      view.level,
+      view.palier,
+      view.index,
+      view.total,
+      view.cards.map((c) => c.card),
+    ]);
     const opening = !this.isOpen;
     if (!opening && key === this.key) return;
     this.key = key;
     this.level = view.level;
-    this.kicker.textContent = t('offer.kicker', { n: view.level });
+    this.kicker.textContent = t('offer.kicker', { n: view.level, i: view.palier, m: view.paliers });
     this.intro.hidden = !view.intro;
     this.count.hidden = view.total <= 1;
     this.count.textContent = t('offer.count', { n: view.index, total: view.total });

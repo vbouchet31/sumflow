@@ -23,31 +23,57 @@ async function completeLevels(page: Page, n: number): Promise<void> {
   }, n);
 }
 
-const pending = (page: Page): Promise<number[] | undefined> =>
-  page.evaluate(() => window.__sumflow?.getState().pendingLevels);
+/**
+ * Reach the next `n` paliers (PLAN-paliers §3.2), jumping to level 6 (the first with one)
+ * if needed: deliveries up to each palier, or to the end of a level without one left.
+ */
+async function reachPaliers(page: Page, n: number): Promise<void> {
+  await page.evaluate((count) => {
+    const api = window.__sumflow;
+    if (!api) throw new Error('debug API missing');
+    if (api.getState().level < 6) api.setLevel(6);
+    for (let i = 0; i < count; i++) {
+      const before = api.getState().pendingOffers.length;
+      for (let guard = 0; api.getState().pendingOffers.length === before; guard++) {
+        const st = api.getState();
+        const r = st.levelRequirement;
+        if (!r || guard > 10) throw new Error('no palier to reach');
+        const next = st.paliers.find((at) => at > r.delivered) ?? r.required;
+        api.deliver(r.value, next - r.delivered);
+      }
+    }
+  }, n);
+}
+
+/** Pending offers as "level/palier". */
+const pending = (page: Page): Promise<string[] | undefined> =>
+  page.evaluate(() =>
+    window.__sumflow?.getState().pendingOffers.map((p) => `${p.level}/${p.palier}`),
+  );
 
 /** Let a few frames run: the screen opens (or not) on the next frame. */
 const frames = (page: Page): Promise<void> => page.waitForTimeout(300);
 
-test('opens at the end of level 3, not after levels 1 and 2', async ({ page }) => {
+test('opens at the first palier, half of level 6, never at the end of a level', async ({
+  page,
+}) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
   await page.goto(URL);
   const screen = page.locator('.offer-overlay');
 
-  await completeLevels(page, 1);
-  await frames(page);
-  await expect(screen).toBeHidden();
-  await completeLevels(page, 1);
+  // Levels 1 to 5 give their fil rouge at once, without any screen.
+  await completeLevels(page, 5);
   await frames(page);
   await expect(screen).toBeHidden();
   expect(await pending(page)).toEqual([]);
+  expect(await page.evaluate(() => window.__sumflow?.getState().picks)).toBe(5);
 
-  await completeLevels(page, 1);
+  await reachPaliers(page, 1);
   await expect(screen).toBeVisible();
   await expect(screen).toHaveAttribute('role', 'dialog');
   await expect(screen).toHaveAttribute('aria-modal', 'true');
-  await expect(screen.locator('.offer-kicker')).toHaveText('Niveau 3 terminé');
+  await expect(screen.locator('.offer-kicker')).toHaveText('Niveau 6 · palier 1 / 1');
   await expect(screen.locator('.offer-title')).toHaveText('Choisis ta récompense');
   await expect(screen.locator('.offer-intro')).toBeVisible();
   await expect(screen.locator('.offer-count')).toBeHidden(); // a single offer waits
@@ -59,7 +85,7 @@ test('opens at the end of level 3, not after levels 1 and 2', async ({ page }) =
 
   // Each card: a button named after it, its back as description, and its own Choose button.
   const offer = await page.evaluate(() => window.__sumflow?.offer().current);
-  expect(offer?.level).toBe(3);
+  expect(offer).toMatchObject({ level: 6, palier: 1 });
   for (let i = 0; i < 2; i++) {
     const card = cards.nth(i);
     await expect(card).toHaveAttribute('data-card', offer?.cards[i]?.card ?? '');
@@ -77,14 +103,15 @@ test('opens at the end of level 3, not after levels 1 and 2', async ({ page }) =
 
 test('Choose stays off for about 400 ms, then one click takes the card', async ({ page }) => {
   await page.goto(URL);
-  await completeLevels(page, 2);
+  await page.evaluate(() => window.__sumflow?.setLevel(6));
   // Measured in the page: the buttons are off as the screen appears, a click does nothing.
   const timing = await page.evaluate(async () => {
     const api = window.__sumflow;
     if (!api) throw new Error('debug API missing');
-    const r = api.getState().levelRequirement;
+    const st = api.getState();
+    const r = st.levelRequirement;
     if (!r) throw new Error('no level');
-    api.deliver(r.value, r.required);
+    api.deliver(r.value, st.paliers[0] ?? r.required);
     const overlay = document.querySelector<HTMLElement>('.offer-overlay');
     await new Promise<void>((resolve) => {
       const wait = (): void =>
@@ -95,7 +122,7 @@ test('Choose stays off for about 400 ms, then one click takes the card', async (
     const buttons = [...document.querySelectorAll<HTMLButtonElement>('.offer-choose')];
     const offAtOpen = buttons.map((b) => b.disabled);
     buttons[0]?.click();
-    const pendingAfterClick = api.getState().pendingLevels.length;
+    const pendingAfterClick = api.getState().pendingOffers.length;
     await new Promise<void>((resolve) => {
       const wait = (): void =>
         buttons[0]?.disabled ? void requestAnimationFrame(wait) : resolve();
@@ -113,14 +140,14 @@ test('Choose stays off for about 400 ms, then one click takes the card', async (
   await expect(page.locator('.offer-overlay')).toBeHidden();
   await expect(page.locator('.toast', { hasText: `Obtenu : ${name}` })).toBeVisible();
   expect(await pending(page)).toEqual([]);
-  expect(await page.evaluate(() => window.__sumflow?.getState().picks)).toBe(3);
+  expect(await page.evaluate(() => window.__sumflow?.getState().picks)).toBe(6);
 });
 
 test('a card turns over with a click, Enter or Space, and back; Choose works turned over', async ({
   page,
 }) => {
   await page.goto(URL);
-  await completeLevels(page, 3);
+  await reachPaliers(page, 1);
   const cards = page.locator('.offer-card');
   const first = cards.first();
   await first.click();
@@ -153,7 +180,7 @@ test('keyboard: Tab order, digits never choose, Escape shows the map, the badge 
   page,
 }) => {
   await page.goto(URL);
-  await completeLevels(page, 3);
+  await reachPaliers(page, 1);
   const screen = page.locator('.offer-overlay');
   const cards = screen.locator('.offer-card');
   const choose = screen.locator('.offer-choose');
@@ -179,7 +206,7 @@ test('keyboard: Tab order, digits never choose, Escape shows the map, the badge 
   for (let d = 1; d <= 9; d++) await page.keyboard.press(`Digit${d}`);
   await frames(page);
   await expect(screen).toBeVisible();
-  expect(await pending(page)).toEqual([3]);
+  expect(await pending(page)).toEqual(['6/1']);
   expect(await page.evaluate(() => window.__sumflow?.getState().tool)).toBe('none');
 
   // Escape = See the map: the offer stays pending, the badge appears, nothing reopens alone.
@@ -190,7 +217,7 @@ test('keyboard: Tab order, digits never choose, Escape shows the map, the badge 
   await expect(badge).toHaveAttribute('aria-label', 'Récompense à choisir');
   await frames(page);
   await expect(screen).toBeHidden();
-  expect(await pending(page)).toEqual([3]);
+  expect(await pending(page)).toEqual(['6/1']);
   // Digits work again on the map.
   await page.keyboard.press('Digit1');
   expect(await page.evaluate(() => window.__sumflow?.getState().tool)).toBe('belt');
@@ -213,21 +240,24 @@ test('keyboard: Tab order, digits never choose, Escape shows the map, the badge 
 
 test('two offers waiting: 1 / 2, then 2 / 2 drawn after the first choice', async ({ page }) => {
   await page.goto(URL);
-  await page.evaluate(() => window.__sumflow?.setLevel(6));
-  await completeLevels(page, 2);
+  await page.evaluate(() => window.__sumflow?.setLevel(12));
+  await reachPaliers(page, 2);
   // The first offer offers Éventail: taking it gives the next offer a third card.
   await page.evaluate(() => window.__sumflow?.forceOffer(['value', 'eventail']));
   const screen = page.locator('.offer-overlay');
   await expect(screen).toBeVisible();
   await expect(screen.locator('.offer-count')).toHaveText('1 / 2');
-  await expect(screen.locator('.offer-kicker')).toHaveText('Niveau 6 terminé');
+  await expect(screen.locator('.offer-kicker')).toHaveText('Niveau 12 · palier 1 / 2');
   await expect(screen.locator('.offer-card')).toHaveCount(2);
   await expect(screen.locator('.offer-card').nth(1)).toHaveAttribute('data-card', 'eventail');
   await screen.locator('.offer-card').nth(1).click();
   await expect(screen.locator('.offer-tag-unique')).toHaveText('Unique');
   let state = await page.evaluate(() => window.__sumflow?.offer());
-  expect(state?.pendingLevels).toEqual([6, 7]);
-  expect(state?.current?.level).toBe(6);
+  expect(state?.pendingOffers).toEqual([
+    { level: 12, palier: 1 },
+    { level: 12, palier: 2 },
+  ]);
+  expect(state?.current).toMatchObject({ level: 12, palier: 1 });
 
   await expect(screen.locator('.offer-choose').nth(1)).toBeEnabled();
   // The next offer comes at once, its buttons off again (a double click must not take it).
@@ -240,10 +270,10 @@ test('two offers waiting: 1 / 2, then 2 / 2 drawn after the first choice', async
   expect(offAgain).toEqual([true, true, true]);
   await expect(screen).toBeVisible();
   await expect(screen.locator('.offer-count')).toHaveText('2 / 2');
-  await expect(screen.locator('.offer-kicker')).toHaveText('Niveau 7 terminé');
+  await expect(screen.locator('.offer-kicker')).toHaveText('Niveau 12 · palier 2 / 2');
   await expect(screen.locator('.offer-card')).toHaveCount(3);
   state = await page.evaluate(() => window.__sumflow?.offer());
-  expect(state?.pendingLevels).toEqual([7]);
+  expect(state?.pendingOffers).toEqual([{ level: 12, palier: 2 }]);
   expect(state?.current?.cards).toHaveLength(3);
   await expect(screen.locator('.offer-choose').first()).toBeEnabled();
   await screen.locator('.offer-choose').first().click();
@@ -253,7 +283,7 @@ test('two offers waiting: 1 / 2, then 2 / 2 drawn after the first choice', async
 
 test('a reload shows the same offer again', async ({ page }) => {
   await page.goto(URL);
-  await completeLevels(page, 3);
+  await reachPaliers(page, 1);
   const screen = page.locator('.offer-overlay');
   await expect(screen).toBeVisible();
   const ids = await screen
@@ -272,13 +302,13 @@ test('a reload shows the same offer again', async ({ page }) => {
 
 test('waits while the menu is open, then while a belt is being drawn', async ({ page }) => {
   await page.goto(URL);
-  await completeLevels(page, 2);
+  await page.evaluate(() => window.__sumflow?.setLevel(6));
   const screen = page.locator('.offer-overlay');
 
   // Menu open: the screen waits until it closes.
   await page.keyboard.press('Escape');
   await expect(page.locator('.menu-card')).toBeVisible();
-  await completeLevels(page, 1);
+  await reachPaliers(page, 1);
   await frames(page);
   await expect(screen).toBeHidden();
   await page.keyboard.press('Escape');
@@ -296,7 +326,7 @@ test('waits while the menu is open, then while a belt is being drawn', async ({ 
   await page.mouse.move(x0, y);
   await page.mouse.down();
   await page.mouse.move(x0 + 64, y, { steps: 4 });
-  await completeLevels(page, 1);
+  await reachPaliers(page, 1);
   await frames(page);
   await expect(screen).toBeHidden();
   await page.mouse.move(x0 + 128, y, { steps: 4 });
@@ -309,7 +339,7 @@ test('waits while the menu is open, then while a belt is being drawn', async ({ 
 test('reduced motion: the card swaps faces at once', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto(URL);
-  await completeLevels(page, 3);
+  await reachPaliers(page, 1);
   const inner = page.locator('.offer-card-inner').first();
   await expect(inner).toBeVisible();
   expect(await inner.evaluate((e) => getComputedStyle(e).transitionDuration)).toBe('0s');
@@ -326,7 +356,7 @@ test.describe('on a phone held sideways', () => {
 
   test('a tap turns a card over and back, another chooses it', async ({ page }) => {
     await page.goto(URL);
-    await completeLevels(page, 3);
+    await reachPaliers(page, 1);
     const card = page.locator('.offer-card').first();
     await card.tap();
     await expect(card).toHaveAttribute('aria-pressed', 'true');
@@ -342,7 +372,7 @@ test.describe('on a phone held sideways', () => {
   test('fits in 342 px, three cards included, without horizontal scroll', async ({ page }) => {
     await page.goto(URL);
     await page.evaluate(() => window.__sumflow?.setLevel(8));
-    await completeLevels(page, 1);
+    await reachPaliers(page, 1);
     await page.evaluate(() =>
       window.__sumflow?.forceOffer(['value', 'edition-legendaire', 'concat'], 'legendaire'),
     );
@@ -394,9 +424,9 @@ test('tutorial cards come first: the offer waits for them, the next offer for th
       await frames(page);
     }
   };
-  // Levels 1 and 2 bring the adder and the upgrades: their cards wait, with the start card.
-  await page.evaluate(() => window.__sumflow?.setLevel(3));
-  await completeLevels(page, 2);
+  // Levels 1 to 11 bring their rewards: their cards wait, with the start card.
+  await page.evaluate(() => window.__sumflow?.setLevel(12));
+  await reachPaliers(page, 2);
   await expect(tutorial).toBeVisible();
   await frames(page);
   await expect(screen).toBeHidden();
@@ -404,29 +434,32 @@ test('tutorial cards come first: the offer waits for them, the next offer for th
   await expect(screen).toBeVisible();
   await expect(screen.locator('.offer-count')).toHaveText('1 / 2');
 
-  // Taking the bridge brings its card: it shows before the second offer.
-  await page.evaluate(() => window.__sumflow?.forceOffer(['value', 'bridge']));
-  await expect(screen.locator('.offer-card').nth(1)).toHaveAttribute('data-card', 'bridge');
+  // Taking an edition card brings its card: it shows before the second offer.
+  await page.evaluate(() => window.__sumflow?.forceOffer(['eventail', 'edition-legendaire']));
+  await expect(screen.locator('.offer-card').nth(1)).toHaveAttribute(
+    'data-card',
+    'edition-legendaire',
+  );
   await expect(screen.locator('.offer-choose').nth(1)).toBeEnabled();
   await screen.locator('.offer-choose').nth(1).click();
   await expect(screen).toBeHidden();
-  await expect(page.locator('.tut-card')).toHaveAttribute('data-tip', 'bridge');
+  await expect(page.locator('.tut-card')).toHaveAttribute('data-tip', 'edition.legendaire');
   await closeCards();
   await expect(screen).toBeVisible();
   await expect(screen.locator('.offer-count')).toHaveText('2 / 2');
 });
 
-test('after See the map, the next completed level opens the screen again', async ({ page }) => {
+test('after See the map, the next palier opens the screen again', async ({ page }) => {
   await page.goto(URL);
-  await completeLevels(page, 3);
+  await reachPaliers(page, 1);
   const screen = page.locator('.offer-overlay');
   await expect(screen).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(screen).toBeHidden();
-  await completeLevels(page, 1);
+  await reachPaliers(page, 1);
   await expect(screen).toBeVisible();
   // The oldest offer comes first.
-  await expect(screen.locator('.offer-kicker')).toHaveText('Niveau 3 terminé');
+  await expect(screen.locator('.offer-kicker')).toHaveText('Niveau 6 · palier 1 / 1');
   await expect(screen.locator('.offer-count')).toHaveText('1 / 2');
 });
 
@@ -444,12 +477,12 @@ test.describe('tutorial cards after a choice (PLAN-recompenses §4.3)', () => {
     }
   };
 
-  /** Level 3 reached with the cards of levels 1 and 2 read, then `n` levels completed. */
+  /** Level 6 reached with the cards of levels 1 to 5 read, then `n` paliers reached. */
   const openOffers = async (page: Page, n: number): Promise<void> => {
     await page.goto(TIPS_URL);
-    await page.evaluate(() => window.__sumflow?.setLevel(3));
+    await page.evaluate(() => window.__sumflow?.setLevel(6));
     await closeCards(page);
-    await completeLevels(page, n);
+    await reachPaliers(page, n);
     await expect(page.locator('.offer-overlay')).toBeVisible();
   };
 
@@ -466,14 +499,14 @@ test.describe('tutorial cards after a choice (PLAN-recompenses §4.3)', () => {
     await choose.click();
   };
 
-  test('the first value opens its card once the screen closes, the second one nothing', async ({
+  test('the first value, given by level 3, opens its card; the second one nothing', async ({
     page,
   }) => {
-    await openOffers(page, 1);
-    const screen = page.locator('.offer-overlay');
+    await page.goto(TIPS_URL);
+    await page.evaluate(() => window.__sumflow?.setLevel(3));
+    await closeCards(page);
     const card = page.locator('.tut-card');
-    await forceAndChoose(page, ['value', 'bridge'], 0);
-    await expect(screen).toBeHidden();
+    await completeLevels(page, 1);
     await expect(card).toHaveAttribute('data-tip', 'value');
     await expect(card.locator('h2')).toHaveText('Nouvelle valeur');
     await expect(card.locator('.tut-text')).toContainText('Les gisements de 2 sont maintenant');
@@ -481,10 +514,10 @@ test.describe('tutorial cards after a choice (PLAN-recompenses §4.3)', () => {
     await expect(card.locator('canvas.tut-art')).toHaveCount(1);
     await closeCards(page);
 
-    await completeLevels(page, 1);
-    await expect(screen).toBeVisible();
-    await forceAndChoose(page, ['value', 'bridge'], 0);
-    await expect(screen).toBeHidden();
+    await completeLevels(page, 1); // level 4: the bridge, and its card
+    await expect(card).toHaveAttribute('data-tip', 'bridge');
+    await closeCards(page);
+    await completeLevels(page, 1); // level 5: value 3, nothing new to explain
     await frames(page);
     await expect(page.locator('.tut-overlay')).toBeHidden();
     expect(await page.evaluate(() => window.__sumflow?.getState().maxExtraction)).toBe(3);
@@ -492,7 +525,7 @@ test.describe('tutorial cards after a choice (PLAN-recompenses §4.3)', () => {
 
   test('an edition card opens the card of its edition', async ({ page }) => {
     await openOffers(page, 1);
-    await forceAndChoose(page, ['value', 'edition-legendaire'], 1);
+    await forceAndChoose(page, ['eventail', 'edition-legendaire'], 1);
     await expect(page.locator('.offer-overlay')).toBeHidden();
     const card = page.locator('.tut-card');
     await expect(card).toHaveAttribute('data-tip', 'edition.legendaire');
@@ -508,7 +541,7 @@ test.describe('tutorial cards after a choice (PLAN-recompenses §4.3)', () => {
     await expect(screen.locator('.offer-count')).toHaveText('1 / 2');
     // A choice made without the screen's button (debug) waits for its card as well.
     await page.evaluate(() => {
-      window.__sumflow?.forceOffer(['value', 'edition-brillante']);
+      window.__sumflow?.forceOffer(['eventail', 'edition-brillante']);
       window.__sumflow?.choose(1);
     });
     await expect(screen).toBeHidden();
@@ -520,9 +553,9 @@ test.describe('tutorial cards after a choice (PLAN-recompenses §4.3)', () => {
 
   test('the Help menu lists the new cards once met, and replays them', async ({ page }) => {
     await openOffers(page, 2);
-    await forceAndChoose(page, ['value', 'edition-brillante'], 0);
+    await forceAndChoose(page, ['passive-operators', 'edition-brillante'], 0);
     await closeCards(page);
-    await forceAndChoose(page, ['value', 'edition-brillante'], 1);
+    await forceAndChoose(page, ['passive-operators', 'edition-brillante'], 1);
     await closeCards(page);
     await expect(page.locator('.offer-overlay')).toBeHidden();
 
@@ -533,10 +566,18 @@ test.describe('tutorial cards after a choice (PLAN-recompenses §4.3)', () => {
     const ids = await tips.evaluateAll((list) =>
       list.map((b) => (b as HTMLElement).dataset['tip']),
     );
-    expect(ids).toEqual(['start', 'adder', 'upgrades', 'value', 'edition.brillante']);
+    expect(ids).toEqual([
+      'start',
+      'adder',
+      'upgrades',
+      'value',
+      'bridge',
+      'edition.brillante',
+      'passive',
+    ]);
     await page.locator('.menu-card .help-tip[data-tip="value"]').click();
     const card = page.locator('.tut-card');
     await expect(card).toHaveAttribute('data-tip', 'value');
-    await expect(card.locator('.tut-text')).toContainText('Les gisements de 2');
+    await expect(card.locator('.tut-text')).toContainText(/Les gisements de \d+/);
   });
 });

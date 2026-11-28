@@ -1,17 +1,11 @@
 /**
  * Reward cards applied to the game (PLAN-recompenses §3.2, §3.5, §3.6): the offer context
- * read from the state, the effect of each card kind, the record of picks and the refusal
- * counter of the natural card. The draw itself is in `offers.ts`.
+ * read from the state, the effect of each card kind and the record of picks. The draw itself
+ * is in `offers.ts`.
  */
 import { CARDS, type CardDef, type Edition } from '../config/cards';
-import {
-  naturalAt,
-  type NaturalStep,
-  nextValue,
-  type OfferCard,
-  type OfferContext,
-} from './offers';
-import type { GameState } from './state';
+import { nextValue, type OfferCard, type OfferContext } from './offers';
+import type { CardPick, GameState } from './state';
 import { syncUpgradeRequirements } from './upgrades';
 
 /** The catalogue entry of `id`, or undefined. */
@@ -26,26 +20,21 @@ export function pickCounts(state: GameState): Record<string, number> {
   return counts;
 }
 
-/** What a draw reads from the game, for the offer of `level` (the level just completed). */
-export function offerContext(state: GameState, level: number): OfferContext {
+/**
+ * What a draw reads from the game, for the offer of `level` and `palier` (1-based; 0 = not a
+ * palier offer, as in the debug panel's weight table).
+ */
+export function offerContext(state: GameState, level: number, palier = 0): OfferContext {
   return {
     seed: state.seed,
     level,
+    palier,
     maxExtraction: state.maxExtraction,
     unlockedBuildings: state.unlockedBuildings,
     unlockedFeatures: state.unlockedFeatures,
     picks: pickCounts(state),
-    naturalRefusals: state.naturalRefusals,
   };
 }
-
-/** The current natural item (the level only matters for weights, not for the item). */
-function currentNatural(state: GameState): NaturalStep {
-  return naturalAt(offerContext(state, state.level));
-}
-
-const sameStep = (a: NaturalStep, b: NaturalStep): boolean =>
-  a.card === b.card && a.value === b.value;
 
 /**
  * The offer card `id` would be as a grant: edition cards carry their own edition, special
@@ -100,30 +89,25 @@ export function applyCard(state: GameState, card: OfferCard): number | undefined
 }
 
 /**
- * Obtain `card` at `level`: apply it, record the pick and update the refusal counter.
- * `offered` is the offer it was chosen from (null for a fixed level or a grant): a refusal
- * is an offer that held the natural card while another card was taken. The counter goes back
- * to 0 whenever the natural item changes, i.e. it was obtained, by any means.
+ * Obtain `card` at `level`: apply it and record the pick. `palier` (1-based) is the palier
+ * offer it was chosen from; absent for the reward of a level and for grants.
  */
 export function obtainCard(
   state: GameState,
   card: OfferCard,
   level: number,
-  offered: readonly OfferCard[] | null,
+  palier?: number,
 ): OfferCard {
-  const before = currentNatural(state);
-  const refused =
-    offered !== null && card.card !== before.card && offered.some((c) => c.card === before.card);
   const value = applyCard(state, card);
   const obtained: OfferCard = { card: card.card, edition: card.edition };
   if (value !== undefined) obtained.value = value;
-  state.picks.push({ level, ...obtained, tick: state.tick });
-  if (!sameStep(before, currentNatural(state))) state.naturalRefusals = 0;
-  else if (refused) state.naturalRefusals += 1;
+  const pick: CardPick = { level, ...obtained, tick: state.tick };
+  if (palier !== undefined) pick.palier = palier;
+  state.picks.push(pick);
   return obtained;
 }
 
-/** Give card `id` outside an offer (fixed level, debug). Undefined if the id is unknown. */
+/** Give card `id` outside an offer (level reward, debug). Undefined if the id is unknown. */
 export function grantCard(
   state: GameState,
   id: string,
@@ -131,5 +115,5 @@ export function grantCard(
   level = 0,
 ): OfferCard | undefined {
   const card = grantedCard(id, edition);
-  return card && obtainCard(state, card, level, null);
+  return card && obtainCard(state, card, level);
 }

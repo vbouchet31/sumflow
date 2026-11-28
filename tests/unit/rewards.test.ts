@@ -15,8 +15,10 @@ import { cycleDuration } from '../../src/sim/operators';
 import {
   chooseCard,
   completeLevel,
+  deliver,
   type Emit,
   ensureOffer,
+  levelPaliers,
   type ProgressionEvents,
   setLevel,
 } from '../../src/sim/progression';
@@ -37,7 +39,7 @@ function recorder(): { events: Event[]; emit: Emit } {
   return { events, emit };
 }
 
-/** A game at level 3 with the fixed cards of levels 1 and 2. */
+/** A game at level 3 with the rewards of levels 1 and 2. */
 function atLevel3(seed = 42): GameState {
   const s = createInitialState(seed);
   completeLevel(s);
@@ -45,12 +47,12 @@ function atLevel3(seed = 42): GameState {
   return s;
 }
 
-/** Replace the current offer (pending level `level`) with these cards. */
+/** Replace the current offer (first pending palier, palier 1 of this level if none). */
 function force(s: GameState, ...cards: GameState['picks'][number]['card'][]): void {
-  if (s.pendingLevels.length === 0) s.pendingLevels.push(Math.max(1, s.level - 1));
-  const level = s.pendingLevels[0] ?? 1;
+  if (s.pendingOffers.length === 0) s.pendingOffers.push({ level: s.level, palier: 1 });
+  const next = s.pendingOffers[0] ?? { level: s.level, palier: 1 };
   s.currentOffer = {
-    level,
+    ...next,
     cards: cards.map((card) => ({
       card,
       edition: card === 'edition-legendaire' ? 'legendaire' : 'base',
@@ -58,22 +60,31 @@ function force(s: GameState, ...cards: GameState['picks'][number]['card'][]): vo
   };
 }
 
+/** Deliver `count` items of the current target. */
+function feed(s: GameState, count: number, emit?: Emit): void {
+  for (let i = 0; i < count; i++) deliver(s, s.levelRequirement?.value ?? 0, emit);
+}
+
 function reload(s: GameState): GameState {
   return deserialize(serialize(new World(s, new DepositMap(s.seed)), CAM)).state;
 }
 
-describe('fixed levels and the queue of offers', () => {
-  it('levels 1 and 2 give the adder, then upgrades, at once', () => {
+describe('level rewards: the fil rouge, given at once (PLAN-paliers §3.1)', () => {
+  it('levels 1, 2 and 3 give the adder, upgrades and value 2 at once', () => {
     const s = createInitialState(42);
     const { events, emit } = recorder();
     completeLevel(s, emit);
     completeLevel(s, emit);
+    completeLevel(s, emit);
     expect(s.unlockedBuildings).toContain('adder');
     expect(s.unlockedFeatures).toContain('upgrades');
-    expect(s.pendingLevels).toEqual([]);
-    expect(s.picks.map((p) => [p.level, p.card, p.edition])).toEqual([
-      [1, 'adder', 'base'],
-      [2, 'upgrades', 'base'],
+    expect(s.maxExtraction).toBe(2);
+    expect(s.pendingOffers).toEqual([]);
+    expect(s.currentOffer).toBeNull();
+    expect(s.picks.map((p) => [p.level, p.card, p.edition, p.palier])).toEqual([
+      [1, 'adder', 'base', undefined],
+      [2, 'upgrades', 'base', undefined],
+      [3, 'value', 'base', undefined],
     ]);
     expect(events).toEqual([
       {
@@ -84,98 +95,176 @@ describe('fixed levels and the queue of offers', () => {
         type: 'levelCompleted',
         payload: { level: 2, reward: { card: 'upgrades', edition: 'base' }, final: false },
       },
+      {
+        type: 'levelCompleted',
+        payload: { level: 3, reward: { card: 'value', edition: 'base', value: 2 }, final: false },
+      },
     ]);
   });
 
-  it('level 3 queues an offer: no reward yet, the next level starts', () => {
+  it('an item already owned is skipped: the level gives the next one, never twice', () => {
     const s = atLevel3();
+    grantCard(s, 'value'); // value 2 before level 3
+    completeLevel(s);
+    expect(s.maxExtraction).toBe(2);
+    expect(s.unlockedBuildings).toContain('bridge');
+    expect(s.picks.at(-1)).toMatchObject({ level: 3, card: 'bridge' });
+  });
+});
+
+describe('paliers and the queue of offers (PLAN-paliers §3.2)', () => {
+  it('no palier before level 6', () => {
+    const s = createInitialState(42);
+    setLevel(s, 5);
+    expect(levelPaliers(s)).toEqual([]);
+    feed(s, s.levelRequirement?.required ?? 0);
+    expect(s.level).toBe(6);
+    expect(s.pendingOffers).toEqual([]);
+  });
+
+  it('level 6: half the quantity queues one offer, the end gives the fil rouge', () => {
+    const s = createInitialState(42);
+    setLevel(s, 6);
+    const required = s.levelRequirement?.required ?? 0;
+    expect(levelPaliers(s)).toEqual([Math.ceil(required / 2)]);
     const { events, emit } = recorder();
-    completeLevel(s, emit);
-    expect(s.level).toBe(4);
-    expect(s.levelRequirement?.value).toBe(5);
-    expect(s.maxExtraction).toBe(1);
-    expect(s.pendingLevels).toEqual([3]);
-    expect(s.currentOffer).toBeNull();
-    expect(s.picks).toHaveLength(2);
-    expect(events).toEqual([
-      { type: 'levelCompleted', payload: { level: 3, reward: null, final: false } },
+    feed(s, Math.ceil(required / 2) - 1, emit);
+    expect(s.pendingOffers).toEqual([]);
+    feed(s, 1, emit);
+    expect(s.pendingOffers).toEqual([{ level: 6, palier: 1 }]);
+    expect(events.filter((e) => e.type !== 'delivered')).toEqual([
+      { type: 'palierReached', payload: { level: 6, palier: 1, of: 1, pending: 1 } },
     ]);
+    feed(s, required - Math.ceil(required / 2), emit);
+    expect(s.level).toBe(7);
+    expect(s.pendingOffers).toEqual([{ level: 6, palier: 1 }]);
+    expect(events.at(-1)).toMatchObject({ type: 'levelCompleted', payload: { level: 6 } });
+  });
+
+  it('three paliers from level 16, at a quarter, half and three quarters', () => {
+    const s = createInitialState(42);
+    setLevel(s, 16);
+    const required = s.levelRequirement?.required ?? 0;
+    expect(required).toBe(3_000);
+    expect(levelPaliers(s)).toEqual([750, 1_500, 2_250]);
+    feed(s, required);
+    expect(s.pendingOffers).toEqual([1, 2, 3].map((palier) => ({ level: 16, palier })));
+  });
+
+  it('an item that reaches a palier and ends the level queues the offer first', () => {
+    const s = createInitialState(42);
+    setLevel(s, 6);
+    if (s.levelRequirement) s.levelRequirement.required = 1;
+    const { events, emit } = recorder();
+    feed(s, 1, emit);
+    expect(events.map((e) => e.type)).toEqual(['delivered', 'palierReached', 'levelCompleted']);
+    expect(s.pendingOffers).toEqual([{ level: 6, palier: 1 }]);
+    expect(s.level).toBe(7);
   });
 
   it('ensureOffer draws once, stores the offer and keeps it', () => {
-    const s = atLevel3();
-    completeLevel(s);
+    const s = createInitialState(42);
+    setLevel(s, 12);
+    feed(s, s.levelRequirement?.required ?? 0);
+    expect(s.pendingOffers).toHaveLength(2);
     const { events, emit } = recorder();
     const offer = ensureOffer(s, emit);
-    expect(offer).not.toBeNull();
-    expect(offer?.level).toBe(3);
-    expect(offer?.cards).toEqual(drawOffer(offerContext(s, 3)).cards);
+    expect(offer).toMatchObject({ level: 12, palier: 1 });
+    expect(offer?.cards).toEqual(drawOffer(offerContext(s, 12, 1)).cards);
     expect(s.currentOffer).toBe(offer);
     expect(ensureOffer(s, emit)).toBe(offer);
     expect(events.filter((e) => e.type === 'offerReady')).toHaveLength(1);
-    expect(events[0]?.payload).toEqual({ level: 3, cards: offer?.cards, pending: 1 });
+    expect(events[0]?.payload).toEqual({ level: 12, palier: 1, cards: offer?.cards, pending: 2 });
     expect(ensureOffer(createInitialState(1))).toBeNull();
   });
 
-  it('a reload keeps the pending levels and the stored offer', () => {
-    const s = atLevel3();
-    completeLevel(s);
-    completeLevel(s);
+  it('every palier of a level draws its own cards', () => {
+    let differ = 0;
+    for (let seed = 1; seed <= 20; seed++) {
+      const s = createInitialState(seed);
+      setLevel(s, 16);
+      const a = drawOffer(offerContext(s, 16, 1)).cards;
+      const b = drawOffer(offerContext(s, 16, 2)).cards;
+      if (JSON.stringify(a) !== JSON.stringify(b)) differ += 1;
+    }
+    expect(differ).toBeGreaterThan(0);
+  });
+
+  it('a reload keeps the pending offers and the stored offer', () => {
+    const s = createInitialState(42);
+    setLevel(s, 12);
+    feed(s, s.levelRequirement?.required ?? 0);
     force(s, 'edition-legendaire', 'bridge'); // not what the draw would give
     const back = reload(s);
-    expect(back.pendingLevels).toEqual([3, 4]);
+    expect(back.pendingOffers).toEqual([
+      { level: 12, palier: 1 },
+      { level: 12, palier: 2 },
+    ]);
     expect(back.currentOffer).toEqual(s.currentOffer);
     expect(ensureOffer(back)?.cards).toEqual(s.currentOffer?.cards);
   });
 
   it('several pending offers are resolved in order, each drawn after the previous choice', () => {
-    const s = atLevel3(7);
-    completeLevel(s);
-    completeLevel(s);
-    expect(s.pendingLevels).toEqual([3, 4]);
+    const s = createInitialState(7);
+    setLevel(s, 12);
+    feed(s, s.levelRequirement?.required ?? 0);
     // The first offer exists, the second is not drawn yet.
-    force(s, 'bridge', 'value');
+    force(s, 'eventail', 'edition-brillante');
     const { events, emit } = recorder();
     expect(chooseCard(s, 0, emit)).toBe(true);
-    expect(s.unlockedBuildings).toContain('bridge');
-    expect(s.pendingLevels).toEqual([4]);
+    expect(s.pendingOffers).toEqual([{ level: 12, palier: 2 }]);
     expect(s.currentOffer).toBeNull();
     const second = ensureOffer(s, emit);
-    expect(second?.level).toBe(4);
-    expect(second?.cards).toEqual(drawOffer(offerContext(s, 4)).cards);
-    // The bridge, taken just before, can no longer be offered.
-    expect(second?.cards.map((c) => c.card)).not.toContain('bridge');
+    expect(second).toMatchObject({ level: 12, palier: 2 });
+    expect(second?.cards).toEqual(drawOffer(offerContext(s, 12, 2)).cards);
+    // Éventail, taken just before, can no longer be offered, and widens this offer.
+    expect(second?.cards.map((c) => c.card)).not.toContain('eventail');
+    expect(second?.cards).toHaveLength(3);
     expect(chooseCard(s, 0, emit)).toBe(true);
-    expect(s.pendingLevels).toEqual([]);
-    expect(events.map((e) => [e.type, 'level' in e.payload ? e.payload.level : null])).toEqual([
-      ['cardChosen', 3],
-      ['offerReady', 4],
-      ['cardChosen', 4],
+    expect(s.pendingOffers).toEqual([]);
+    expect(
+      events.map((e) => [
+        e.type,
+        'level' in e.payload && e.payload.level,
+        'palier' in e.payload && e.payload.palier,
+      ]),
+    ).toEqual([
+      ['cardChosen', 12, 1],
+      ['offerReady', 12, 2],
+      ['cardChosen', 12, 2],
     ]);
-    expect(s.picks.map((p) => p.level)).toEqual([1, 2, 3, 4]);
+    expect(s.picks.slice(-2).map((p) => [p.level, p.palier])).toEqual([
+      [12, 1],
+      [12, 2],
+    ]);
   });
 
-  it('chooseCard refuses a missing card and needs a pending level', () => {
+  it('chooseCard refuses a missing card and needs a pending offer', () => {
     const s = atLevel3();
     expect(chooseCard(s, 0)).toBe(false);
-    completeLevel(s);
+    s.pendingOffers.push({ level: 3, palier: 1 });
     expect(chooseCard(s, 9)).toBe(false);
-    expect(s.pendingLevels).toEqual([3]);
+    expect(s.pendingOffers).toEqual([{ level: 3, palier: 1 }]);
   });
 });
 
 describe('card effects', () => {
   it('value: the next value, one by one, 9 then 11', () => {
     const s = atLevel3();
-    completeLevel(s);
     force(s, 'value');
     const { events, emit } = recorder();
     chooseCard(s, 0, emit);
     expect(s.maxExtraction).toBe(2);
-    expect(s.picks.at(-1)).toMatchObject({ level: 3, card: 'value', edition: 'base', value: 2 });
+    expect(s.picks.at(-1)).toMatchObject({
+      level: 3,
+      palier: 1,
+      card: 'value',
+      edition: 'base',
+      value: 2,
+    });
     expect(events[0]).toEqual({
       type: 'cardChosen',
-      payload: { level: 3, card: 'value', edition: 'base', value: 2, final: false },
+      payload: { level: 3, palier: 1, card: 'value', edition: 'base', value: 2, final: false },
     });
     s.maxExtraction = 9;
     grantCard(s, 'value');
@@ -184,10 +273,8 @@ describe('card effects', () => {
 
   it('unlock and feature: the building or feature, once', () => {
     const s = atLevel3();
-    completeLevel(s);
     force(s, 'bridge');
     chooseCard(s, 0);
-    completeLevel(s);
     force(s, 'priorities');
     chooseCard(s, 0);
     expect(s.unlockedBuildings.filter((b) => b === 'bridge')).toHaveLength(1);
@@ -198,7 +285,6 @@ describe('card effects', () => {
 
   it('edition: one more edition card of that edition', () => {
     const s = atLevel3();
-    completeLevel(s);
     force(s, 'edition-legendaire');
     chooseCard(s, 0);
     expect(s.editionCards).toEqual({ brillante: 0, legendaire: 1 });
@@ -208,9 +294,12 @@ describe('card effects', () => {
 
   it('special: N buildings of the drawn native edition', () => {
     const s = atLevel3();
-    completeLevel(s);
-    s.pendingLevels = [3];
-    s.currentOffer = { level: 3, cards: [{ card: 'concat', edition: 'brillante' }] };
+    s.pendingOffers = [{ level: 3, palier: 1 }];
+    s.currentOffer = {
+      level: 3,
+      palier: 1,
+      cards: [{ card: 'concat', edition: 'brillante' }],
+    };
     chooseCard(s, 0);
     grantCard(s, 'concat', 'brillante');
     grantCard(s, 'concat');
@@ -229,47 +318,12 @@ describe('card effects', () => {
   });
 
   it('meta: Éventail adds a third card to the next offers', () => {
-    const s = atLevel3();
-    for (let i = 0; i < 6; i++) completeLevel(s);
-    s.pendingLevels = [8];
+    const s = createInitialState(42);
+    setLevel(s, 8);
     force(s, 'eventail');
     chooseCard(s, 0);
-    completeLevel(s);
+    s.pendingOffers.push({ level: 8, palier: 1 });
     expect(ensureOffer(s)?.cards).toHaveLength(3);
-  });
-});
-
-describe('refusals of the natural card', () => {
-  it('count only offers that held it, and reset when it is obtained', () => {
-    const s = atLevel3();
-    expect(naturalAt(offerContext(s, 3)).card).toBe('value');
-    completeLevel(s);
-    force(s, 'value', 'bridge');
-    chooseCard(s, 1); // refused the value
-    expect(s.naturalRefusals).toBe(1);
-    completeLevel(s);
-    force(s, 'mult', 'edition-brillante'); // no natural card: not a refusal
-    chooseCard(s, 1);
-    expect(s.naturalRefusals).toBe(1);
-    completeLevel(s);
-    force(s, 'value', 'edition-brillante');
-    chooseCard(s, 1);
-    expect(s.naturalRefusals).toBe(2);
-    expect(offerContext(s, 6).naturalRefusals).toBe(2);
-    // Taken: the natural card moves on to the next item, the counter starts again.
-    completeLevel(s);
-    force(s, 'value', 'edition-brillante');
-    chooseCard(s, 0);
-    expect(s.naturalRefusals).toBe(0);
-  });
-
-  it('reset when the natural item is obtained any other way', () => {
-    const s = atLevel3();
-    s.naturalRefusals = 3;
-    grantCard(s, 'edition-legendaire'); // not the natural item
-    expect(s.naturalRefusals).toBe(3);
-    grantCard(s, 'value');
-    expect(s.naturalRefusals).toBe(0);
   });
 });
 
@@ -309,43 +363,32 @@ const NATURAL_TABLE: [number, number, string, string][] = [
 const ALL = 'extractor adder bridge multiplier subtractor divider exponent storage';
 for (let n = 23; n <= 30; n++) NATURAL_TABLE.push([n, n - 7, ALL, 'upgrades priorities']);
 
-describe('the natural card, followed from level 1 to 30', () => {
-  it('reproduces the former fixed rewards exactly', () => {
+describe('the fil rouge, followed from level 1 to 30', () => {
+  it('reproduces the former fixed rewards exactly, without any choice', () => {
     for (const seed of [42, 7, 2024]) {
       const s = createInitialState(seed);
       for (const [level, max, buildings, features] of NATURAL_TABLE) {
         expect(s.level).toBe(level);
         completeLevel(s);
-        const offer = ensureOffer(s);
-        if (offer) {
-          // Take the natural card; when the draw left it out, add it (we test the effects
-          // here, the draw has its own tests).
-          const natural = naturalAt(offerContext(s, level));
-          let index = offer.cards.findIndex((c) => c.card === natural.card);
-          if (index < 0) index = offer.cards.push({ card: natural.card, edition: 'base' }) - 1;
-          expect(chooseCard(s, index)).toBe(true);
-        }
         expect([
           level,
           s.maxExtraction,
           s.unlockedBuildings.join(' '),
           s.unlockedFeatures.join(' '),
         ]).toEqual([level, max, buildings, features]);
-        expect(s.naturalRefusals).toBe(0);
       }
       expect(s.picks).toHaveLength(30);
+      expect(s.pendingOffers).toEqual([]);
     }
   });
 
-  it('setLevel grants the same natural cards and drops the pending offers', () => {
+  it('setLevel grants the same fil rouge cards and drops the pending offers', () => {
     const s = atLevel3();
-    completeLevel(s);
-    completeLevel(s);
-    s.naturalRefusals = 2;
+    s.pendingOffers.push({ level: 3, palier: 1 });
+    ensureOffer(s);
     setLevel(s, 23);
-    expect(s.pendingLevels).toEqual([]);
+    expect(s.pendingOffers).toEqual([]);
     expect(s.currentOffer).toBeNull();
-    expect(s.naturalRefusals).toBe(0);
     const row = NATURAL_TABLE[21];
     expect([s.maxExtraction, s.unlockedBuildings.join(' '), s.unlockedFeatures.join(' ')]).toEqual([
       row?.[1],
@@ -359,34 +402,39 @@ describe('the natural card, followed from level 1 to 30', () => {
 });
 
 describe('infinite and final levels', () => {
-  it('infinite levels give an offer whose natural card is the next value', () => {
+  it('infinite levels give the next value at once', () => {
     const s = createInitialState(42);
     setLevel(s, 31);
     expect(s.maxExtraction).toBe(23);
-    completeLevel(s);
-    expect(s.pendingLevels).toEqual([31]);
-    expect(s.maxExtraction).toBe(23);
     expect(naturalAt(offerContext(s, 31))).toEqual({ card: 'value', value: 24 });
-    const offer = ensureOffer(s);
-    expect(offer?.cards.find((c) => c.card === 'value')?.value).toBe(24);
-    resolvePending(s, 'natural');
+    completeLevel(s);
     expect(s.maxExtraction).toBe(24);
+    expect(s.pendingOffers).toEqual([]);
     setLevel(s, 41);
     expect(s.maxExtraction).toBe(33);
   });
 
-  it('the final level gives an offer; the game ends once it is chosen', () => {
+  it('the final level gives its reward; the game ends once no offer waits', () => {
     const s = createInitialState(5);
     const levels = ensureLevels(s.seed, s.levels, 5000);
     setLevel(s, levels.length);
+    s.pendingOffers.push({ level: levels.length, palier: 1 });
     const { events, emit } = recorder();
     completeLevel(s, emit);
     expect(s.levelRequirement).toBeNull();
     expect(s.finishedAtTick).toBe(s.tick);
-    expect(s.pendingLevels).toEqual([levels.length]);
+    expect(events[0]).toMatchObject({ type: 'levelCompleted', payload: { final: true } });
     expect(resolvePending(s, 'first', emit)).toBe(1);
     expect(events.map((e) => e.type)).toEqual(['levelCompleted', 'offerReady', 'cardChosen']);
     expect(events.at(-1)?.payload).toMatchObject({ level: levels.length, final: true });
+  });
+
+  it('a palier chosen before the end is not final', () => {
+    const s = atLevel3();
+    force(s, 'edition-brillante');
+    const { events, emit } = recorder();
+    chooseCard(s, 0, emit);
+    expect(events[0]?.payload).toMatchObject({ final: false });
   });
 });
 
@@ -403,26 +451,25 @@ describe('automatic choice (?pick=)', () => {
 
   it('natural, first, random and none', () => {
     const s = atLevel3();
-    completeLevel(s);
-    force(s, 'bridge', 'value');
+    force(s, 'bridge', 'edition-brillante');
     const offer = s.currentOffer;
     if (!offer) throw new Error('no offer');
-    expect(autoPickIndex(s, offer, 'natural')).toBe(1);
+    expect(autoPickIndex(s, offer, 'natural')).toBe(0); // the bridge is the next item
     expect(autoPickIndex(s, offer, 'first')).toBe(0);
     expect(autoPickIndex(s, offer, 'none')).toBeNull();
     const r = autoPickIndex(s, offer, 'random');
     expect([0, 1]).toContain(r);
     expect(autoPickIndex(s, offer, 'random')).toBe(r); // seeded
-    force(s, 'bridge', 'mult');
+    force(s, 'edition-brillante', 'mult');
     expect(s.currentOffer && autoPickIndex(s, s.currentOffer, 'natural')).toBe(0); // fallback
     expect(resolvePending(s, 'none')).toBe(0);
-    completeLevel(s);
+    s.pendingOffers.push({ level: 3, palier: 2 });
     expect(resolvePending(s, 'random')).toBe(2);
-    expect(s.pendingLevels).toEqual([]);
+    expect(s.pendingOffers).toEqual([]);
   });
 });
 
-describe('save version 2', () => {
+describe('save version 3', () => {
   function rich(): GameState {
     const s = atLevel3();
     grantCard(s, 'edition-brillante');
@@ -431,9 +478,10 @@ describe('save version 2', () => {
     grantCard(s, 'passive-operators');
     grantCard(s, 'eventail');
     grantCard(s, 'value');
-    s.naturalRefusals = 2;
-    completeLevel(s);
-    completeLevel(s);
+    s.pendingOffers.push({ level: 3, palier: 1 }, { level: 3, palier: 2 });
+    ensureOffer(s);
+    chooseCard(s, 0);
+    s.pendingOffers.push({ level: 3, palier: 3 });
     ensureOffer(s);
     return s;
   }
@@ -443,16 +491,20 @@ describe('save version 2', () => {
     const world = new World(s, new DepositMap(s.seed));
     const data = serialize(world, CAM);
     expect(data.version).toBe(SAVE_VERSION);
+    expect(SAVE_VERSION).toBe(3);
     for (const text of [await encodeSave(data), encodeSaveSync(data)]) {
       const back = deserialize(await decodeSave(text)).state;
       expect(back.picks).toEqual(s.picks);
-      expect(back.pendingLevels).toEqual([3, 4]);
+      expect(back.picks.at(-1)?.palier).toBe(1);
+      expect(back.pendingOffers).toEqual([
+        { level: 3, palier: 2 },
+        { level: 3, palier: 3 },
+      ]);
       expect(back.currentOffer).toEqual(s.currentOffer);
       expect(back.currentOffer?.cards).toHaveLength(3); // Éventail
       expect(back.editionCards).toEqual({ brillante: 1, legendaire: 1 });
       expect(back.specials).toEqual({ 'concat:legendaire': 1 });
       expect(back.passives).toEqual(['operatorsBoost']);
-      expect(back.naturalRefusals).toBe(2);
       expect(stateHash(new World(back, new DepositMap(back.seed)), CAM)).toBe(
         stateHash(world, CAM),
       );
@@ -468,13 +520,21 @@ describe('save version 2', () => {
     const cases: ((d: Record<string, unknown>) => void)[] = [
       (d) => Object.assign((d['picks'] as object[])[0] ?? {}, { card: 'teleporter' }),
       (d) => Object.assign((d['picks'] as object[])[0] ?? {}, { edition: 'gold' }),
-      (d) => (d['pendingLevels'] = [4, 3]),
-      (d) => (d['pendingLevels'] = [99]),
-      (d) => Object.assign(d['currentOffer'] ?? {}, { level: 4 }),
+      (d) => Object.assign((d['picks'] as object[])[0] ?? {}, { palier: 0 }),
+      (d) =>
+        (d['pendingOffers'] = [
+          { level: 3, palier: 3 },
+          { level: 3, palier: 2 },
+        ]),
+      (d) => (d['pendingOffers'] = [{ level: 99, palier: 1 }]),
+      (d) => (d['pendingOffers'] = [{ level: 3, palier: 0 }]),
+      (d) => (d['pendingOffers'] = [3]),
+      (d) => Object.assign(d['currentOffer'] ?? {}, { palier: 3 }),
+      (d) => Object.assign(d['currentOffer'] ?? {}, { level: 2 }),
       (d) => (d['specials'] = { 'adder:base': 1 }),
       (d) => (d['editionCards'] = { brillante: -1, legendaire: 0 }),
       (d) => (d['passives'] = ['nope']),
-      (d) => delete d['naturalRefusals'],
+      (d) => delete d['pendingOffers'],
     ];
     for (const mutate of cases) {
       const d = base();
@@ -483,17 +543,19 @@ describe('save version 2', () => {
     }
   });
 
-  it('refuses a version 1 save cleanly, as outdated', async () => {
-    const d = JSON.parse(
-      JSON.stringify(serialize(new World(atLevel3(), new DepositMap(42)), CAM)),
-    ) as Record<string, unknown>;
-    d['version'] = 1;
-    const error = await decodeSave(JSON.stringify(d)).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(SaveError);
-    expect((error as SaveError).reason).toBe('outdated');
-    await expect(importSave(JSON.stringify(d))).rejects.toMatchObject({ reason: 'outdated' });
+  it('refuses version 1 and 2 saves cleanly, as outdated', async () => {
+    for (const version of [1, 2]) {
+      const d = JSON.parse(
+        JSON.stringify(serialize(new World(atLevel3(), new DepositMap(42)), CAM)),
+      ) as Record<string, unknown>;
+      d['version'] = version;
+      const error = await decodeSave(JSON.stringify(d)).catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(SaveError);
+      expect((error as SaveError).reason).toBe('outdated');
+      await expect(importSave(JSON.stringify(d))).rejects.toMatchObject({ reason: 'outdated' });
+    }
     // A broken save keeps its own reason.
-    const broken = await decodeSave('{"version":2}').catch((e: unknown) => e);
+    const broken = await decodeSave('{"version":3}').catch((e: unknown) => e);
     expect((broken as SaveError).reason).toBe('invalid');
   });
 });

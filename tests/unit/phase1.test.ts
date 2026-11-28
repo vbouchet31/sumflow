@@ -3,9 +3,8 @@ import { LEVEL_TABLE } from '../../src/config/balance';
 import { CARDS, type CardEffect } from '../../src/config/cards';
 import { cardArt } from '../../src/render/cardArt';
 import { autoPickIndex } from '../../src/sim/autoPick';
-import { naturalAt } from '../../src/sim/offers';
-import { chooseCard, completeLevel, ensureOffer } from '../../src/sim/progression';
-import { offerContext } from '../../src/sim/rewards';
+import { paliersFor } from '../../src/sim/levels';
+import { chooseCard, completeLevel, deliver, ensureOffer } from '../../src/sim/progression';
 import { createInitialState } from '../../src/sim/state';
 import { HELP_TIPS } from '../../src/ui/help';
 
@@ -14,31 +13,37 @@ import { HELP_TIPS } from '../../src/ui/help';
  * level by level in offers.test.ts; here a whole game is played with the real offers.
  */
 describe('phase 1 is complete', () => {
-  it('a game plays from level 1 to the end taking the natural card whenever offered', () => {
+  it('a game plays to the end: each level gives its fil rouge, each palier an offer', () => {
     for (const seed of [1, 42, 2024]) {
       const s = createInitialState(seed);
       let offers = 0;
-      let natural = 0;
       for (let i = 0; i < 5000 && s.finishedAtTick === null; i++) {
-        completeLevel(s);
+        const level = s.level;
+        const req = s.levelRequirement;
+        if (!req) break;
+        if (level <= 20) {
+          // Real deliveries: the paliers queue their offers on the way.
+          while (s.level === level && s.finishedAtTick === null) deliver(s, req.value);
+        } else {
+          paliersFor(level).forEach((_, k) => s.pendingOffers.push({ level, palier: k + 1 }));
+          completeLevel(s);
+        }
         for (let offer = ensureOffer(s); offer; offer = ensureOffer(s)) {
           offers++;
-          const want = naturalAt(offerContext(s, offer.level)).card;
-          if (offer.cards.some((c) => c.card === want)) natural++;
-          expect(chooseCard(s, autoPickIndex(s, offer, 'natural') ?? 0)).toBe(true);
+          expect(chooseCard(s, autoPickIndex(s, offer, 'first') ?? 0)).toBe(true);
         }
       }
       expect(s.finishedAtTick).not.toBeNull();
-      expect(s.pendingLevels).toEqual([]);
-      // One card per level; every reward of the current table was obtained.
-      expect(s.picks).toHaveLength(s.levels.length);
+      expect(s.pendingOffers).toEqual([]);
+      // One card per level and one per palier; every reward of the table was obtained.
+      const paliers = s.levels.reduce((n, _, k) => n + paliersFor(k + 1).length, 0);
+      expect(offers).toBe(paliers);
+      expect(s.picks).toHaveLength(s.levels.length + paliers);
       for (const def of LEVEL_TABLE) {
         const r = def.reward;
         if (r.kind === 'building') expect(s.unlockedBuildings).toContain(r.building);
         if (r.kind === 'feature') expect(s.unlockedFeatures).toContain(r.feature);
       }
-      // The natural card is in most offers (its boosted weight).
-      expect(natural / offers).toBeGreaterThan(0.6);
     }
   });
 

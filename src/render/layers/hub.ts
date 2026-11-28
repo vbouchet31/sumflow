@@ -3,13 +3,12 @@ import { operationOf } from '../../config/buildings';
 import { BUILDING_COLORS, COLORS, FONT_NUM, FONT_UI, HUB_COLORS } from '../../config/colors';
 import { formatCompact } from '../../core/format';
 import { t } from '../../i18n';
-import { fixedReward, type NaturalStep, offerSlots } from '../../sim/offers';
+import { naturalAt, type NaturalStep } from '../../sim/offers';
 import { isOperator } from '../../sim/entities';
 import { cardDef, offerContext } from '../../sim/rewards';
 import type { GameState } from '../../sim/state';
 import type { Camera } from '../camera';
 import { LOD } from '../lod';
-import { drawCardFan } from '../cardArt';
 import { roundRect } from '../shapes';
 
 /** Glyph and colour of the icon of a fixed reward (levels 1 and 2) drawn on the hub. */
@@ -85,7 +84,7 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
   ctx.strokeStyle = HUB_COLORS.innerFrame;
   ctx.lineWidth = Math.max(1, 0.05 * s);
   ctx.stroke();
-  const pending = state.pendingLevels.length;
+  const pending = state.pendingOffers.length;
   if (pending > 0) drawPendingTag(ctx, cam, x, y, w, pending);
 
   if (cam.zoom < LOD.buildingText) return;
@@ -136,7 +135,7 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
     ctx.fill();
   }
 
-  // Next reward icon: the fixed card, or the cards of an offer.
+  // Next reward icon: the fil rouge card the level gives (PLAN-paliers §3.1).
   const r = 0.38 * s;
   const iy = y + w - 0.7 * s;
   ctx.fillStyle = HUB_COLORS.textMuted;
@@ -144,18 +143,12 @@ export function drawHub(ctx: CanvasRenderingContext2D, cam: Camera, state: GameS
   ctx.textAlign = 'right';
   ctx.fillText(t('hub.nextReward'), cx + 0.15 * s, iy);
   const ix = cx + 0.25 * s + r;
-  const fixed = fixedReward(state.level);
-  if (fixed) {
-    const icon = rewardIcon(fixed);
-    ctx.fillStyle = icon.color;
-    roundRect(ctx, ix - r, iy - r, 2 * r, 2 * r, 0.25 * r);
-    ctx.fill();
-    ctx.fillStyle = COLORS.text;
-    ctx.textAlign = 'center';
-    ctx.font = `700 ${0.55 * s}px ${FONT_NUM}`;
-    ctx.fillText(icon.glyph, ix, iy + 0.03 * s);
-  } else {
-    const n = offerSlots(offerContext(state, state.level)).length;
-    drawCardFan(ctx, ix + 0.1 * s, iy, 0.68 * r, n, state.level);
-  }
+  const icon = rewardIcon(naturalAt(offerContext(state, state.level)));
+  ctx.fillStyle = icon.color;
+  roundRect(ctx, ix - r, iy - r, 2 * r, 2 * r, 0.25 * r);
+  ctx.fill();
+  ctx.fillStyle = COLORS.text;
+  ctx.textAlign = 'center';
+  ctx.font = `700 ${0.55 * s}px ${FONT_NUM}`;
+  ctx.fillText(icon.glyph, ix, iy + 0.03 * s);
 }

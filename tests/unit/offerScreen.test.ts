@@ -19,11 +19,12 @@ import {
 } from '../../src/ui/offerInfo';
 
 /** A game whose level 3 is complete: its offer waits. */
+/** Level 3 with a palier offer waiting (value 2 is the next fil rouge item). */
 function withOffer(): GameState {
   const s = createInitialState(42);
   completeLevel(s);
   completeLevel(s);
-  completeLevel(s);
+  s.pendingOffers.push({ level: 3, palier: 1 });
   return s;
 }
 
@@ -145,6 +146,7 @@ describe('offer view', () => {
     const s = withOffer();
     const offer: StoredOffer = {
       level: 3,
+      palier: 1,
       cards: [{ card: 'concat', edition: 'legendaire' }],
     };
     const [card] = offerView(s, offer, { index: 1, total: 1 }).cards;

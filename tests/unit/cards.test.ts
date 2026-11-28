@@ -92,9 +92,7 @@ describe('card catalogue', () => {
   });
 
   it('keeps the offer and edition settings of the plan', () => {
-    expect(OFFERS.fixedUntil).toBe(2);
     expect(OFFERS.slots).toEqual(['nombres', 'atelier']);
-    expect(OFFERS.naturalRefusalDecay).toBe(0.7);
     expect(SPECIAL_EDITION_ODDS).toEqual({ base: 85, brillante: 10, legendaire: 5 });
     expect(EDITION_RULES).toEqual({ returnOnDemolish: true, removable: true });
     expect(EDITION_EFFECTS.multiplier).toEqual({

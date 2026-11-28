@@ -166,17 +166,16 @@ test('end screen: "Your picks" lists the cards level by level', async ({ page })
       const r = st.levelRequirement;
       if (!r) return false;
       api.deliver(r.value, r.required - r.delivered);
-      while (api.getState().pendingLevels.length > 0) {
+      while (api.getState().pendingOffers.length > 0) {
         if (cards.length > 0) api.forceOffer(cards, edition);
         else api.offer();
         api.choose(0);
       }
       return true;
     };
-    play([]);
-    play([]);
-    play(['concat'], 'legendaire');
-    play(['edition-brillante']);
+    for (let i = 0; i < 5; i++) play([]); // levels 1 to 5: no palier
+    play(['concat'], 'legendaire'); // the palier of level 6
+    play(['edition-brillante']); // the palier of level 7
     // Then the natural cards to the end.
     for (let i = 0; i < 3000 && play([]); i++);
   });
@@ -184,8 +183,11 @@ test('end screen: "Your picks" lists the cards level by level', async ({ page })
   await expect(end).toBeVisible();
   const picks = end.locator('.end-picks li');
   await expect(picks.nth(0)).toHaveText(/Lv\. 1\s*Adder/);
-  await expect(picks.nth(2)).toHaveText(/Lv\. 3\s*Concatenator \(legendary\)/);
-  await expect(picks.nth(3)).toHaveText(/Lv\. 4\s*Shiny edition/);
+  await expect(picks.nth(2)).toHaveText(/Lv\. 3\s*Value 2/);
+  // Each level is delivered at once here: its reward comes before the choice of its palier.
+  await expect(picks.nth(5)).toHaveText(/Lv\. 6\s*Value 4/);
+  await expect(picks.nth(6)).toHaveText(/Lv\. 6\s*Concatenator \(legendary\)/);
+  await expect(picks.nth(8)).toHaveText(/Lv\. 7\s*Shiny edition/);
   // Long: it scrolls inside the card, the button stays on screen.
   expect(await picks.count()).toBeGreaterThan(20);
   await expect(end.locator('.primary-btn')).toBeInViewport();

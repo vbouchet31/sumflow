@@ -3,6 +3,7 @@
  * max level with the game's own progression and offer code. No factory is simulated: each
  * level's time comes from the cost model on the tools owned while it is played.
  */
+import { paliersFor } from '../sim/levels';
 import { DEFAULT_CATALOGUE, drawOffer } from '../sim/offers';
 import { chooseCard, completeLevel } from '../sim/progression';
 import { offerContext } from '../sim/rewards';
@@ -70,23 +71,26 @@ export function playGame(opts: GameOptions): GameRecord {
     rec.times.push((def.quantity * opts.cache.itemCost(tools, def.target)) / capacity);
     if (opts.explain) (rec.recipes ??= []).push(explain(tools, def.target).expr);
     if (def.final || level === opts.maxLevel) break;
-    completeLevel(state);
-    for (let guard = 0; state.pendingLevels.length > 0 && guard < 100; guard++) {
-      const at = state.pendingLevels[0] ?? level;
-      const offer = drawOffer(offerContext(state, at), catalogue);
-      state.currentOffer = { level: at, cards: offer.cards };
+    // Paliers of the level (PLAN-paliers §3.2), chosen before the level gives its fil rouge.
+    paliersFor(level).forEach((_, i) => state.pendingOffers.push({ level, palier: i + 1 }));
+    for (let guard = 0; state.pendingOffers.length > 0 && guard < 100; guard++) {
+      const next = state.pendingOffers[0] ?? { level, palier: 1 };
+      const offer = drawOffer(offerContext(state, next.level, next.palier), catalogue);
+      const stored = { ...next, cards: offer.cards };
+      state.currentOffer = stored;
       for (const c of offer.cards) {
         rec.offered[c.card] = (rec.offered[c.card] ?? 0) + 1;
-        rec.firstOffered[c.card] ??= at;
+        rec.firstOffered[c.card] ??= next.level;
       }
-      const card = offer.cards[pickIndex(state, state.currentOffer, opts.strategy)];
+      const card = offer.cards[pickIndex(state, stored, opts.strategy)];
       if (!card || !chooseCard(state, offer.cards.indexOf(card))) {
-        state.pendingLevels.shift();
+        state.pendingOffers.shift();
         state.currentOffer = null;
         continue;
       }
-      rec.picks.push({ level: at, card: card.card, edition: card.edition });
+      rec.picks.push({ level: next.level, card: card.card, edition: card.edition });
     }
+    completeLevel(state);
   }
   return rec;
 }

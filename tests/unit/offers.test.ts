@@ -14,9 +14,7 @@ import {
   DEFAULT_CATALOGUE,
   drawOffer,
   drawSpecialEdition,
-  fixedReward,
   isAvailable,
-  isFixedLevel,
   naturalAt,
   naturalSequence,
   nextValue,
@@ -49,8 +47,8 @@ function ctxAt(level: number, over: Partial<Ctx> = {}): Ctx {
     maxExtraction: START_MAX_EXTRACTION,
     unlockedBuildings: [...START_BUILDINGS, 'adder'],
     unlockedFeatures: ['upgrades'],
+    palier: 0,
     picks: {},
-    naturalRefusals: 0,
     ...over,
   };
 }
@@ -87,13 +85,6 @@ describe('curves and values', () => {
     expect(nextValue(8)).toBe(9);
     expect(nextValue(9)).toBe(11);
     expect(nextValue(11)).toBe(12);
-  });
-
-  it('levels 1 and 2 are fixed: adder, then upgrades', () => {
-    expect([0, 1, 2, 3].map(isFixedLevel)).toEqual([false, true, true, false]);
-    expect(fixedReward(1)).toEqual({ card: 'adder' });
-    expect(fixedReward(2)).toEqual({ card: 'upgrades' });
-    expect(fixedReward(3)).toBeNull();
   });
 });
 
@@ -139,7 +130,7 @@ describe('natural sequence', () => {
       } else if (reward?.kind === 'feature') {
         expect(effect).toEqual({ kind: 'feature', feature: reward.feature });
       }
-      if (!isFixedLevel(n)) {
+      if (n > 2) {
         expect(isAvailable(card(step.card), ctx)).toBe(true);
         expect(cardWeight(card(step.card), ctx)).toBeGreaterThanOrEqual(curveAt(OFFERS.natural, n));
       }
@@ -155,16 +146,9 @@ describe('natural sequence', () => {
     expect(naturalAt(ctx)).toEqual({ card: 'value', value: 3 });
   });
 
-  it('the natural weight decays with refusals, never below the card curve', () => {
-    const value = card('value');
-    const weights = [0, 1, 2, 3, 10].map((r) =>
-      cardWeight(value, ctxAt(3, { naturalRefusals: r })),
-    );
-    expect(weights[0]).toBe(50);
-    expect(weights[1]).toBeCloseTo(35);
-    expect(weights[2]).toBeCloseTo(24.5);
-    expect(weights[3]).toBe(20);
-    expect(weights[4]).toBe(20);
+  it('the natural weight is never below the card curve', () => {
+    expect(cardWeight(card('value'), ctxAt(3))).toBe(50);
+    expect(cardWeight(card('value'), ctxAt(80))).toBe(20);
     // Not the natural card: plain curve.
     expect(cardWeight(card('bridge'), ctxAt(3))).toBe(curveAt(card('bridge').weight, 3));
   });

@@ -20,9 +20,14 @@ export interface Requirement {
   delivered: number;
 }
 
-/** A card obtained (PLAN-recompenses §5.1). `level` 0 = granted outside an offer (debug). */
+/**
+ * A card obtained (PLAN-recompenses §5.1). `level` 0 = granted outside an offer (debug).
+ * `palier` (1-based) is set for a card chosen in a palier offer (PLAN-paliers §3.2); absent
+ * for the reward of a level and for grants.
+ */
 export interface CardPick {
   level: number;
+  palier?: number;
   card: string;
   edition: Edition;
   /** Value obtained by a value card. */
@@ -30,10 +35,23 @@ export interface CardPick {
   tick: number;
 }
 
-/** The offer drawn for `pendingLevels[0]`, stored so a reload shows the same cards. */
-export interface StoredOffer {
+/** A palier reached whose offer is not chosen yet (PLAN-paliers §3.2). `palier` is 1-based. */
+export interface PendingOffer {
   level: number;
+  palier: number;
+}
+
+/** The offer drawn for `pendingOffers[0]`, stored so a reload shows the same cards. */
+export interface StoredOffer extends PendingOffer {
   cards: OfferCard[];
+}
+
+/** Most paliers a level may have: keeps `offerKey` unique. */
+export const MAX_PALIERS = 999;
+
+/** Number identifying a pending offer, increasing in the order offers are reached. */
+export function offerKey(p: PendingOffer): number {
+  return p.level * (MAX_PALIERS + 1) + p.palier;
 }
 
 export interface GameState {
@@ -76,9 +94,9 @@ export interface GameState {
   clipboard: Clip[];
   /** Cards obtained, in order (fixed levels, offers, debug grants). */
   picks: CardPick[];
-  /** Completed levels whose offer is not chosen yet, in order. */
-  pendingLevels: number[];
-  /** Offer drawn for `pendingLevels[0]`, or null until it is drawn (lazily). */
+  /** Paliers reached whose offer is not chosen yet, in order (PLAN-paliers §4.2). */
+  pendingOffers: PendingOffer[];
+  /** Offer drawn for `pendingOffers[0]`, or null until it is drawn (lazily). */
   currentOffer: StoredOffer | null;
   /** Edition cards obtained. Free ones are computed (obtained minus applied, `sim/inventory`). */
   editionCards: Record<SpecialEdition, number>;
@@ -90,8 +108,6 @@ export interface GameState {
   /** Special buildings obtained, by `"type:edition"`. Free ones are computed. */
   specials: Record<string, number>;
   passives: PassiveId[];
-  /** Refusals of the current natural item (reset to 0 when it is obtained). */
-  naturalRefusals: number;
 }
 
 export const HUB_ID = 0;
@@ -138,13 +154,12 @@ export function createInitialState(seed: number): GameState {
     helpSeen: [],
     clipboard: [],
     picks: [],
-    pendingLevels: [],
+    pendingOffers: [],
     currentOffer: null,
     editionCards: { brillante: 0, legendaire: 0 },
     editionsLost: { brillante: 0, legendaire: 0 },
     specials: {},
     passives: [],
-    naturalRefusals: 0,
   };
   state.levelRequirement = requirementFor(state, 1);
   return state;

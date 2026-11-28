@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CARDS } from '../../src/config/cards';
 import { en } from '../../src/i18n/en';
 import { fr } from '../../src/i18n/fr';
-import { chooseCard, completeLevel, ensureOffer, setLevel } from '../../src/sim/progression';
+import { completeLevel, setLevel } from '../../src/sim/progression';
 import { grantCard } from '../../src/sim/rewards';
 import { createInitialState, type GameState } from '../../src/sim/state';
 import { HELP_TIPS, type HelpTip, knownTips, pendingTips, tipContent } from '../../src/ui/help';
@@ -119,15 +119,11 @@ describe('reward tips (PLAN-recompenses §4.3)', () => {
     expect(tipContent(tip('eventail'), s).params).toEqual({ n: 3 });
   });
 
-  it('a choice brings its tip once: a second value brings nothing new', () => {
+  it('a level reward brings its tip once: a second value brings nothing new', () => {
     const s = fresh();
     setLevel(s, 3);
     for (const t of pendingTips(s)) s.helpSeen.push(t.id);
-    completeLevel(s);
-    const offer = ensureOffer(s);
-    const index = offer?.cards.findIndex((c) => c.card === 'value') ?? -1;
-    expect(index).toBeGreaterThanOrEqual(0);
-    expect(chooseCard(s, index)).toBe(true);
+    completeLevel(s); // level 3 gives value 2 at once (PLAN-paliers §3.1)
     expect(pendingTips(s).map((t) => t.id)).toEqual(['value']);
     s.helpSeen.push('value');
     grantCard(s, 'value');

@@ -1,7 +1,8 @@
 import { SPECIAL_TYPES } from '../config/buildings';
-import { CARDS, OFFERS, SPECIAL_EDITIONS } from '../config/cards';
+import { CARDS, SPECIAL_EDITIONS } from '../config/cards';
 import { getLocale, type MessageKey, t } from '../i18n';
 import { appliedEditions, freeEditions, specialStock } from '../sim/inventory';
+import { firstPalierLevel } from '../sim/levels';
 import { drawOffer, type SlotDraw } from '../sim/offers';
 import { offerContext } from '../sim/rewards';
 import type { GameState } from '../sim/state';
@@ -22,7 +23,7 @@ const WEIGHTS_REFRESH_MS = 500;
 
 /** Level whose offer comes next: the first one waiting, else the level being played. */
 export function nextOfferLevel(state: GameState): number {
-  return state.pendingLevels[0] ?? Math.max(state.level, OFFERS.fixedUntil + 1);
+  return state.pendingOffers[0]?.level ?? Math.max(state.level, firstPalierLevel());
 }
 
 /** One row of the weights table: a card of a slot and how its weight was computed. */

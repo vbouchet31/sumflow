@@ -18,7 +18,7 @@ import { Renderer } from './render/renderer';
 import { effectEvents } from './render/layers/effects';
 import { SimLoop } from './sim/loop';
 import { hasEditionCards } from './sim/inventory';
-import { createInitialState } from './sim/state';
+import { createInitialState, offerKey } from './sim/state';
 import { World } from './sim/world';
 import { BuildBar } from './ui/buildBar';
 import { CatchUpBar } from './ui/catchUp';
@@ -275,10 +275,14 @@ async function bootstrap(): Promise<void> {
 
   // ---- Reward choice screen (PLAN-recompenses §4.2, §4.4) ----
   /**
-   * Newest waiting level when the screen was closed with "See the map": those offers wait
-   * for the badge or the hub, the next completed level opens the screen again.
+   * Newest waiting offer (`offerKey`) when the screen was closed with "See the map": those
+   * offers wait for the badge or the hub, the next palier reached opens the screen again.
    */
   let minimizedLevel: number | null = null;
+  const newestOffer = (): number | null => {
+    const last = state.pendingOffers.at(-1);
+    return last ? offerKey(last) : null;
+  };
   /** Offer on screen (identity: a forced or re-drawn offer is a new object). */
   let shownOffer: StoredOffer | null = null;
   const offerSeries = new OfferSeries();
@@ -290,20 +294,20 @@ async function bootstrap(): Promise<void> {
       offerScreen.close();
       return;
     }
-    const position = offerSeries.position(offer.level, state.pendingLevels.length);
+    const position = offerSeries.position(offerKey(offer), state.pendingOffers.length);
     offerScreen.show(offerView(state, offer, position));
     markSeen(state, OFFER_INTRO_ID);
   };
   /** The badge (top bar or hub): open the waiting offer again, whatever was closed. */
   const reopenOffer = (): void => {
-    if (!choiceScreen || state.pendingLevels.length === 0 || offerScreen.isOpen) return;
+    if (!choiceScreen || state.pendingOffers.length === 0 || offerScreen.isOpen) return;
     minimizedLevel = null;
     showOffer();
   };
   /** Whether the screen may open by itself now (§4.4). */
   const offerMayOpen = (): boolean =>
     canOpenOffer({
-      newest: state.pendingLevels.at(-1) ?? null,
+      newest: newestOffer(),
       minimized: minimizedLevel,
       modal: menu.isOpen || tutorial.isOpen || endScreen.isOpen || (markerEditor?.isOpen ?? false),
       gesture: pointer.pressed || tools.gesturing,
@@ -313,7 +317,7 @@ async function bootstrap(): Promise<void> {
   /** Every frame: open the screen when allowed, follow the offer while it is open. */
   const syncOffer = (): void => {
     if (!choiceScreen) return;
-    if (state.pendingLevels.length === 0) {
+    if (state.pendingOffers.length === 0) {
       offerSeries.reset();
       minimizedLevel = null;
       shownOffer = null;
@@ -334,11 +338,11 @@ async function bootstrap(): Promise<void> {
       sfx.cardChosen();
       // Next offer at once, unless the choice brought a tutorial card or the end screen:
       // they come first, and the screen opens again after them.
-      if (state.pendingLevels.length > 0 && offerMayOpen()) showOffer();
+      if (state.pendingOffers.length > 0 && offerMayOpen()) showOffer();
       else offerScreen.close();
     },
     later: () => {
-      minimizedLevel = state.pendingLevels.at(-1) ?? null;
+      minimizedLevel = newestOffer();
       offerScreen.close();
     },
     flip: () => sfx.cardFlip(),
@@ -442,18 +446,23 @@ async function bootstrap(): Promise<void> {
     if (e.target instanceof Element && e.target.closest('button:not([data-silent])')) sfx.click();
   });
 
-  world.events.on('levelCompleted', ({ level, reward }) => {
+  world.events.on('levelCompleted', ({ level, reward, final }) => {
     renderer.waveStart = performance.now();
     sfx.levelComplete();
-    // Levels 1 and 2 name their fixed card; later ones get theirs once chosen.
+    // Every level gives its fil rouge card at once (PLAN-paliers §3.1).
     toasts.show(
       t('toast.levelDone', { n: level }),
       reward ? t('toast.unlocked', { reward: cardLabel(reward) }) : undefined,
     );
+    // The end screen opens after the final level, once no palier offer waits.
+    if (final && world.state.pendingOffers.length === 0) endScreen.show(world.state);
+  });
+  world.events.on('palierReached', ({ level, palier, of }) => {
+    toasts.show(t('toast.palier', { i: palier, n: of, level }));
   });
   world.events.on('cardChosen', (card) => {
     toasts.show(t('toast.obtained', { reward: cardLabel(card) }));
-    // The end screen opens once the offer of the final level is chosen.
+    // The end screen opens once the last waiting offer of a finished game is chosen.
     if (card.final) endScreen.show(world.state);
   });
   world.events.on('upgradeReady', ({ track }) => {
@@ -619,7 +628,7 @@ async function bootstrap(): Promise<void> {
     hud.update(world);
     for (const p of panels) p.update();
     topBar.setVisible('upgrades', upgradesAvailable());
-    topBar.setReward(choiceScreen && !offerScreen.isOpen ? state.pendingLevels.length : 0);
+    topBar.setReward(choiceScreen && !offerScreen.isOpen ? state.pendingOffers.length : 0);
     topBar.setBadge(
       'upgrades',
       TRACKS.some((tr) => isUpgradeReady(state, tr)),

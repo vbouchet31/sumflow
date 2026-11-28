@@ -49,10 +49,13 @@ describe('active effects (passive cards)', () => {
 describe('debug weights table (PLAN-recompenses §5.4)', () => {
   it('next offer level, and per slot probabilities that sum to 1', () => {
     const s = createInitialState(42);
-    expect(nextOfferLevel(s)).toBe(3);
+    expect(nextOfferLevel(s)).toBe(6); // the first palier (PLAN-paliers §3.2)
     s.level = 9;
     expect(nextOfferLevel(s)).toBe(9);
-    s.pendingLevels = [7, 8];
+    s.pendingOffers = [
+      { level: 7, palier: 1 },
+      { level: 8, palier: 1 },
+    ];
     expect(nextOfferLevel(s)).toBe(7);
     s.unlockedBuildings.push('adder');
     s.unlockedFeatures.push('upgrades');

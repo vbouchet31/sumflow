@@ -39,11 +39,11 @@ describe('strategies', () => {
     const s = createInitialState(1);
     completeLevel(s); // level 1: adder
     completeLevel(s); // level 2: upgrades
-    completeLevel(s); // level 3: offer pending
-    return s;
+    return s; // level 3: value 2 is the next fil rouge item
   };
   const offer: StoredOffer = {
     level: 3,
+    palier: 1,
     cards: [
       { card: 'value', edition: 'base', value: 2 },
       { card: 'bridge', edition: 'base' },
@@ -77,6 +77,7 @@ describe('strategies', () => {
     const s = atLevel3();
     const legendary: StoredOffer = {
       level: 3,
+      palier: 1,
       cards: [
         { card: 'value', edition: 'base', value: 2 },
         { card: 'edition-legendaire', edition: 'legendaire' },
@@ -91,7 +92,11 @@ describe('strategies', () => {
 
   it('minimal falls back to the natural rule when only values are offered', () => {
     const s = atLevel3();
-    const only: StoredOffer = { level: 3, cards: [{ card: 'value', edition: 'base', value: 2 }] };
+    const only: StoredOffer = {
+      level: 3,
+      palier: 1,
+      cards: [{ card: 'value', edition: 'base', value: 2 }],
+    };
     expect(pickIndex(s, only, { kind: 'minimal' })).toBe(0);
   });
 });
@@ -238,11 +243,12 @@ describe('a small run', () => {
       for (const ix of run.index) expect(ix.slice(0, 2)).toEqual([1, 1]);
   });
 
-  it('refusing values makes the game harder', async () => {
+  it('refusing values changes little: every level gives its fil rouge (PLAN-paliers §3.1)', async () => {
     const r = await get();
     const stats = bandStats(r.runs.get('minimal') ?? run([]), 25);
     expect(stats.map((b) => [b.from, b.to])).toEqual(bands(25));
-    expect(stats[1]?.median).toBeGreaterThan(1);
+    expect(stats[1]?.median).toBeGreaterThan(0.8);
+    expect(stats[1]?.median).toBeLessThan(1.25);
   });
 
   it('evaluations and the report mark what the model cannot see', async () => {

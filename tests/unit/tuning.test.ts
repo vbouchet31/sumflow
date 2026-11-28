@@ -36,7 +36,7 @@ function ctxAt(level: number, over: Partial<OfferContext> = {}): OfferContext {
     unlockedBuildings: [...START_BUILDINGS, 'adder', 'multiplier'],
     unlockedFeatures: ['upgrades'],
     picks: {},
-    naturalRefusals: 0,
+    palier: 0,
     ...over,
   };
 }

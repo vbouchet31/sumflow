@@ -71,8 +71,6 @@ export interface CardDef {
 
 /** Offer settings (PLAN-recompenses §3.1, §3.3). */
 export const OFFERS = {
-  /** Levels 1..fixedUntil give their natural reward directly, without an offer. */
-  fixedUntil: 2,
   /** Slots of every offer, drawn in this order. */
   slots: ['nombres', 'atelier'] as const satisfies readonly Slot[],
   /** Weight floor of the natural card ("fil rouge"), by level. */
@@ -81,8 +79,6 @@ export const OFFERS = {
     { level: 20, w: 25 },
     { level: 40, w: 15 },
   ] as const satisfies readonly CurvePoint[],
-  /** Natural weight × decay^refusals, never below the card's own curve. */
-  naturalRefusalDecay: 0.7,
 } as const;
 
 /** Native edition odds of a special building (relative weights). */

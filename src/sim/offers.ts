@@ -31,12 +31,12 @@ import { hash2, mulberry32, type Rng } from '../core/rng';
 /** Everything a draw reads from the game. */
 export interface OfferContext extends GuardView {
   seed: number;
-  /** Level whose offer is drawn (the level just completed). */
+  /** Level whose offer is drawn (the level of the palier). */
   level: number;
+  /** Palier of the offer, 1-based (PLAN-paliers §3.2); 0 outside a palier (debug table). */
+  palier: number;
   /** Times each card id was picked. */
   picks: Readonly<Record<string, number>>;
-  /** Refusals of the current natural item (reset when it is obtained). */
-  naturalRefusals: number;
 }
 
 /** Cards, guards and tuned values a draw uses (tests and the simulator can pass their own). */
@@ -115,17 +115,6 @@ export function nextValue(maxExtraction: number): number {
   let v = maxExtraction + 1;
   if (v === MAPGEN.forbiddenValue) v += 1;
   return v;
-}
-
-/** True for levels whose reward is given directly, without an offer. */
-export function isFixedLevel(level: number): boolean {
-  return level >= 1 && level <= OFFERS.fixedUntil;
-}
-
-/** The card granted by a fixed level, or null if the level has an offer. */
-export function fixedReward(level: number, cat: Catalogue = DEFAULT_CATALOGUE): NaturalStep | null {
-  if (!isFixedLevel(level)) return null;
-  return naturalSequence(cat)[level - 1] ?? null;
 }
 
 /** The card whose effect gives `reward` (the LEVEL_TABLE kind), or undefined. */
@@ -247,9 +236,7 @@ function weigh(card: CardDef, ctx: OfferContext, naturalId: string, cat: Catalog
   let natural: number | null = null;
   let weight = curve;
   if (card.id === naturalId) {
-    const boost =
-      curveAt(OFFERS.natural, ctx.level) * OFFERS.naturalRefusalDecay ** ctx.naturalRefusals;
-    natural = Math.max(curve, boost);
+    natural = Math.max(curve, curveAt(OFFERS.natural, ctx.level));
     weight = natural;
   }
   let guard = 1;
@@ -260,8 +247,7 @@ function weigh(card: CardDef, ctx: OfferContext, naturalId: string, cat: Catalog
 
 /**
  * Weight of `card` at this offer (§3.3): its curve times its tuned scale (PLAN-objets §5),
- * raised to the natural weight `max(curve, natural × decay^refusals)` if it is the natural
- * card, then guards. Ignores availability (see `isAvailable`).
+ * raised to the natural weight `max(curve, natural)` if it is the natural card, then guards. Ignores availability (see `isAvailable`).
  */
 export function cardWeight(
   card: CardDef,
@@ -324,7 +310,8 @@ function toOfferCard(card: CardDef, ctx: OfferContext, rng: Rng): OfferCard {
 /**
  * Draw the offer of `ctx.level` (§3.3). Each slot draws among the available cards of its
  * slot (Joker: all), without repeating a card of this offer; an empty Nombres or Atelier slot
- * draws from the other one. RNG per slot: `mulberry32(hash2(seed ^ OFFER_SALT, level, i))`.
+ * draws from the other one. RNG per slot: `mulberry32(hash2(seed ^ OFFER_SALT, level,
+ * palier × 8 + i))`, so every palier of a level draws its own cards.
  */
 export function drawOffer(ctx: OfferContext, cat: Catalogue = DEFAULT_CATALOGUE): Offer {
   const naturalId = naturalAt(ctx, cat).card;
@@ -340,7 +327,7 @@ export function drawOffer(ctx: OfferContext, cat: Catalogue = DEFAULT_CATALOGUE)
       .filter((w) => w.weight > 0);
 
   offerSlots(ctx, cat).forEach((slot, i) => {
-    const rng = mulberry32(hash2(ctx.seed ^ OFFER_SALT, ctx.level, i));
+    const rng = mulberry32(hash2(ctx.seed ^ OFFER_SALT, ctx.level, ctx.palier * 8 + i));
     let used: OfferSlot | null = slot;
     let weights = pool(slot);
     if (weights.length === 0 && slot !== 'joker') {

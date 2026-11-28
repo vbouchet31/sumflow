@@ -28,7 +28,7 @@ test('HUD, levels panel and level-complete toast', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('from level 3 an offer waits across a reload; a debug choice takes it and the screen follows', async ({
+test('from the first palier an offer waits across a reload; a debug choice takes it and the screen follows', async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -40,10 +40,15 @@ test('from level 3 an offer waits across a reload; a debug choice takes it and t
     api.deliver(1, 10);
     api.deliver(2, 20);
     api.deliver(3, 35);
+    api.setLevel(6);
+    const st = api.getState();
+    const r = st.levelRequirement;
+    if (!r) throw new Error('no level');
+    api.deliver(r.value, st.paliers[0] ?? 0);
     return api.offer();
   });
-  expect(offer.pendingLevels).toEqual([3]);
-  expect(offer.current?.level).toBe(3);
+  expect(offer.pendingOffers).toEqual([{ level: 6, palier: 1 }]);
+  expect(offer.current).toMatchObject({ level: 6, palier: 1 });
   expect(offer.current?.cards).toHaveLength(2);
   expect(offer.slots.map((s) => s.slot)).toEqual(['nombres', 'atelier']);
   await page.evaluate(() => window.__sumflow?.save());
@@ -57,12 +62,12 @@ test('from level 3 an offer waits across a reload; a debug choice takes it and t
   await expect(screen).toBeHidden();
   await expect(page.locator('.toast', { hasText: /Obtained|Obtenu/ })).toBeVisible();
   const state = await page.evaluate(() => window.__sumflow?.getState());
-  expect(state?.pendingLevels).toEqual([]);
-  expect(state?.picks).toBe(3);
+  expect(state?.pendingOffers).toEqual([]);
+  expect(state?.picks).toBe(6);
   expect(errors).toEqual([]);
 });
 
-test('with ?pick=natural the natural card is taken by itself, without the screen', async ({
+test('levels give their reward at once; with ?pick=natural a palier offer is taken by itself', async ({
   page,
 }) => {
   await page.goto(gameUrl());
@@ -72,11 +77,21 @@ test('with ?pick=natural the natural card is taken by itself, without the screen
     api?.deliver(2, 20);
     api?.deliver(3, 35);
   });
-  await expect
-    .poll(() => page.evaluate(() => window.__sumflow?.getState().pendingLevels.length))
-    .toBe(0);
-  const state = await page.evaluate(() => window.__sumflow?.getState());
+  let state = await page.evaluate(() => window.__sumflow?.getState());
   expect(state?.picks).toBe(3);
+  expect(state?.maxExtraction).toBe(2);
   expect(state?.level).toBe(4);
+  await page.evaluate(() => {
+    const api = window.__sumflow;
+    api?.setLevel(6);
+    const r = api?.getState().levelRequirement;
+    if (r) api?.deliver(r.value, r.required);
+  });
+  await expect
+    .poll(() => page.evaluate(() => window.__sumflow?.getState().pendingOffers.length))
+    .toBe(0);
+  state = await page.evaluate(() => window.__sumflow?.getState());
+  expect(state?.picks).toBe(7); // levels 1 to 6, and the palier of level 6
+  expect(state?.level).toBe(7);
   await expect(page.locator('.offer-overlay')).toBeHidden();
 });

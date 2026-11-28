@@ -7,7 +7,8 @@
  * 3. visible (offered before its benchmark level).
  * Thresholds in `config.ts`. The socle (natural sequence) is not judged (`roles.ts`).
  */
-import { type CardDef, CARDS, OFFERS } from '../config/cards';
+import { type CardDef, CARDS } from '../config/cards';
+import { firstPalierLevel } from '../sim/levels';
 import {
   BENCHMARK_LEVELS,
   CRITERIA,
@@ -183,7 +184,7 @@ export function visibleCriterion(
 ): CriterionResult {
   const { min, max } = t.visible;
   const target = `${pct(min)} à ${pct(max)} des parties, offert avant le niveau ${benchmark}`;
-  if (benchmark <= OFFERS.fixedUntil + 1)
+  if (benchmark <= firstPalierLevel())
     return {
       status: 'n/a',
       value: 0,

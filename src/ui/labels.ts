@@ -1,6 +1,6 @@
-import { CARDS, type CardDef, type Edition, OFFERS, PASSIVE_EFFECTS } from '../config/cards';
+import { CARDS, type CardDef, type Edition, PASSIVE_EFFECTS } from '../config/cards';
 import { getLocale, t } from '../i18n';
-import { fixedReward, offerSlots } from '../sim/offers';
+import { naturalAt, naturalStep } from '../sim/offers';
 import { cardDef, offerContext } from '../sim/rewards';
 import type { GameState } from '../sim/state';
 
@@ -22,12 +22,13 @@ export function cardLabel(card: { card: string; edition?: Edition; value?: numbe
   return t('card.withEdition', { name, edition: t(`edition.${card.edition}`) });
 }
 
-/** Reward of completing `level`: the fixed card of levels 1 and 2, else "Choice" (N cards). */
+/**
+ * Reward of completing `level`, always its fil rouge card (PLAN-paliers §3.1): the next item
+ * not owned for the current level, the planned item for the later ones.
+ */
 export function nextRewardLabel(state: GameState, level: number): string {
-  const fixed = fixedReward(level);
-  if (fixed) return cardLabel(fixed);
-  const n = offerSlots(offerContext(state, level)).length;
-  return n > OFFERS.slots.length ? t('reward.choiceCards', { n }) : t('reward.choice');
+  const step = level === state.level ? naturalAt(offerContext(state, level)) : naturalStep(level);
+  return cardLabel(step);
 }
 
 /**

@@ -13,12 +13,14 @@ import {
 import { editionCapable, snapNative, specialKey } from '../sim/inventory';
 import { COORD_MAX, COORD_MIN, type Dir, type Rot } from '../core/grid';
 import type { Clip } from '../sim/clip';
+import { MAX_PALIERS, offerKey } from '../sim/state';
 
 /**
  * Current save format version (PLAN §11.3). Bump it with a migration (§11.4). Version 2
- * adds the reward cards (PLAN-recompenses §5.1); version 1 saves are refused.
+ * adds the reward cards (PLAN-recompenses §5.1), version 3 the paliers (PLAN-paliers §3.2);
+ * older saves are refused.
  */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 /** An item on a belt or lane: value, progress, entry side. */
 export type SavedItem = [value: number, progress: number, from: Dir | null];
@@ -80,6 +82,7 @@ export interface SavedRequirement {
 /** A card obtained (see `CardPick`). */
 export interface SavedPick {
   level: number;
+  palier?: number;
   card: string;
   edition: Edition;
   value?: number;
@@ -93,7 +96,7 @@ export interface SavedOfferCard {
   value?: number;
 }
 
-/** Version 2 of the save (PLAN §11.3). Deposits are never saved (rebuilt from the seed). */
+/** Version 3 of the save (PLAN §11.3). Deposits are never saved (rebuilt from the seed). */
 export interface SaveData {
   version: number;
   seed: number;
@@ -121,13 +124,12 @@ export interface SaveData {
   clipboard: Clip[];
   helpSeen: string[];
   picks: SavedPick[];
-  pendingLevels: number[];
-  currentOffer: { level: number; cards: SavedOfferCard[] } | null;
+  pendingOffers: { level: number; palier: number }[];
+  currentOffer: { level: number; palier: number; cards: SavedOfferCard[] } | null;
   editionCards: Record<SpecialEdition, number>;
   editionsLost: Record<SpecialEdition, number>;
   specials: Record<string, number>;
   passives: PassiveId[];
-  naturalRefusals: number;
   camera: { x: number; y: number; zoom: number };
 }
 
@@ -242,11 +244,13 @@ function offerCard(v: unknown, path: string): SavedOfferCard {
 
 function pick(v: unknown, path: string): SavedPick {
   const o = obj(v, path);
-  return {
+  const p: SavedPick = {
     level: int(o['level'], `${path}.level`, 0),
     ...offerCard(o, path),
     tick: int(o['tick'], `${path}.tick`, 0),
   };
+  if (o['palier'] !== undefined) p.palier = int(o['palier'], `${path}.palier`, 1, MAX_PALIERS);
+  return p;
 }
 
 function counts<K extends string>(
@@ -403,10 +407,21 @@ function clipEdition(v: unknown, type: unknown, path: string): SpecialEdition {
   return e;
 }
 
-function savedOffer(v: unknown, path: string): { level: number; cards: SavedOfferCard[] } {
+function pendingOffer(v: unknown, path: string): { level: number; palier: number } {
   const o = obj(v, path);
   return {
     level: int(o['level'], `${path}.level`, 1),
+    palier: int(o['palier'], `${path}.palier`, 1, MAX_PALIERS),
+  };
+}
+
+function savedOffer(
+  v: unknown,
+  path: string,
+): { level: number; palier: number; cards: SavedOfferCard[] } {
+  const o = obj(v, path);
+  return {
+    ...pendingOffer(o, path),
     cards: arr(o['cards'], `${path}.cards`).map((x, i) => offerCard(x, `${path}.cards[${i}]`)),
   };
 }
@@ -494,8 +509,8 @@ export function validateSave(raw: unknown): SaveData {
     clipboard: arr(o['clipboard'], '$.clipboard').map((x, i) => clip(x, `$.clipboard[${i}]`)),
     helpSeen: arr(o['helpSeen'], '$.helpSeen').map((x, i) => str(x, `$.helpSeen[${i}]`)),
     picks: arr(o['picks'], '$.picks').map((x, i) => pick(x, `$.picks[${i}]`)),
-    pendingLevels: arr(o['pendingLevels'], '$.pendingLevels').map((x, i) =>
-      int(x, `$.pendingLevels[${i}]`, 1),
+    pendingOffers: arr(o['pendingOffers'], '$.pendingOffers').map((x, i) =>
+      pendingOffer(x, `$.pendingOffers[${i}]`),
     ),
     currentOffer:
       o['currentOffer'] === null ? null : savedOffer(o['currentOffer'], '$.currentOffer'),
@@ -509,7 +524,6 @@ export function validateSave(raw: unknown): SaveData {
     passives: arr(o['passives'], '$.passives').map((x, i) =>
       oneOf(x, PASSIVES, `$.passives[${i}]`),
     ),
-    naturalRefusals: int(o['naturalRefusals'], '$.naturalRefusals', 0),
     camera: {
       x: num(cam['x'], '$.camera.x'),
       y: num(cam['y'], '$.camera.y'),
@@ -522,11 +536,21 @@ export function validateSave(raw: unknown): SaveData {
   const ids = new Set(data.buildings.map((b) => b.id));
   if (ids.size !== data.buildings.length) fail('$.buildings (ids)');
   if (data.buildings.some((b) => b.id >= data.nextBuildingId)) fail('$.nextBuildingId');
-  // Pending offers: completed levels, in order; the stored offer is the first one's.
-  const pending = data.pendingLevels;
-  if (pending.some((n, i) => n >= data.level + 1 || (i > 0 && n <= (pending[i - 1] ?? 0))))
-    fail('$.pendingLevels');
-  if (data.currentOffer && data.currentOffer.level !== pending[0]) fail('$.currentOffer.level');
+  // Pending offers: paliers reached (current level or earlier), in order; the stored offer is
+  // the first one's.
+  const pending = data.pendingOffers;
+  if (
+    pending.some(
+      (p, i) => p.level > data.level || (i > 0 && offerKey(p) <= offerKey(pending[i - 1] ?? p)),
+    )
+  )
+    fail('$.pendingOffers');
+  const first = pending[0];
+  if (
+    data.currentOffer &&
+    (data.currentOffer.level !== first?.level || data.currentOffer.palier !== first.palier)
+  )
+    fail('$.currentOffer.level');
   // Editions: never more applied (or lost) than obtained.
   for (const e of SPECIAL_EDITIONS) {
     const applied = data.buildings.filter((b) => b.edition === e && b.editionApplied).length;

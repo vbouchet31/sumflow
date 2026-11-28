@@ -19,7 +19,7 @@ import {
 import { SPECIAL_TYPES } from '../config/buildings';
 import type { SimLoop } from '../sim/loop';
 import { drawOffer, nextValue, type OfferCard, type SlotDraw } from '../sim/offers';
-import { chooseCard, deliver, ensureOffer, setLevel } from '../sim/progression';
+import { chooseCard, deliver, ensureOffer, levelPaliers, setLevel } from '../sim/progression';
 import { cardDef, grantCard, grantedCard, offerContext } from '../sim/rewards';
 import type { StoredOffer } from '../sim/state';
 import { runTicks } from '../sim/tick';
@@ -48,11 +48,13 @@ export interface DebugSnapshot {
   level: number;
   maxExtraction: number;
   levelRequirement: { value: number; required: number; delivered: number } | null;
+  /** Delivered counts at which the paliers of the current level are reached. */
+  paliers: number[];
   unlockedBuildings: string[];
   unlockedFeatures: string[];
   finished: boolean;
-  /** Completed levels whose offer is not chosen yet. */
-  pendingLevels: number[];
+  /** Paliers reached whose offer is not chosen yet (PLAN-paliers §4.2). */
+  pendingOffers: { level: number; palier: number }[];
   /** Cards obtained so far (fixed levels, offers, grants). */
   picks: number;
   /** Edition cards: obtained, free, applied on the map and lost (permanent editions). */
@@ -106,13 +108,17 @@ export interface DebugApi {
   /** Jump to level `n`, granting the natural card of every level before it. */
   setLevel: (n: number) => void;
   /**
-   * The offer of the first pending level (drawn now if needed), the pending levels, and the
+   * The offer of the first pending palier (drawn now if needed), the pending paliers, and the
    * weight breakdown of each slot as the draw computes it.
    */
-  offer: () => { current: StoredOffer | null; pendingLevels: number[]; slots: SlotDraw[] };
+  offer: () => {
+    current: StoredOffer | null;
+    pendingOffers: { level: number; palier: number }[];
+    slots: SlotDraw[];
+  };
   /**
    * Replace the current offer with these cards (special buildings take `edition`). Creates a
-   * pending entry if none. Use `?pick=none`, or the automatic choice takes it on the next frame.
+   * pending entry (palier 1 of the current level) if none. Use `?pick=none`, or the automatic choice takes it on the next frame.
    */
   forceOffer: (cardIds: string[], edition?: Edition) => boolean;
   /** Take card `index` of the current offer. */
@@ -186,10 +192,11 @@ export function installDebugApi(ctx: DebugContext): void {
         level: s.level,
         maxExtraction: s.maxExtraction,
         levelRequirement: s.levelRequirement ? { ...s.levelRequirement } : null,
+        paliers: levelPaliers(s),
         unlockedBuildings: [...s.unlockedBuildings],
         unlockedFeatures: [...s.unlockedFeatures],
         finished: s.finishedAtTick !== null,
-        pendingLevels: [...s.pendingLevels],
+        pendingOffers: s.pendingOffers.map((p) => ({ ...p })),
         picks: s.picks.length,
         editions: {
           obtained: { ...s.editionCards },
@@ -310,17 +317,16 @@ export function installDebugApi(ctx: DebugContext): void {
       for (const feature of ['upgrades', 'priorities'] as const)
         if (!st.unlockedFeatures.includes(feature)) st.unlockedFeatures.push(feature);
       st.maxExtraction = Math.max(st.maxExtraction, 80);
-      st.naturalRefusals = 0; // the natural item moved on
       syncUpgradeRequirements(st);
     },
     offer: () => {
       const st = world.state;
       const current = ensureOffer(st, world.emit);
-      const level = st.pendingLevels[0];
-      const slots = level === undefined ? [] : drawOffer(offerContext(st, level)).slots;
+      const next = st.pendingOffers[0];
+      const slots = next ? drawOffer(offerContext(st, next.level, next.palier)).slots : [];
       return {
-        current: current && { level: current.level, cards: current.cards.map((c) => ({ ...c })) },
-        pendingLevels: [...st.pendingLevels],
+        current: current && { ...current, cards: current.cards.map((c) => ({ ...c })) },
+        pendingOffers: st.pendingOffers.map((p) => ({ ...p })),
         slots,
       };
     },
@@ -334,9 +340,9 @@ export function installDebugApi(ctx: DebugContext): void {
         cards.push(card);
       }
       if (cards.length === 0) return false;
-      if (st.pendingLevels.length === 0) st.pendingLevels.push(Math.max(1, st.level - 1));
-      const level = st.pendingLevels[0] ?? 1;
-      st.currentOffer = { level, cards };
+      if (st.pendingOffers.length === 0) st.pendingOffers.push({ level: st.level, palier: 1 });
+      const next = st.pendingOffers[0] ?? { level: st.level, palier: 1 };
+      st.currentOffer = { level: next.level, palier: next.palier, cards };
       return true;
     },
     choose: (index) => chooseCard(world.state, index, world.emit),

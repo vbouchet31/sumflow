@@ -67,6 +67,15 @@ export function paliersFor(
   return rangeAt(ranges, n)?.at ?? [];
 }
 
+/** First level with at least one palier, or Infinity if none. */
+export function firstPalierLevel(
+  ranges: readonly { from: number; at: readonly number[] }[] = PALIERS,
+): number {
+  let first = Infinity;
+  for (const r of ranges) if (r.at.length > 0) first = Math.min(first, r.from);
+  return first;
+}
+
 /** Delivered counts at which the paliers of a level of `quantity` items are reached. */
 export function palierThresholds(fractions: readonly number[], quantity: number): number[] {
   return fractions.map((f) => Math.max(1, Math.ceil(f * quantity - 1e-9)));

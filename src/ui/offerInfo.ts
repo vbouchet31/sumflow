@@ -5,6 +5,7 @@
  */
 import { EDITION_EFFECTS, type EditionEffect, type OfferSlot } from '../config/cards';
 import { getLocale, type MessageKey, t } from '../i18n';
+import { paliersFor } from '../sim/levels';
 import { naturalAt, type OfferCard, offerSlots } from '../sim/offers';
 import { cardDef, offerContext } from '../sim/rewards';
 import type { GameState, StoredOffer } from '../sim/state';
@@ -35,6 +36,9 @@ export interface OfferCardView {
 
 export interface OfferView {
   level: number;
+  /** Palier of the offer (1-based) and the number of paliers of its level (PLAN-paliers §4.2). */
+  palier: number;
+  paliers: number;
   /** Position of this offer among those waiting (1-based), and their number. */
   index: number;
   total: number;
@@ -144,7 +148,7 @@ export function offerView(
   offer: StoredOffer,
   position: { index: number; total: number },
 ): OfferView {
-  const ctx = offerContext(state, offer.level);
+  const ctx = offerContext(state, offer.level, offer.palier);
   const natural = naturalAt(ctx).card;
   const slots = offerSlots(ctx);
   const cards = offer.cards.map((card, i): OfferCardView => {
@@ -164,6 +168,8 @@ export function offerView(
   });
   return {
     level: offer.level,
+    palier: offer.palier,
+    paliers: Math.max(offer.palier, paliersFor(offer.level).length),
     index: position.index,
     total: position.total,
     intro: !state.helpSeen.includes(OFFER_INTRO_ID),
