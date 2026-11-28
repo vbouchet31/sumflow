@@ -48,14 +48,7 @@ describe('phase 1 is complete', () => {
   });
 
   it('every kind of card exists, with a picture and a help tip', () => {
-    const kinds: CardEffect['kind'][] = [
-      'value',
-      'unlock',
-      'special',
-      'edition',
-      'passive',
-      'meta',
-    ];
+    const kinds: CardEffect['kind'][] = ['value', 'unlock', 'special', 'edition', 'meta'];
     for (const kind of kinds) {
       const cards = CARDS.filter((c) => c.effect.kind === kind);
       expect(cards.length, kind).toBeGreaterThan(0);

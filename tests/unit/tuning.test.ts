@@ -71,7 +71,7 @@ describe('tuning file', () => {
       eventail: { weightScale: 1, speed: 1 },
       nope: { weightScale: 1 },
       mult: { weightScale: 1 },
-      'passive-operators': { weightScale: Number.NaN },
+      'eventail-2': { weightScale: Number.NaN },
     };
     expect(validateTuning(bad)).toEqual(
       expect.arrayContaining([
@@ -80,7 +80,7 @@ describe('tuning file', () => {
         'eventail.speed: unknown knob',
         'nope: unknown object',
         'mult: unknown object', // the socle is never drawn: no knob (PLAN-paliers §3.6)
-        'passive-operators.weightScale: not a finite number',
+        'eventail-2.weightScale: not a finite number',
       ]),
     );
     expect(validateTuning(defaultTuning())).toEqual([]);

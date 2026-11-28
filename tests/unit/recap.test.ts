@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { setLocale } from '../../src/i18n';
 import { drawOffer } from '../../src/sim/offers';
 import { completeLevel } from '../../src/sim/progression';
-import { grantCard, offerContext } from '../../src/sim/rewards';
+import { offerContext } from '../../src/sim/rewards';
 import { createInitialState } from '../../src/sim/state';
 import { nextOfferLevel, weightRows } from '../../src/ui/debugPanel';
 import { picksRecap } from '../../src/ui/endScreen';
@@ -19,7 +19,7 @@ describe('end screen: "Tes choix" (PLAN-recompenses §4.6, PLAN-paliers §4.3)',
       { level: 3, card: 'value', edition: 'base', value: 2, tick: 0 },
       { level: 4, palier: 1, card: 'concat', edition: 'legendaire', tick: 0 },
       { level: 5, palier: 2, card: 'edition-brillante', edition: 'brillante', tick: 0 },
-      { level: 0, card: 'passive-operators', edition: 'base', tick: 0 },
+      { level: 0, card: 'edition-legendaire', edition: 'legendaire', tick: 0 },
     );
     expect(picksRecap(s)).toEqual([
       { level: 'Niv. 1', card: 'Additionneur' },
@@ -27,7 +27,7 @@ describe('end screen: "Tes choix" (PLAN-recompenses §4.6, PLAN-paliers §4.3)',
       { level: 'Niv. 3', card: 'Valeur 2' },
       { level: 'Niv. 4 · palier 1', card: 'Concaténateur (légendaire)' },
       { level: 'Niv. 5 · palier 2', card: 'Édition brillante' },
-      { level: 'Hors offre', card: 'Opérateurs +5 %' },
+      { level: 'Hors offre', card: 'Édition légendaire' },
     ]);
     setLocale('en');
     expect(picksRecap(s)[3]).toEqual({
@@ -56,11 +56,12 @@ describe('active effects (passive cards)', () => {
   it('nothing without a passive; one line per passive, copies multiplied', () => {
     const s = createInitialState(1);
     expect(activeEffects(s)).toEqual([]);
-    grantCard(s, 'passive-operators');
-    expect(activeEffects(s)).toEqual(['Opérateurs +5 % : vitesse des opérateurs × 1,05']);
-    grantCard(s, 'passive-operators');
+    // No passive card for now (PLAN-paliers, P6): the line falls back on the effect id.
+    s.passives.push('operatorsBoost');
+    expect(activeEffects(s)).toEqual(['operatorsBoost : vitesse des opérateurs × 1,05']);
+    s.passives.push('operatorsBoost');
     setLocale('en');
-    expect(activeEffects(s)).toEqual(['Operators +5% ×2: operator speed × 1.103']);
+    expect(activeEffects(s)).toEqual(['operatorsBoost ×2: operator speed × 1.103']);
   });
 });
 

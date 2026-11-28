@@ -386,8 +386,6 @@ export const en: Record<MessageKey, string> = {
   'card.concat.title': 'Concatenator',
   'card.concat.text':
     'Writes the digits of B after those of A: 4 ‖ 7 = 47. Demolishing it gives it back.',
-  'card.passiveOperators.title': 'Operators +{pct}%',
-  'card.passiveOperators.text': 'Every operator runs {pct}% faster.',
   'card.eventail.title': 'Fan',
   'card.eventail.text': 'The next offers show one more card.',
   'card.eventail2.title': 'Fan II',

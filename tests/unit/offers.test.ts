@@ -196,7 +196,11 @@ describe('availability (PLAN-paliers §3.4)', () => {
 
 describe('drawOffer (PLAN-paliers §3.4)', () => {
   it('is deterministic and depends on the seed and the palier', () => {
-    const ctx = ctxAt(9, { palier: 1, picks: { eventail: 1 } });
+    const ctx = ctxAt(9, {
+      palier: 1,
+      picks: { eventail: 1 },
+      unlockedBuildings: [...START_BUILDINGS, 'adder', 'multiplier'],
+    });
     expect(drawOffer(ctx)).toEqual(drawOffer({ ...ctx }));
     const seen = new Set<string>();
     for (let seed = 0; seed < 50; seed++)
@@ -217,16 +221,28 @@ describe('drawOffer (PLAN-paliers §3.4)', () => {
     expect(offerSize(ctxAt(14, { picks: { eventail: 1, 'eventail-2': 1 } }))).toBe(4);
     expect(offerSize(ctxAt(14, { picks: { eventail: 3, 'eventail-2': 3 } }))).toBe(OFFERS.maxCards);
     const withMult = [...START_BUILDINGS, 'adder', 'multiplier'] as Ctx['unlockedBuildings'];
+    // One more object (a passive, a genre without a card for now), so 4 cards can be drawn.
+    const extra: CardDef = {
+      ...card('edition-brillante'),
+      id: 'test-passive',
+      effect: { kind: 'passive', id: 'operatorsBoost' },
+    };
+    const wider: Catalogue = { ...DEFAULT_CATALOGUE, cards: [...CARDS, extra] };
     for (let seed = 0; seed < 300; seed++) {
       for (const [picks, n] of [
         [{}, 2],
         [{ eventail: 1 }, 3],
         [{ eventail: 1, 'eventail-2': 1 }, 4],
       ] as const) {
-        const offer = drawOffer(ctxAt(14, { seed, picks, unlockedBuildings: withMult }));
+        const offer = drawOffer(ctxAt(14, { seed, picks, unlockedBuildings: withMult }), wider);
         expect(offer.cards).toHaveLength(n);
         expect(new Set(offer.cards.map((c) => c.card)).size).toBe(n);
       }
+      // The real catalogue has only 3 objects left once both Éventail are taken: 3 cards.
+      const real = drawOffer(
+        ctxAt(14, { seed, picks: { eventail: 1, 'eventail-2': 1 }, unlockedBuildings: withMult }),
+      );
+      expect(real.cards).toHaveLength(3);
     }
   });
 
@@ -235,7 +251,7 @@ describe('drawOffer (PLAN-paliers §3.4)', () => {
     for (let seed = 0; seed < 500; seed++) {
       const ctx = ctxAt(14, { seed, picks: { eventail: 1 }, unlockedBuildings: withMult });
       const genres = drawOffer(ctx).cards.map((c) => genreOf(card(c.card)));
-      // Genres available: edition, special, passive, meta (Éventail II): 3 cards, 3 genres.
+      // Genres available: edition, special, meta (Éventail II): 3 cards, 3 genres.
       expect(new Set(genres).size).toBe(genres.length);
     }
     // Only edition cards left: the rule gives way, the offer still has 2 cards.

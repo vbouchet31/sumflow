@@ -130,7 +130,10 @@ export const EDITION_EFFECTS: Partial<
   concat: operatorEdition,
 };
 
-/** Effect of each passive card. */
+/**
+ * Effect of each passive card. No card gives a passive for now: the placeholder « Opérateurs
+ * +5 % » was removed (PLAN-paliers, P6). The genre stays ready for a real passive.
+ */
 export const PASSIVE_EFFECTS: Readonly<Record<PassiveId, { operatorSpeed: number }>> = {
   operatorsBoost: { operatorSpeed: 1.05 },
 };
@@ -307,17 +310,6 @@ export const CARDS: readonly CardDef[] = [
     icon: 'special:concat',
     title: 'card.concat.title',
     text: 'card.concat.text',
-  },
-  {
-    id: 'passive-operators',
-    drawable: true,
-    effect: { kind: 'passive', id: 'operatorsBoost' },
-    weight: flat(3),
-    tip: 'passive',
-    icon: 'passive:operatorsBoost',
-    title: 'card.passiveOperators.title',
-    text: 'card.passiveOperators.text',
-    placeholder: true,
   },
   {
     // Éventail I and II (PLAN-paliers §3.5): 3 then 4 cards per offer.

@@ -11,28 +11,26 @@ Temps entre deux récompenses (un palier ou la fin d'un niveau), dans le modèle
 | Stratégie                     | 1–10  | 11–20       | 21–30       | 31–40       | 41–50 | 51–60 |
 | ----------------------------- | ----- | ----------- | ----------- | ----------- | ----- | ----- |
 | `none` (le fil rouge seul)    | 2 min | 3 min (2–4) | 4 min (4–4) | 3 min (3–4) | 3 min | 2 min |
-| `random` (un objet au hasard) | 84 s  | 2 min       | 83 s        | 40 s        | 23 s  | 14 s  |
+| `random` (un objet au hasard) | 87 s  | 2 min       | 2 min       | 83 s        | 66 s  | 57 s  |
 
 | Stratégie | Niveau 10 fini | Niveau 20 fini | Niveau 30 fini |
 | --------- | -------------- | -------------- | -------------- |
 | `none`    | 21 min         | 2,1 h          | 4,7 h          |
-| `random`  | 19 min         | 83 min         | 2,3 h          |
+| `random`  | 20 min         | 1,5 h          | 2,9 h          |
 
 - **Sans objet, la cible est tenue** : 3 à 4 minutes entre deux récompenses de 11 à 30. Avant les paliers, il fallait 15 à 20 minutes entre deux offres.
 - **Le niveau 30 passe de 6 h à 4,7 h** sans objet (quantités × 0,75 dès le niveau 16).
-- **Avec des objets, tout s'accélère beaucoup** : la partie `random` va deux fois plus vite au niveau 30, et dix fois plus vite au niveau 60. Deux causes, détaillées au §2.
+- **Avec des objets, tout s'accélère** : la partie `random` va environ 1,6 fois plus vite au niveau 30, et 2,5 fois plus vite au niveau 60 (chiffres après le retrait du passif factice, §2.1). Le Concaténateur cumulé y est pour beaucoup (§2.2).
 
 ---
 
 ## 2. Ce qui demande une décision
 
-### 2.1 Le passif factice se cumule sans limite
+### 2.1 Le passif factice se cumulait sans limite : **retiré** (décision de l'auteur)
 
-- `passive-operators` (opérateurs + 5 %) n'a pas de `maxPicks`. Avec 3 ou 4 offres par niveau, il revient sans cesse et se cumule : 1,05 puissance 100, c'est 131 fois plus vite.
-- **Mesure** : limité à 3 prises, la partie `random` reste 2,5 fois plus rapide que `none` après le niveau 30 (au lieu de 10 fois). Le niveau 30 est fini en 2,6 h au lieu de 2,3 h.
-- **Propositions** (au choix) :
-  - lui donner `maxPicks: 3` ;
-  - le retirer, puisque c'est un objet factice.
+- `passive-operators` (opérateurs + 5 %, objet factice de la phase 1) n'avait pas de `maxPicks`. Avec 3 ou 4 offres par niveau, il revenait sans cesse et se cumulait : la partie `random` allait 10 fois plus vite que `none` au niveau 60.
+- **Décision** : la carte est retirée. Le genre « passif » (effet, sauvegarde, fiche tutoriel) reste prêt pour un vrai passif.
+- **Après le retrait** : la partie `random` va environ 2,5 fois plus vite que `none` après le niveau 30 (indice 0,40 à 0,46), et finit le niveau 30 en 2,9 h. Le catalogue compte 5 objets (2 éditions, le Concaténateur, 2 Éventail) : une fois les deux Éventail pris, une offre de 4 cartes n'en montre que 3.
 
 ### 2.2 Le Concaténateur est trop fort quand on le prend à chaque fois
 

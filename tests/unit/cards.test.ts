@@ -38,7 +38,6 @@ describe('card catalogue', () => {
       'edition-brillante': [],
       'edition-legendaire': [],
       concat: [{ building: 'multiplier' }],
-      'passive-operators': [],
       eventail: [],
       'eventail-2': [{ card: 'eventail' }],
     });
@@ -58,7 +57,6 @@ describe('card catalogue', () => {
     expect([8, 10, 12, 20, 25, 30, 60].map((L) => at('concat', L))).toEqual([
       2, 3.5, 5, 5, 4, 3, 3,
     ]);
-    expect(at('passive-operators', 30)).toBe(3);
     // Éventail I and II (PLAN-paliers §3.5): frequent, with a safety net of 4 offers.
     expect(at('eventail', 30)).toBe(8);
     expect(card('eventail')).toMatchObject({ minLevel: 6, maxPicks: 1, pity: 4 });
@@ -66,13 +64,14 @@ describe('card catalogue', () => {
     expect(card('eventail-2')).toMatchObject({ minLevel: 12, maxPicks: 1, pity: 4 });
     expect(card('eventail-2').effect).toEqual(card('eventail').effect);
     expect(card('concat').placeholder).toBeUndefined();
-    expect(card('passive-operators').placeholder).toBe(true);
+    // The placeholder passive was removed (PLAN-paliers, P6): no placeholder left.
+    expect(CARDS.some((c) => c.placeholder)).toBe(false);
   });
 
   it('has every card kind and texts in every locale', () => {
     const kinds = new Set(CARDS.map((c) => c.effect.kind));
     expect([...kinds].sort()).toEqual(
-      ['edition', 'feature', 'meta', 'passive', 'special', 'unlock', 'value'].sort(),
+      ['edition', 'feature', 'meta', 'special', 'unlock', 'value'].sort(),
     );
     for (const c of CARDS) {
       for (const messages of Object.values(MESSAGES)) {

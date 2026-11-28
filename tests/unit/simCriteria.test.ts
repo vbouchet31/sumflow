@@ -230,7 +230,6 @@ describe('criteria', () => {
       'edition-brillante',
       'edition-legendaire',
       'concat',
-      'passive-operators',
       'eventail',
       'eventail-2',
     ]);

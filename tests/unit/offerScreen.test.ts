@@ -83,7 +83,6 @@ describe('the back of a card', () => {
     expect(givesLabel({ card: 'edition-brillante', edition: 'brillante' })).toBe(
       'Carte à appliquer',
     );
-    expect(givesLabel({ card: 'passive-operators', edition: 'base' })).toBe('Effet permanent');
     expect(givesLabel({ card: 'eventail', edition: 'base' })).toBe('Change les offres suivantes');
   });
 
@@ -107,7 +106,6 @@ describe('the back of a card', () => {
   it('names the genre of the card', () => {
     expect(genreLabel({ card: 'concat', edition: 'base' })).toBe('Bâtiment spécial');
     expect(genreLabel({ card: 'edition-brillante', edition: 'brillante' })).toBe('Édition');
-    expect(genreLabel({ card: 'passive-operators', edition: 'base' })).toBe('Passif');
     expect(genreLabel({ card: 'eventail-2', edition: 'base' })).toBe('Offres');
     setLocale('en');
     expect(genreLabel({ card: 'concat', edition: 'base' })).toBe('Special building');

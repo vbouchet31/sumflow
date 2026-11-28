@@ -553,9 +553,9 @@ test.describe('tutorial cards after a choice (PLAN-recompenses §4.3)', () => {
 
   test('the Help menu lists the new cards once met, and replays them', async ({ page }) => {
     await openOffers(page, 2);
-    await forceAndChoose(page, ['passive-operators', 'edition-brillante'], 0);
+    await forceAndChoose(page, ['eventail', 'edition-brillante'], 0);
     await closeCards(page);
-    await forceAndChoose(page, ['passive-operators', 'edition-brillante'], 1);
+    await forceAndChoose(page, ['concat', 'edition-brillante'], 1);
     await closeCards(page);
     await expect(page.locator('.offer-overlay')).toBeHidden();
 
@@ -573,7 +573,7 @@ test.describe('tutorial cards after a choice (PLAN-recompenses §4.3)', () => {
       'value',
       'bridge',
       'edition.brillante',
-      'passive',
+      'eventail',
     ]);
     await page.locator('.menu-card .help-tip[data-tip="value"]').click();
     const card = page.locator('.tut-card');

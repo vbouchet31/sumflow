@@ -384,8 +384,6 @@ export const fr = {
   'card.editionLegendaire.text': 'À appliquer sur un bâtiment posé. Démolir le bâtiment la rend.',
   'card.concat.title': 'Concaténateur',
   'card.concat.text': 'Écrit les chiffres de B après ceux de A : 4 ‖ 7 = 47. Démolir le rend.',
-  'card.passiveOperators.title': 'Opérateurs +{pct} %',
-  'card.passiveOperators.text': 'Tous les opérateurs vont {pct} % plus vite.',
   'card.eventail.title': 'Éventail',
   'card.eventail.text': 'Les offres suivantes proposent une carte de plus.',
   'card.eventail2.title': 'Éventail II',

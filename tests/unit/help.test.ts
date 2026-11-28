@@ -104,7 +104,7 @@ describe('reward tips (PLAN-recompenses §4.3)', () => {
   it('passive: the first passive card', () => {
     const s = fresh();
     expect(tip('passive').when(s)).toBe(false);
-    grantCard(s, 'passive-operators');
+    s.passives.push('operatorsBoost'); // no passive card for now: the genre stays ready
     expect(tip('passive').when(s)).toBe(true);
     expect(tipContent(tip('passive'), s).art).toEqual({ kind: 'passive' });
   });

@@ -332,7 +332,7 @@ describe('card effects', () => {
   it('passive: operators go faster', () => {
     const world = new World(atLevel3(), new DepositMap(42));
     const before = cycleDuration(world, { type: 'adder' });
-    grantCard(world.state, 'passive-operators');
+    world.state.passives.push('operatorsBoost'); // no passive card for now
     expect(world.state.passives).toEqual(['operatorsBoost']);
     expect(cycleDuration(world, { type: 'adder' })).toBeCloseTo(
       before / PASSIVE_EFFECTS.operatorsBoost.operatorSpeed,
@@ -494,7 +494,7 @@ describe('save version 3', () => {
     grantCard(s, 'edition-brillante');
     grantCard(s, 'edition-legendaire');
     grantCard(s, 'concat', 'legendaire');
-    grantCard(s, 'passive-operators');
+    s.passives.push('operatorsBoost');
     grantCard(s, 'eventail');
     grantCard(s, 'value');
     s.pendingOffers.push({ level: 3, palier: 1 }, { level: 3, palier: 2 });
@@ -521,7 +521,8 @@ describe('save version 3', () => {
         { level: 3, palier: 3 },
       ]);
       expect(back.currentOffer).toEqual(s.currentOffer);
-      expect(back.currentOffer?.cards).toHaveLength(3); // Éventail
+      // Éventail asks for 3 cards; at level 3 only the two editions are available.
+      expect(back.currentOffer?.cards).toHaveLength(2);
       expect(back.editionCards).toEqual(s.editionCards);
       expect(back.specials).toEqual(s.specials);
       expect(back.specials['concat:legendaire']).toBe(1);
