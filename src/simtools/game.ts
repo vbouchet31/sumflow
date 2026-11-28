@@ -4,7 +4,7 @@
  * level's time comes from the cost model on the tools owned while it is played.
  */
 import { paliersFor } from '../sim/levels';
-import { DEFAULT_CATALOGUE, drawOffer } from '../sim/offers';
+import { DEFAULT_CATALOGUE, drawOffer, nextPity } from '../sim/offers';
 import { chooseCard, completeLevel } from '../sim/progression';
 import { offerContext } from '../sim/rewards';
 import { createInitialState } from '../sim/state';
@@ -75,7 +75,9 @@ export function playGame(opts: GameOptions): GameRecord {
     paliersFor(level).forEach((_, i) => state.pendingOffers.push({ level, palier: i + 1 }));
     for (let guard = 0; state.pendingOffers.length > 0 && guard < 100; guard++) {
       const next = state.pendingOffers[0] ?? { level, palier: 1 };
-      const offer = drawOffer(offerContext(state, next.level, next.palier), catalogue);
+      const ctx = offerContext(state, next.level, next.palier);
+      const offer = drawOffer(ctx, catalogue);
+      state.pity = nextPity(ctx, offer.cards, catalogue);
       const stored = { ...next, cards: offer.cards };
       state.currentOffer = stored;
       for (const c of offer.cards) {

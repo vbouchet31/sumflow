@@ -33,6 +33,7 @@ export function offerContext(state: GameState, level: number, palier = 0): Offer
     unlockedBuildings: state.unlockedBuildings,
     unlockedFeatures: state.unlockedFeatures,
     picks: pickCounts(state),
+    pity: { ...state.pity },
   };
 }
 
@@ -81,7 +82,7 @@ export function applyCard(state: GameState, card: OfferCard): number | undefined
       state.passives.push(e.id);
       break;
     case 'meta':
-      // Read from the picks by `offerSlots` (Éventail adds the Joker slot).
+      // Read from the picks by `offerSize` (Éventail adds a card to the next offers).
       break;
   }
   syncUpgradeRequirements(state);

@@ -351,10 +351,10 @@ export async function tune(opts: TuneOptions): Promise<TuneResult> {
   const base = opts.base ?? TUNED;
   const knobs = KNOBS[opts.card];
   const def = CARDS.find((c) => c.id === opts.card);
+  if (isSocle(opts.card)) throw new Error(`${opts.card}: socle card, the criteria do not apply`);
   if (!knobs || !def) throw new Error(`${opts.card}: no such object with knobs`);
   const current = currentKnobs(opts.card, base);
   const runner = opts.runner ?? localRunner();
-  if (isSocle(opts.card)) throw new Error(`${opts.card}: socle card, the criteria do not apply`);
   const strategies: Strategy[] = [{ kind: 'natural' }, ...objectStrategies(opts.card)];
   const evaluations = new Map<string, ObjectEvaluation | null>();
   const evaluate = async (values: KnobValues): Promise<ObjectEvaluation | null> => {

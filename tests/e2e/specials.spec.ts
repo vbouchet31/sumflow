@@ -211,9 +211,12 @@ test('debug panel: the weights of the next offer and the inventory', async ({ pa
   await page.locator('.debug-toggle').click();
   await expect(weights).toBeVisible();
   await expect(weights.locator('.debug-weights-title').first()).toHaveText('Draw of level 8');
-  const numbers = weights.locator('table[data-slot="nombres"]');
-  await expect(numbers.locator('tr[data-card="value"]')).toBeVisible();
-  await expect(weights.locator('table[data-slot="atelier"] tr[data-card="concat"]')).toBeVisible();
+  // One table per card of the offer; the socle (values, operators…) is never drawn.
+  await expect(weights.locator('table.debug-table')).toHaveCount(2);
+  const first = weights.locator('table[data-draw="1"]');
+  await expect(first.locator('tr[data-card="concat"]')).toBeVisible();
+  await expect(first.locator('tr[data-card="eventail"]')).toBeVisible();
+  await expect(weights.locator('tr[data-card="value"]')).toHaveCount(0);
   await expect(weights.locator('.debug-inventory')).toContainText(
     'legendary edition: obtained 1, applied 0, lost 0, free 1',
   );

@@ -2,7 +2,7 @@ import { START_MAX_EXTRACTION } from '../config/balance';
 import type { Edition, SpecialEdition } from '../config/cards';
 import type { MessageKey } from '../i18n';
 import { type CardArt, cardArt } from '../render/cardArt';
-import { offerSlots } from '../sim/offers';
+import { offerSize } from '../sim/offers';
 import { offerContext } from '../sim/rewards';
 import { isBuildingUnlocked, isFeatureUnlocked, type GameState } from '../sim/state';
 import type { DemoId } from '../tutorial/scenes';
@@ -174,8 +174,8 @@ export const HELP_TIPS: readonly HelpTip[] = [
     text: 'help.eventail',
     icon: '❖',
     art: () => cardArt('meta:eventail', 'base'),
-    params: (s) => ({ n: offerSlots(offerContext(s, s.level)).length }),
-    when: (s) => s.picks.some((p) => p.card === 'eventail'),
+    params: (s) => ({ n: offerSize(offerContext(s, s.level)) }),
+    when: (s) => s.picks.some((p) => p.card === 'eventail' || p.card === 'eventail-2'),
   },
 ];
 

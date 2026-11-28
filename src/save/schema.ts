@@ -130,6 +130,8 @@ export interface SaveData {
   editionsLost: Record<SpecialEdition, number>;
   specials: Record<string, number>;
   passives: PassiveId[];
+  /** Safety net counters by card id (PLAN-paliers §3.5). */
+  pity: Record<string, number>;
   camera: { x: number; y: number; zoom: number };
 }
 
@@ -524,6 +526,7 @@ export function validateSave(raw: unknown): SaveData {
     passives: arr(o['passives'], '$.passives').map((x, i) =>
       oneOf(x, PASSIVES, `$.passives[${i}]`),
     ),
+    pity: counts(o['pity'], CARD_IDS, '$.pity', false),
     camera: {
       x: num(cam['x'], '$.camera.x'),
       y: num(cam['y'], '$.camera.y'),

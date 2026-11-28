@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { CARDS } from '../../src/config/cards';
 import { setLocale } from '../../src/i18n';
 import { cardArt } from '../../src/render/cardArt';
-import { completeLevel, ensureOffer } from '../../src/sim/progression';
+import { ensureOffer, setLevel } from '../../src/sim/progression';
 import { grantCard } from '../../src/sim/rewards';
 import { createInitialState, type GameState, type StoredOffer } from '../../src/sim/state';
 import { markSeen } from '../../src/ui/help';
@@ -15,16 +15,15 @@ import {
   OfferSeries,
   offerTags,
   offerView,
-  slotLabel,
+  genreLabel,
 } from '../../src/ui/offerInfo';
 
 /** A game whose level 3 is complete: its offer waits. */
-/** Level 3 with a palier offer waiting (value 2 is the next fil rouge item). */
+/** Level 6 with its palier offer waiting. */
 function withOffer(): GameState {
   const s = createInitialState(42);
-  completeLevel(s);
-  completeLevel(s);
-  s.pendingOffers.push({ level: 3, palier: 1 });
+  setLevel(s, 6);
+  s.pendingOffers.push({ level: 6, palier: 1 });
   return s;
 }
 
@@ -105,24 +104,25 @@ describe('the back of a card', () => {
     );
   });
 
-  it('names the slot: Joker for the third card, else the slot of the catalogue', () => {
-    expect(slotLabel('nombres', { card: 'value', edition: 'base' })).toBe('Nombres');
-    expect(slotLabel('joker', { card: 'value', edition: 'base' })).toBe('Joker');
-    // An empty Atelier slot draws from Nombres: the card keeps its own slot.
-    expect(slotLabel('atelier', { card: 'mult', edition: 'base' })).toBe('Nombres');
-    expect(slotLabel(undefined, { card: 'bridge', edition: 'base' })).toBe('Atelier');
+  it('names the genre of the card', () => {
+    expect(genreLabel({ card: 'concat', edition: 'base' })).toBe('Bâtiment spécial');
+    expect(genreLabel({ card: 'edition-brillante', edition: 'brillante' })).toBe('Édition');
+    expect(genreLabel({ card: 'passive-operators', edition: 'base' })).toBe('Passif');
+    expect(genreLabel({ card: 'eventail-2', edition: 'base' })).toBe('Offres');
+    setLocale('en');
+    expect(genreLabel({ card: 'concat', edition: 'base' })).toBe('Special building');
   });
 
-  it('tags new, unique and classic-path cards', () => {
+  it('tags new and unique cards', () => {
     const s = withOffer();
-    expect(offerTags(s, { card: 'value', edition: 'base' }, 'value')).toEqual(['new', 'natural']);
-    expect(offerTags(s, { card: 'eventail', edition: 'base' }, 'value')).toEqual(['new', 'unique']);
-    grantCard(s, 'value');
-    expect(offerTags(s, { card: 'value', edition: 'base' }, 'bridge')).toEqual([]);
+    expect(offerTags(s, { card: 'edition-brillante', edition: 'brillante' })).toEqual(['new']);
+    expect(offerTags(s, { card: 'eventail', edition: 'base' })).toEqual(['new', 'unique']);
+    grantCard(s, 'edition-brillante');
+    expect(offerTags(s, { card: 'edition-brillante', edition: 'brillante' })).toEqual([]);
     // A special building is new once per edition.
     grantCard(s, 'concat', 'base');
-    expect(offerTags(s, { card: 'concat', edition: 'base' }, 'x')).toEqual([]);
-    expect(offerTags(s, { card: 'concat', edition: 'legendaire' }, 'x')).toEqual(['new']);
+    expect(offerTags(s, { card: 'concat', edition: 'base' })).toEqual([]);
+    expect(offerTags(s, { card: 'concat', edition: 'legendaire' })).toEqual(['new']);
   });
 });
 
@@ -131,13 +131,17 @@ describe('offer view', () => {
     const s = withOffer();
     const offer = ensureOffer(s) as StoredOffer;
     const view = offerView(s, offer, { index: 1, total: 1 });
-    expect(view.level).toBe(3);
+    expect(view).toMatchObject({ level: 6, palier: 1, paliers: 1 });
     expect(view.intro).toBe(true);
     expect(view.cards.map((c) => c.card)).toEqual(offer.cards);
-    const value = view.cards.find((c) => c.card.card === 'value');
-    expect(value?.name).toBe('Valeur 2');
-    expect(value?.text).toBe('Les gisements de 2 deviennent extractibles.');
-    expect(value?.tags).toContain('natural');
+    const legendary = offerView(
+      s,
+      { ...offer, cards: [{ card: 'edition-legendaire', edition: 'legendaire' }] },
+      { index: 1, total: 1 },
+    ).cards[0];
+    expect(legendary?.name).toBe('Édition légendaire');
+    expect(legendary?.genre).toBe('Édition');
+    expect(legendary?.tags).toEqual(['new']);
     markSeen(s, OFFER_INTRO_ID);
     expect(offerView(s, offer, { index: 1, total: 1 }).intro).toBe(false);
   });

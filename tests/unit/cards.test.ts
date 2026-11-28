@@ -40,40 +40,31 @@ describe('card catalogue', () => {
       concat: [{ building: 'multiplier' }],
       'passive-operators': [],
       eventail: [],
+      'eventail-2': [{ card: 'eventail' }],
     });
   });
 
-  it('has the slots and starting weights of the plan', () => {
+  it('the socle is never drawn; objects have the starting weights of the plan', () => {
     const at = (id: string, level: number): number => curveAt(card(id).weight, level);
-    expect(card('adder').slot).toBeNull();
-    expect(card('upgrades').slot).toBeNull();
-    expect(at('value', 3)).toBe(20);
-    for (const [id, L, slot] of [
-      ['bridge', 4, 'atelier'],
-      ['mult', 7, 'nombres'],
-      ['priorities', 10, 'atelier'],
-      ['sub', 13, 'nombres'],
-      ['div', 16, 'nombres'],
-      ['exp', 19, 'nombres'],
-      ['storage', 22, 'atelier'],
-    ] as const) {
-      expect(card(id).slot).toBe(slot);
-      expect(card(id).weight).toEqual([
-        { level: L - 4, w: 2 },
-        { level: L, w: 20 },
-        { level: L + 6, w: 8 },
-      ]);
-    }
+    // PLAN-paliers §3.6: every fil rouge card is given by its level, never drawn.
+    for (const id of ['value', 'adder', 'upgrades', 'mult', 'sub', 'div', 'exp'])
+      expect(card(id)).toMatchObject({ drawable: false, weight: [] });
+    for (const id of ['bridge', 'priorities', 'storage'])
+      expect(card(id)).toMatchObject({ drawable: false, weight: [] });
     expect(at('edition-brillante', 30)).toBe(6);
     expect(at('edition-legendaire', 30)).toBe(2);
     // Concaténateur (docs/objets/concat.md): from level 8, 2 → 5 → 5 → 3.
-    expect(card('concat')).toMatchObject({ slot: 'atelier', minLevel: 8 });
+    expect(card('concat')).toMatchObject({ drawable: true, minLevel: 8 });
     expect([8, 10, 12, 20, 25, 30, 60].map((L) => at('concat', L))).toEqual([
       2, 3.5, 5, 5, 4, 3, 3,
     ]);
     expect(at('passive-operators', 30)).toBe(3);
-    expect(at('eventail', 30)).toBe(3);
-    expect(card('eventail')).toMatchObject({ minLevel: 6, maxPicks: 1 });
+    // Éventail I and II (PLAN-paliers §3.5): frequent, with a safety net of 4 offers.
+    expect(at('eventail', 30)).toBe(8);
+    expect(card('eventail')).toMatchObject({ minLevel: 6, maxPicks: 1, pity: 4 });
+    expect(at('eventail-2', 30)).toBe(6);
+    expect(card('eventail-2')).toMatchObject({ minLevel: 12, maxPicks: 1, pity: 4 });
+    expect(card('eventail-2').effect).toEqual(card('eventail').effect);
     expect(card('concat').placeholder).toBeUndefined();
     expect(card('passive-operators').placeholder).toBe(true);
   });
@@ -92,7 +83,7 @@ describe('card catalogue', () => {
   });
 
   it('keeps the offer and edition settings of the plan', () => {
-    expect(OFFERS.slots).toEqual(['nombres', 'atelier']);
+    expect(OFFERS).toEqual({ baseCards: 2, maxCards: 4, maxPerGenre: 1 });
     expect(SPECIAL_EDITION_ODDS).toEqual({ base: 85, brillante: 10, legendaire: 5 });
     expect(EDITION_RULES).toEqual({ returnOnDemolish: true, removable: true });
     expect(EDITION_EFFECTS.multiplier).toEqual({
@@ -101,13 +92,14 @@ describe('card catalogue', () => {
     });
     expect(EDITION_EFFECTS.extractor?.legendaire).toEqual({ rate: 1.5 });
     expect(EDITION_EFFECTS.storage?.brillante).toEqual({ capacity: 1.25 });
-    expect(GUARDS.every((g) => g.placeholder)).toBe(true);
+    expect(GUARDS).toEqual([]);
   });
 });
 
 describe('validateCatalogue', () => {
   const mult = card('mult');
-  const value = card('value');
+  /** A drawable object to derive broken cards from. */
+  const value = card('edition-brillante');
 
   it('rejects duplicate ids and unknown prerequisites', () => {
     expect(validateCatalogue([...CARDS, mult])).toContain('mult: duplicate id');
@@ -163,6 +155,13 @@ describe('validateCatalogue', () => {
     expect(validateCatalogue([...CARDS, edition])).toContain('d: edition card without edition');
     const unique = { ...value, id: 'm', maxPicks: 0 };
     expect(validateCatalogue([...CARDS, unique])).toContain('m: bad maxPicks');
+    const pity = { ...value, id: 'p', pity: 0 };
+    expect(validateCatalogue([...CARDS, pity])).toContain('p: bad pity');
+  });
+
+  it('refuses a drawable fil rouge card', () => {
+    const drawn = CARDS.map((c) => (c.id === 'mult' ? { ...c, drawable: true } : c));
+    expect(validateCatalogue(drawn)).toContain('mult: fil rouge card must not be drawable');
   });
 
   it('needs a card for every LEVEL_TABLE reward', () => {

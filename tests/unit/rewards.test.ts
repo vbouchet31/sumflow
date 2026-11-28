@@ -239,6 +239,28 @@ describe('paliers and the queue of offers (PLAN-paliers §3.2)', () => {
     ]);
   });
 
+  it('drawing an offer moves the safety net on: Éventail comes within 5 offers', () => {
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      const s = createInitialState(seed);
+      setLevel(s, 9);
+      let wait = 0;
+      for (let palier = 1; palier <= 5 && !s.picks.some((p) => p.card === 'eventail'); palier++) {
+        s.pendingOffers.push({ level: 9, palier });
+        const offer = ensureOffer(s);
+        const i = offer?.cards.findIndex((c) => c.card === 'eventail') ?? -1;
+        if (i >= 0) {
+          expect(s.pity['eventail']).toBe(0);
+          chooseCard(s, i);
+        } else {
+          wait += 1;
+          expect(s.pity['eventail']).toBe(wait);
+          chooseCard(s, 0);
+        }
+      }
+      expect(s.picks.some((p) => p.card === 'eventail')).toBe(true);
+    }
+  });
+
   it('chooseCard refuses a missing card and needs a pending offer', () => {
     const s = atLevel3();
     expect(chooseCard(s, 0)).toBe(false);
@@ -483,6 +505,7 @@ describe('save version 3', () => {
     chooseCard(s, 0);
     s.pendingOffers.push({ level: 3, palier: 3 });
     ensureOffer(s);
+    s.pity = { 'eventail-2': 3 };
     return s;
   }
 
@@ -502,9 +525,12 @@ describe('save version 3', () => {
       ]);
       expect(back.currentOffer).toEqual(s.currentOffer);
       expect(back.currentOffer?.cards).toHaveLength(3); // Éventail
-      expect(back.editionCards).toEqual({ brillante: 1, legendaire: 1 });
-      expect(back.specials).toEqual({ 'concat:legendaire': 1 });
-      expect(back.passives).toEqual(['operatorsBoost']);
+      expect(back.editionCards).toEqual(s.editionCards);
+      expect(back.specials).toEqual(s.specials);
+      expect(back.specials['concat:legendaire']).toBe(1);
+      expect(back.passives).toEqual(s.passives);
+      expect(back.passives).toContain('operatorsBoost');
+      expect(back.pity).toEqual({ 'eventail-2': 3 });
       expect(stateHash(new World(back, new DepositMap(back.seed)), CAM)).toBe(
         stateHash(world, CAM),
       );
@@ -535,6 +561,8 @@ describe('save version 3', () => {
       (d) => (d['editionCards'] = { brillante: -1, legendaire: 0 }),
       (d) => (d['passives'] = ['nope']),
       (d) => delete d['pendingOffers'],
+      (d) => (d['pity'] = { nope: 1 }),
+      (d) => (d['pity'] = { eventail: -1 }),
     ];
     for (const mutate of cases) {
       const d = base();

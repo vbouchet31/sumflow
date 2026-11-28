@@ -18,7 +18,7 @@ import {
 } from '../sim/inventory';
 import { SPECIAL_TYPES } from '../config/buildings';
 import type { SimLoop } from '../sim/loop';
-import { drawOffer, nextValue, type OfferCard, type SlotDraw } from '../sim/offers';
+import { type CardDraw, drawOffer, nextValue, type OfferCard } from '../sim/offers';
 import { chooseCard, deliver, ensureOffer, levelPaliers, setLevel } from '../sim/progression';
 import { cardDef, grantCard, grantedCard, offerContext } from '../sim/rewards';
 import type { StoredOffer } from '../sim/state';
@@ -109,12 +109,12 @@ export interface DebugApi {
   setLevel: (n: number) => void;
   /**
    * The offer of the first pending palier (drawn now if needed), the pending paliers, and the
-   * weight breakdown of each slot as the draw computes it.
+   * weight breakdown of each of its cards as the draw computes it.
    */
   offer: () => {
     current: StoredOffer | null;
     pendingOffers: { level: number; palier: number }[];
-    slots: SlotDraw[];
+    draws: CardDraw[];
   };
   /**
    * Replace the current offer with these cards (special buildings take `edition`). Creates a
@@ -323,11 +323,11 @@ export function installDebugApi(ctx: DebugContext): void {
       const st = world.state;
       const current = ensureOffer(st, world.emit);
       const next = st.pendingOffers[0];
-      const slots = next ? drawOffer(offerContext(st, next.level, next.palier)).slots : [];
+      const draws = next ? drawOffer(offerContext(st, next.level, next.palier)).draws : [];
       return {
         current: current && { ...current, cards: current.cards.map((c) => ({ ...c })) },
         pendingOffers: st.pendingOffers.map((p) => ({ ...p })),
-        slots,
+        draws,
       };
     },
     forceOffer: (cardIds, edition = 'base') => {

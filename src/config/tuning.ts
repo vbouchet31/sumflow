@@ -46,7 +46,7 @@ export type ObjectKnobs = Readonly<Partial<Record<KnobId, KnobSpec>>>;
 /** Knobs of a card: `weightScale` if it is drawn, `speed` if it grants a special building. */
 function cardKnobs(card: CardDef): ObjectKnobs {
   const kinds: KnobId[] = [];
-  if (card.slot !== null) kinds.push('weightScale');
+  if (card.drawable) kinds.push('weightScale');
   if (card.effect.kind === 'special') kinds.push('speed');
   const over = KNOB_OVERRIDES[card.id] ?? {};
   return Object.fromEntries(kinds.map((k) => [k, { ...KNOB_KINDS[k], ...over[k] }]));

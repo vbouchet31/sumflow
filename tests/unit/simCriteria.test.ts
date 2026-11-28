@@ -51,11 +51,12 @@ describe('strategies', () => {
   };
 
   it('parses the strategy names', () => {
-    for (const n of ['natural', 'random', 'new', 'minimal', 'object:mult', 'once:eventail']) {
+    for (const n of ['natural', 'random', 'new', 'minimal', 'object:concat', 'once:eventail']) {
       const s = parseStrategy(n, CARDS);
       expect(s && strategyName(s)).toBe(n);
     }
     expect(parseStrategy('object:adder', CARDS)).toBeNull(); // never drawn
+    expect(parseStrategy('object:mult', CARDS)).toBeNull(); // the socle is never drawn
     expect(parseStrategy('object:nope', CARDS)).toBeNull();
     expect(parseStrategy('greedy', CARDS)).toBeNull();
   });
@@ -205,6 +206,7 @@ describe('criteria', () => {
       'concat',
       'passive-operators',
       'eventail',
+      'eventail-2',
     ]);
   });
 });
@@ -278,7 +280,7 @@ describe('a small run', () => {
     const names = defaultStrategies().map(strategyName);
     expect(names.slice(0, 4)).toEqual(['natural', 'random', 'new', 'minimal']);
     for (const c of CARDS) {
-      if (c.slot === null) continue;
+      if (!c.drawable) continue;
       const judged = !isSocle(c.id);
       expect(names.includes(`object:${c.id}`)).toBe(judged);
       expect(names.includes(`once:${c.id}`)).toBe(judged);

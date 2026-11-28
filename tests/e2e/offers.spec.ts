@@ -167,7 +167,7 @@ test('a card turns over with a click, Enter or Space, and back; Choose works tur
   const second = cards.nth(1);
   await second.click();
   const back = second.locator('.offer-back');
-  await expect(back.locator('.offer-slot-name')).not.toBeEmpty();
+  await expect(back.locator('.offer-genre')).not.toBeEmpty();
   await expect(back.locator('.offer-gives')).not.toBeEmpty();
   await expect(back.locator('.offer-tag-new')).toHaveText('Nouveau');
   const name = await second.getAttribute('aria-label');

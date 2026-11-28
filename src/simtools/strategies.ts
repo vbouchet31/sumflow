@@ -41,7 +41,7 @@ export function parseStrategy(text: string, cards: readonly CardDef[]): Strategy
   for (const kind of ['object', 'once'] as const) {
     if (!t.startsWith(`${kind}:`)) continue;
     const card = t.slice(kind.length + 1);
-    return cards.some((c) => c.id === card && c.slot !== null) ? { kind, card } : null;
+    return cards.some((c) => c.id === card && c.drawable) ? { kind, card } : null;
   }
   return null;
 }
@@ -62,10 +62,9 @@ export function pickIndex(state: GameState, offer: StoredOffer, strategy: Strate
     case 'random':
       return autoPickIndex(state, offer, 'random') ?? 0;
     case 'new': {
-      const nat = naturalAt(offerContext(state, offer.level)).card;
       const i = all.find((k) => {
         const card = offer.cards[k];
-        return card !== undefined && offerTags(state, card, nat).includes('new');
+        return card !== undefined && offerTags(state, card).includes('new');
       });
       return i ?? natural();
     }

@@ -37,6 +37,7 @@ function ctxAt(level: number, over: Partial<OfferContext> = {}): OfferContext {
     unlockedFeatures: ['upgrades'],
     picks: {},
     palier: 0,
+    pity: {},
     ...over,
   };
 }
@@ -47,7 +48,7 @@ describe('tuning file', () => {
   it('declares sound knobs: weight scale on every drawn card, speed on special buildings', () => {
     expect(validateKnobs()).toEqual([]);
     for (const c of CARDS) {
-      expect(KNOBS[c.id]?.weightScale !== undefined, c.id).toBe(c.slot !== null);
+      expect(KNOBS[c.id]?.weightScale !== undefined, c.id).toBe(c.drawable);
       expect(KNOBS[c.id]?.speed !== undefined, c.id).toBe(c.effect.kind === 'special');
     }
     expect(KNOB_KINDS.weightScale).toEqual({ default: 1, min: 0.2, max: 3 });
@@ -65,19 +66,21 @@ describe('tuning file', () => {
   it('validation catches unknown objects and knobs, missing and out-of-bound values', () => {
     const bad: TuningValues = {
       ...defaultTuning(),
-      mult: { weightScale: 5 },
+      'edition-legendaire': { weightScale: 5 },
       concat: { weightScale: 1 },
-      value: { weightScale: 1, speed: 1 },
+      eventail: { weightScale: 1, speed: 1 },
       nope: { weightScale: 1 },
-      bridge: { weightScale: Number.NaN },
+      mult: { weightScale: 1 },
+      'passive-operators': { weightScale: Number.NaN },
     };
     expect(validateTuning(bad)).toEqual(
       expect.arrayContaining([
-        'mult.weightScale: 5 outside [0.2, 3]',
+        'edition-legendaire.weightScale: 5 outside [0.2, 3]',
         'concat.speed: missing',
-        'value.speed: unknown knob',
+        'eventail.speed: unknown knob',
         'nope: unknown object',
-        'bridge.weightScale: not a finite number',
+        'mult: unknown object', // the socle is never drawn: no knob (PLAN-paliers §3.6)
+        'passive-operators.weightScale: not a finite number',
       ]),
     );
     expect(validateTuning(defaultTuning())).toEqual([]);

@@ -154,6 +154,7 @@ export function serialize(world: World, camera: CameraState, savedAt = ''): Save
     editionsLost: { ...s.editionsLost },
     specials: Object.fromEntries(Object.entries(s.specials).sort(([a], [b]) => (a < b ? -1 : 1))),
     passives: [...s.passives],
+    pity: Object.fromEntries(Object.entries(s.pity).sort(([a], [b]) => (a < b ? -1 : 1))),
     camera: { x: camera.x, y: camera.y, zoom: camera.zoom },
   };
 }
@@ -193,6 +194,7 @@ export function deserialize(data: SaveData): { state: GameState; camera: CameraS
   state.editionsLost = { ...data.editionsLost };
   state.specials = { ...data.specials };
   state.passives = [...data.passives];
+  state.pity = { ...data.pity };
 
   const occupied = new Set<number>();
   const claim = (x: number, y: number, path: string): void => {

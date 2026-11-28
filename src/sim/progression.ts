@@ -1,7 +1,14 @@
 import { type Track, TRACKS } from '../config/balance';
 import type { Edition } from '../config/cards';
 import { palierThresholds, paliersFor } from './levels';
-import { drawOffer, isNaturalOwned, naturalAt, naturalStep, type OfferCard } from './offers';
+import {
+  drawOffer,
+  isNaturalOwned,
+  naturalAt,
+  naturalStep,
+  nextPity,
+  type OfferCard,
+} from './offers';
 import { grantCard, obtainCard, offerContext } from './rewards';
 import { type GameState, MAX_PALIERS, requirementFor, type StoredOffer } from './state';
 import { buyUpgrade, isUpgradeReady } from './upgrades';
@@ -126,7 +133,8 @@ export function completeLevel(state: GameState, emit?: Emit): void {
 /**
  * The offer of the first pending palier, drawn now if it is not yet (PLAN-recompenses §4.4):
  * drawn late so it accounts for the earlier choices, stored so a reload shows the same
- * cards. Null when no offer is pending.
+ * cards. Drawing it moves the safety net counters on (PLAN-paliers §3.5). Null when no offer
+ * is pending.
  */
 export function ensureOffer(state: GameState, emit?: Emit): StoredOffer | null {
   const next = state.pendingOffers[0];
@@ -136,7 +144,9 @@ export function ensureOffer(state: GameState, emit?: Emit): StoredOffer | null {
   }
   const cur = state.currentOffer;
   if (cur?.level === next.level && cur.palier === next.palier) return cur;
-  const offer = drawOffer(offerContext(state, next.level, next.palier));
+  const ctx = offerContext(state, next.level, next.palier);
+  const offer = drawOffer(ctx);
+  state.pity = nextPity(ctx, offer.cards);
   state.currentOffer = { level: next.level, palier: next.palier, cards: offer.cards };
   emit?.('offerReady', {
     level: next.level,

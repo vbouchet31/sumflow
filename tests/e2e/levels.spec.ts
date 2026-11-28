@@ -50,7 +50,7 @@ test('from the first palier an offer waits across a reload; a debug choice takes
   expect(offer.pendingOffers).toEqual([{ level: 6, palier: 1 }]);
   expect(offer.current).toMatchObject({ level: 6, palier: 1 });
   expect(offer.current?.cards).toHaveLength(2);
-  expect(offer.slots.map((s) => s.slot)).toEqual(['nombres', 'atelier']);
+  expect(offer.draws).toHaveLength(2);
   await page.evaluate(() => window.__sumflow?.save());
 
   await page.reload();

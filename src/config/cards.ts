@@ -8,10 +8,6 @@ import type { BuildingType, SpecialType } from './buildings';
 
 export type { SpecialType } from './buildings';
 
-/** Card slot of the catalogue. */
-export type Slot = 'nombres' | 'atelier';
-/** Slot of an offer: the catalogue slots plus Joker (any card), added by Éventail. */
-export type OfferSlot = Slot | 'joker';
 export type Edition = 'base' | 'brillante' | 'legendaire';
 export type SpecialEdition = Exclude<Edition, 'base'>;
 export const EDITIONS: readonly Edition[] = ['base', 'brillante', 'legendaire'];
@@ -49,8 +45,11 @@ export type CardEffect =
 
 export interface CardDef {
   id: string;
-  /** Slot it is drawn in; null = never drawn (fixed levels 1 and 2, debug grants). */
-  slot: Slot | null;
+  /**
+   * Drawn in the palier offers (PLAN-paliers §3.4). False for the socle, the fil rouge cards
+   * every level gives at once: they are never drawn.
+   */
+  drawable: boolean;
   effect: CardEffect;
   requires?: readonly Prereq[];
   /** First offer level where the card can appear. */
@@ -59,6 +58,11 @@ export interface CardDef {
   maxPicks?: number;
   /** Relative weight curve, interpolated by level (empty only for never-drawn cards). */
   weight: readonly CurvePoint[];
+  /**
+   * Safety net (PLAN-paliers §3.5): after this many palier offers where the card was
+   * available but not offered, it is forced into the next one. Absent = never forced.
+   */
+  pity?: number;
   /** Help bubble id shown the first time (ui/help.ts). */
   tip?: string;
   /** Icon id read by the offer screen: `kind:name`. */
@@ -69,16 +73,14 @@ export interface CardDef {
   placeholder?: boolean;
 }
 
-/** Offer settings (PLAN-recompenses §3.1, §3.3). */
+/** Palier offer settings (PLAN-paliers §3.4). */
 export const OFFERS = {
-  /** Slots of every offer, drawn in this order. */
-  slots: ['nombres', 'atelier'] as const satisfies readonly Slot[],
-  /** Weight floor of the natural card ("fil rouge"), by level. */
-  natural: [
-    { level: 3, w: 50 },
-    { level: 20, w: 25 },
-    { level: 40, w: 15 },
-  ] as const satisfies readonly CurvePoint[],
+  /** Cards of an offer without Éventail. */
+  baseCards: 2,
+  /** Most cards of an offer, Éventail included. */
+  maxCards: 4,
+  /** Cards of one genre (`effect.kind`) in an offer, while other genres are available. */
+  maxPerGenre: 1,
 } as const;
 
 /** Native edition odds of a special building (relative weights). */
@@ -133,9 +135,9 @@ export const PASSIVE_EFFECTS: Readonly<Record<PassiveId, { operatorSpeed: number
   operatorsBoost: { operatorSpeed: 1.05 },
 };
 
-/** Effect of each meta card on the following offers. */
-export const META_EFFECTS: Readonly<Record<MetaId, { extraSlots: readonly OfferSlot[] }>> = {
-  eventail: { extraSlots: ['joker'] },
+/** Effect of each meta card on the following offers: cards added per copy picked. */
+export const META_EFFECTS: Readonly<Record<MetaId, { extraCards: number }>> = {
+  eventail: { extraCards: 1 },
 };
 
 /** What a guard can read (a subset of the offer context, see `sim/offers.ts`). */
@@ -155,25 +157,8 @@ export interface Guard {
   placeholder?: boolean;
 }
 
-/** Weight guards (§3.3). Real rules come in phase 3. */
-export const GUARDS: readonly Guard[] = [
-  {
-    id: 'no-growth-operator',
-    when: (ctx) => ctx.level >= 12 && !ctx.unlockedBuildings.includes('multiplier'),
-    cards: ['mult'],
-    factor: 3,
-    placeholder: true,
-  },
-];
-
-/** Weight curve of an unlock placed at level L in LEVEL_TABLE: rare before, common around. */
-function unlockCurve(L: number): readonly CurvePoint[] {
-  return [
-    { level: L - 4, w: 2 },
-    { level: L, w: 20 },
-    { level: L + 6, w: 8 },
-  ];
-}
+/** Weight guards (§3.3). None for now: the mechanism waits for real rules. */
+export const GUARDS: readonly Guard[] = [];
 
 const flat = (w: number): readonly CurvePoint[] => [{ level: 1, w }];
 
@@ -181,9 +166,9 @@ const flat = (w: number): readonly CurvePoint[] => [{ level: 1, w }];
 export const CARDS: readonly CardDef[] = [
   {
     id: 'value',
-    slot: 'nombres',
+    drawable: false,
     effect: { kind: 'value' },
-    weight: flat(20),
+    weight: [],
     tip: 'value',
     icon: 'value',
     title: 'card.value.title',
@@ -191,7 +176,7 @@ export const CARDS: readonly CardDef[] = [
   },
   {
     id: 'adder',
-    slot: null,
+    drawable: false,
     effect: { kind: 'unlock', building: 'adder' },
     weight: [],
     tip: 'adder',
@@ -201,7 +186,7 @@ export const CARDS: readonly CardDef[] = [
   },
   {
     id: 'upgrades',
-    slot: null,
+    drawable: false,
     effect: { kind: 'feature', feature: 'upgrades' },
     weight: [],
     tip: 'upgrades',
@@ -211,10 +196,10 @@ export const CARDS: readonly CardDef[] = [
   },
   {
     id: 'mult',
-    slot: 'nombres',
+    drawable: false,
     effect: { kind: 'unlock', building: 'multiplier' },
     requires: [{ building: 'adder' }],
-    weight: unlockCurve(7),
+    weight: [],
     tip: 'multiplier',
     icon: 'building:multiplier',
     title: 'card.mult.title',
@@ -222,10 +207,10 @@ export const CARDS: readonly CardDef[] = [
   },
   {
     id: 'sub',
-    slot: 'nombres',
+    drawable: false,
     effect: { kind: 'unlock', building: 'subtractor' },
     requires: [{ building: 'multiplier' }],
-    weight: unlockCurve(13),
+    weight: [],
     tip: 'subtractor',
     icon: 'building:subtractor',
     title: 'card.sub.title',
@@ -233,10 +218,10 @@ export const CARDS: readonly CardDef[] = [
   },
   {
     id: 'div',
-    slot: 'nombres',
+    drawable: false,
     effect: { kind: 'unlock', building: 'divider' },
     requires: [{ building: 'subtractor' }],
-    weight: unlockCurve(16),
+    weight: [],
     tip: 'divider',
     icon: 'building:divider',
     title: 'card.div.title',
@@ -244,10 +229,10 @@ export const CARDS: readonly CardDef[] = [
   },
   {
     id: 'exp',
-    slot: 'nombres',
+    drawable: false,
     effect: { kind: 'unlock', building: 'exponent' },
     requires: [{ building: 'multiplier' }],
-    weight: unlockCurve(19),
+    weight: [],
     tip: 'exponent',
     icon: 'building:exponent',
     title: 'card.exp.title',
@@ -255,9 +240,9 @@ export const CARDS: readonly CardDef[] = [
   },
   {
     id: 'bridge',
-    slot: 'atelier',
+    drawable: false,
     effect: { kind: 'unlock', building: 'bridge' },
-    weight: unlockCurve(4),
+    weight: [],
     tip: 'bridge',
     icon: 'building:bridge',
     title: 'card.bridge.title',
@@ -265,10 +250,10 @@ export const CARDS: readonly CardDef[] = [
   },
   {
     id: 'priorities',
-    slot: 'atelier',
+    drawable: false,
     effect: { kind: 'feature', feature: 'priorities' },
     requires: [{ building: 'bridge' }],
-    weight: unlockCurve(10),
+    weight: [],
     tip: 'priorities',
     icon: 'feature:priorities',
     title: 'card.priorities.title',
@@ -276,10 +261,10 @@ export const CARDS: readonly CardDef[] = [
   },
   {
     id: 'storage',
-    slot: 'atelier',
+    drawable: false,
     effect: { kind: 'unlock', building: 'storage' },
     requires: [{ level: 12 }],
-    weight: unlockCurve(22),
+    weight: [],
     tip: 'storage',
     icon: 'building:storage',
     title: 'card.storage.title',
@@ -287,7 +272,7 @@ export const CARDS: readonly CardDef[] = [
   },
   {
     id: 'edition-brillante',
-    slot: 'atelier',
+    drawable: true,
     effect: { kind: 'edition', edition: 'brillante' },
     weight: flat(6),
     tip: 'edition.brillante',
@@ -297,7 +282,7 @@ export const CARDS: readonly CardDef[] = [
   },
   {
     id: 'edition-legendaire',
-    slot: 'atelier',
+    drawable: true,
     effect: { kind: 'edition', edition: 'legendaire' },
     weight: flat(2),
     tip: 'edition.legendaire',
@@ -308,7 +293,7 @@ export const CARDS: readonly CardDef[] = [
   {
     // Concaténateur (docs/objets/concat.md).
     id: 'concat',
-    slot: 'atelier',
+    drawable: true,
     effect: { kind: 'special', building: 'concat', count: 1 },
     requires: [{ building: 'multiplier' }],
     minLevel: 8,
@@ -325,7 +310,7 @@ export const CARDS: readonly CardDef[] = [
   },
   {
     id: 'passive-operators',
-    slot: 'atelier',
+    drawable: true,
     effect: { kind: 'passive', id: 'operatorsBoost' },
     weight: flat(3),
     tip: 'passive',
@@ -335,15 +320,31 @@ export const CARDS: readonly CardDef[] = [
     placeholder: true,
   },
   {
+    // Éventail I and II (PLAN-paliers §3.5): 3 then 4 cards per offer.
     id: 'eventail',
-    slot: 'atelier',
+    drawable: true,
     effect: { kind: 'meta', id: 'eventail' },
     minLevel: 6,
     maxPicks: 1,
-    weight: flat(3),
+    weight: flat(8),
+    pity: 4,
     tip: 'eventail',
     icon: 'meta:eventail',
     title: 'card.eventail.title',
     text: 'card.eventail.text',
+  },
+  {
+    id: 'eventail-2',
+    drawable: true,
+    effect: { kind: 'meta', id: 'eventail' },
+    requires: [{ card: 'eventail' }],
+    minLevel: 12,
+    maxPicks: 1,
+    weight: flat(6),
+    pity: 4,
+    tip: 'eventail',
+    icon: 'meta:eventail',
+    title: 'card.eventail2.title',
+    text: 'card.eventail2.text',
   },
 ];

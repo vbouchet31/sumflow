@@ -47,7 +47,7 @@ describe('active effects (passive cards)', () => {
 });
 
 describe('debug weights table (PLAN-recompenses §5.4)', () => {
-  it('next offer level, and per slot probabilities that sum to 1', () => {
+  it('next offer level, and per card probabilities that sum to 1', () => {
     const s = createInitialState(42);
     expect(nextOfferLevel(s)).toBe(6); // the first palier (PLAN-paliers §3.2)
     s.level = 9;
@@ -57,18 +57,14 @@ describe('debug weights table (PLAN-recompenses §5.4)', () => {
       { level: 8, palier: 1 },
     ];
     expect(nextOfferLevel(s)).toBe(7);
-    s.unlockedBuildings.push('adder');
-    s.unlockedFeatures.push('upgrades');
-    const slots = drawOffer(offerContext(s, 7)).slots;
-    expect(slots.length).toBeGreaterThanOrEqual(2);
-    for (const slot of slots) {
-      const rows = weightRows(slot);
-      expect(rows.length).toBe(slot.weights.length);
+    const draws = drawOffer(offerContext(s, 7, 1)).draws;
+    expect(draws).toHaveLength(2);
+    for (const draw of draws) {
+      const rows = weightRows(draw);
+      expect(rows.length).toBe(draw.weights.length);
       expect(rows.reduce((n, r) => n + r.probability, 0)).toBeCloseTo(1, 10);
       for (const r of rows) expect(r.guard).toBeGreaterThan(0);
+      expect(rows.map((r) => r.card)).toContain(draw.card.card);
     }
-    // The natural card is boosted above its curve.
-    const natural = slots.flatMap(weightRows).find((r) => r.natural !== null);
-    expect(natural?.natural).toBeGreaterThanOrEqual(natural?.curve ?? Infinity);
   });
 });

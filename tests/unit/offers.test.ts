@@ -15,11 +15,13 @@ import {
   drawOffer,
   drawSpecialEdition,
   isAvailable,
+  genreOf,
   naturalAt,
   naturalSequence,
+  nextPity,
   nextValue,
   type OfferContext,
-  offerSlots,
+  offerSize,
 } from '../../src/sim/offers';
 
 type Ctx = {
@@ -49,6 +51,7 @@ function ctxAt(level: number, over: Partial<Ctx> = {}): Ctx {
     unlockedFeatures: ['upgrades'],
     palier: 0,
     picks: {},
+    pity: {},
     ...over,
   };
 }
@@ -69,15 +72,22 @@ function tweak(change: (c: CardDef) => CardDef): Catalogue {
 
 describe('curves and values', () => {
   it('interpolates linearly and clamps to the first and last points', () => {
-    expect(curveAt(OFFERS.natural, 1)).toBe(50);
-    expect(curveAt(OFFERS.natural, 3)).toBe(50);
-    expect(curveAt(OFFERS.natural, 11.5)).toBe(37.5);
-    expect(curveAt(OFFERS.natural, 20)).toBe(25);
-    expect(curveAt(OFFERS.natural, 30)).toBe(20);
-    expect(curveAt(OFFERS.natural, 400)).toBe(15);
+    const curve = [
+      { level: 3, w: 50 },
+      { level: 20, w: 25 },
+      { level: 40, w: 15 },
+    ];
+    expect(curveAt(curve, 1)).toBe(50);
+    expect(curveAt(curve, 3)).toBe(50);
+    expect(curveAt(curve, 11.5)).toBe(37.5);
+    expect(curveAt(curve, 20)).toBe(25);
+    expect(curveAt(curve, 30)).toBe(20);
+    expect(curveAt(curve, 400)).toBe(15);
     expect(curveAt([], 5)).toBe(0);
-    const mult = card('mult').weight;
-    expect([1, 3, 5, 7, 10, 13, 50].map((l) => curveAt(mult, l))).toEqual([2, 2, 11, 20, 14, 8, 8]);
+    const concat = card('concat').weight;
+    expect([1, 8, 10, 12, 20, 30, 50].map((l) => curveAt(concat, l))).toEqual([
+      2, 2, 3.5, 5, 5, 3, 3,
+    ]);
   });
 
   it('next value skips the forbidden 10', () => {
@@ -114,7 +124,7 @@ describe('natural sequence', () => {
     ]);
   });
 
-  it('taking the natural card at every level reproduces the current unlock order', () => {
+  it('the fil rouge reproduces the former unlock order, and is never drawn', () => {
     const ctx = ctxAt(1, { unlockedBuildings: [...START_BUILDINGS], unlockedFeatures: [] });
     for (let n = 1; n <= 80; n++) {
       ctx.level = n;
@@ -130,182 +140,153 @@ describe('natural sequence', () => {
       } else if (reward?.kind === 'feature') {
         expect(effect).toEqual({ kind: 'feature', feature: reward.feature });
       }
-      if (n > 2) {
-        expect(isAvailable(card(step.card), ctx)).toBe(true);
-        expect(cardWeight(card(step.card), ctx)).toBeGreaterThanOrEqual(curveAt(OFFERS.natural, n));
-      }
+      expect(card(step.card).drawable).toBe(false);
+      expect(isAvailable(card(step.card), ctx)).toBe(false);
       apply(ctx, step.card);
     }
     expect(ctx.maxExtraction).toBe(80 - 7);
   });
 
-  it('a refused value comes back as the natural card', () => {
+  it('an item not obtained stays the next one', () => {
     const ctx = ctxAt(5, { unlockedBuildings: [...START_BUILDINGS, 'adder', 'bridge'] });
     expect(naturalAt(ctx)).toEqual({ card: 'value', value: 2 });
     ctx.maxExtraction = 2;
     expect(naturalAt(ctx)).toEqual({ card: 'value', value: 3 });
   });
-
-  it('the natural weight is never below the card curve', () => {
-    expect(cardWeight(card('value'), ctxAt(3))).toBe(50);
-    expect(cardWeight(card('value'), ctxAt(80))).toBe(20);
-    // Not the natural card: plain curve.
-    expect(cardWeight(card('bridge'), ctxAt(3))).toBe(curveAt(card('bridge').weight, 3));
-  });
 });
 
-describe('availability', () => {
-  it('respects prerequisites: no − before ×, no ÷ before −, no Priorités before Pont', () => {
-    const base = ctxAt(8);
-    expect(isAvailable(card('mult'), base)).toBe(true);
-    for (const id of ['sub', 'div', 'exp', 'priorities'])
-      expect(isAvailable(card(id), base)).toBe(false);
-    const withMult = ctxAt(8, { unlockedBuildings: [...START_BUILDINGS, 'adder', 'multiplier'] });
-    expect(isAvailable(card('mult'), withMult)).toBe(false);
-    expect(isAvailable(card('sub'), withMult)).toBe(true);
-    expect(isAvailable(card('exp'), withMult)).toBe(true);
-    expect(isAvailable(card('div'), withMult)).toBe(false);
-    const withBridge = ctxAt(8, { unlockedBuildings: [...START_BUILDINGS, 'adder', 'bridge'] });
-    expect(isAvailable(card('priorities'), withBridge)).toBe(true);
-    expect(isAvailable(card('bridge'), withBridge)).toBe(false);
+describe('availability (PLAN-paliers §3.4)', () => {
+  it('never the socle: values, operators, bridge, priorities, storage', () => {
+    const late = ctxAt(80, { maxExtraction: 1 });
+    for (const step of naturalSequence()) expect(isAvailable(card(step.card), late)).toBe(false);
+    for (let seed = 0; seed < 300; seed++) {
+      for (const level of [6, 12, 16, 40]) {
+        for (const c of drawOffer(ctxAt(level, { seed, palier: 1 })).cards)
+          expect(card(c.card).drawable).toBe(true);
+      }
+    }
   });
 
-  it('storage needs level 12, adder and upgrades are never drawn', () => {
-    expect(isAvailable(card('storage'), ctxAt(11))).toBe(false);
-    expect(isAvailable(card('storage'), ctxAt(12))).toBe(true);
-    const fresh = ctxAt(3, { unlockedBuildings: [...START_BUILDINGS], unlockedFeatures: [] });
-    expect(isAvailable(card('adder'), fresh)).toBe(false);
-    expect(isAvailable(card('upgrades'), fresh)).toBe(false);
+  it('prerequisites and minimum levels: the Concatenator needs ×, from level 8', () => {
+    const concat = card('concat');
+    expect(isAvailable(concat, ctxAt(9))).toBe(false);
+    const withMult: Partial<Ctx> = {
+      unlockedBuildings: [...START_BUILDINGS, 'adder', 'multiplier'],
+    };
+    expect(isAvailable(concat, ctxAt(7, withMult))).toBe(false);
+    expect(isAvailable(concat, ctxAt(8, withMult))).toBe(true);
   });
 
-  it('Éventail: from level 6, at most once', () => {
+  it('Éventail I from level 6, Éventail II after it from level 12, each once', () => {
     const fan = card('eventail');
+    const fan2 = card('eventail-2');
     expect(isAvailable(fan, ctxAt(5))).toBe(false);
     expect(isAvailable(fan, ctxAt(6))).toBe(true);
     expect(isAvailable(fan, ctxAt(9, { picks: { eventail: 1 } }))).toBe(false);
+    expect(isAvailable(fan2, ctxAt(14))).toBe(false); // needs Éventail I
+    expect(isAvailable(fan2, ctxAt(11, { picks: { eventail: 1 } }))).toBe(false);
+    expect(isAvailable(fan2, ctxAt(12, { picks: { eventail: 1 } }))).toBe(true);
+    expect(isAvailable(fan2, ctxAt(12, { picks: { eventail: 1, 'eventail-2': 1 } }))).toBe(false);
     for (let seed = 0; seed < 300; seed++) {
       const offer = drawOffer(ctxAt(9, { seed, picks: { eventail: 1 } }));
       expect(offer.cards.map((c) => c.card)).not.toContain('eventail');
     }
   });
-
-  it('values come one by one: never 3 before 2', () => {
-    for (let seed = 0; seed < 300; seed++) {
-      for (const c of drawOffer(ctxAt(4, { seed })).cards) {
-        if (c.card === 'value') expect(c.value).toBe(2);
-      }
-    }
-    let elevens = 0;
-    for (let seed = 0; seed < 300; seed++) {
-      for (const c of drawOffer(ctxAt(15, { seed, maxExtraction: 9 })).cards) {
-        if (c.card !== 'value') continue;
-        expect(c.value).toBe(11);
-        elevens += 1;
-      }
-    }
-    expect(elevens).toBeGreaterThan(0);
-  });
 });
 
-describe('drawOffer', () => {
-  it('is deterministic and depends on the seed', () => {
-    const ctx = ctxAt(9, { maxExtraction: 5, picks: { eventail: 1 } });
+describe('drawOffer (PLAN-paliers §3.4)', () => {
+  it('is deterministic and depends on the seed and the palier', () => {
+    const ctx = ctxAt(9, { palier: 1, picks: { eventail: 1 } });
     expect(drawOffer(ctx)).toEqual(drawOffer({ ...ctx }));
     const seen = new Set<string>();
     for (let seed = 0; seed < 50; seed++)
       seen.add(JSON.stringify(drawOffer({ ...ctx, seed }).cards));
-    expect(seen.size).toBeGreaterThan(5);
+    expect(seen.size).toBeGreaterThan(2);
+    let differ = 0;
+    for (let seed = 0; seed < 50; seed++) {
+      const a = drawOffer({ ...ctx, seed, palier: 1 }).cards;
+      const b = drawOffer({ ...ctx, seed, palier: 2 }).cards;
+      if (JSON.stringify(a) !== JSON.stringify(b)) differ += 1;
+    }
+    expect(differ).toBeGreaterThan(5);
   });
 
-  it('draws Nombres then Atelier, plus Joker with Éventail, without duplicates', () => {
-    expect(offerSlots(ctxAt(8))).toEqual(['nombres', 'atelier']);
-    expect(offerSlots(ctxAt(8, { picks: { eventail: 1 } }))).toEqual([
-      'nombres',
-      'atelier',
-      'joker',
-    ]);
-    for (let seed = 0; seed < 500; seed++) {
-      for (const level of [3, 8, 14, 25, 60]) {
-        const ctx = ctxAt(level, { seed, maxExtraction: 4, picks: { eventail: 1 } });
-        const offer = drawOffer(ctx);
-        expect(offer.cards).toHaveLength(3);
-        expect(new Set(offer.cards.map((c) => c.card)).size).toBe(3);
-        const [nombres, atelier] = offer.cards;
-        expect(card(nombres?.card ?? '').slot).toBe('nombres');
-        expect(card(atelier?.card ?? '').slot).toBe('atelier');
-        expect(drawOffer({ ...ctx, picks: {} }).cards).toHaveLength(2);
+  it('2 cards, 3 with Éventail I, 4 with Éventail II, never more, never twice the same', () => {
+    expect(offerSize(ctxAt(8))).toBe(2);
+    expect(offerSize(ctxAt(8, { picks: { eventail: 1 } }))).toBe(3);
+    expect(offerSize(ctxAt(14, { picks: { eventail: 1, 'eventail-2': 1 } }))).toBe(4);
+    expect(offerSize(ctxAt(14, { picks: { eventail: 3, 'eventail-2': 3 } }))).toBe(OFFERS.maxCards);
+    const withMult = [...START_BUILDINGS, 'adder', 'multiplier'] as Ctx['unlockedBuildings'];
+    for (let seed = 0; seed < 300; seed++) {
+      for (const [picks, n] of [
+        [{}, 2],
+        [{ eventail: 1 }, 3],
+        [{ eventail: 1, 'eventail-2': 1 }, 4],
+      ] as const) {
+        const offer = drawOffer(ctxAt(14, { seed, picks, unlockedBuildings: withMult }));
+        expect(offer.cards).toHaveLength(n);
+        expect(new Set(offer.cards.map((c) => c.card)).size).toBe(n);
       }
     }
+  });
+
+  it('diversity: never two cards of one genre while another genre is left', () => {
+    const withMult = [...START_BUILDINGS, 'adder', 'multiplier'] as Ctx['unlockedBuildings'];
+    for (let seed = 0; seed < 500; seed++) {
+      const ctx = ctxAt(14, { seed, picks: { eventail: 1 }, unlockedBuildings: withMult });
+      const genres = drawOffer(ctx).cards.map((c) => genreOf(card(c.card)));
+      // Genres available: edition, special, passive, meta (Éventail II): 3 cards, 3 genres.
+      expect(new Set(genres).size).toBe(genres.length);
+    }
+    // Only edition cards left: the rule gives way, the offer still has 2 cards.
+    const editionsOnly = tweak((c) => (c.effect.kind === 'edition' ? c : { ...c, minLevel: 999 }));
+    const offer = drawOffer(ctxAt(9), editionsOnly);
+    expect(offer.cards.map((c) => c.card).sort()).toEqual([
+      'edition-brillante',
+      'edition-legendaire',
+    ]);
   });
 
   it('draws each card in proportion to its weight', () => {
-    const ctx = ctxAt(8, {
-      maxExtraction: 4,
-      unlockedBuildings: [...START_BUILDINGS, 'adder', 'bridge'],
-    });
+    const ctx = ctxAt(9);
     const reference = drawOffer(ctx);
     const N = 20_000;
-    for (const slotIndex of [0, 1]) {
-      const weights = reference.slots[slotIndex]?.weights ?? [];
-      expect(weights.length).toBeGreaterThan(1);
-      const total = weights.reduce((s, w) => s + w.weight, 0);
-      const counts = new Map<string, number>();
-      for (let seed = 0; seed < N; seed++) {
-        const c = drawOffer({ ...ctx, seed }).slots[slotIndex]?.card?.card ?? '';
-        counts.set(c, (counts.get(c) ?? 0) + 1);
-      }
-      for (const w of weights) {
-        expect(Math.abs((counts.get(w.card) ?? 0) / N - w.weight / total)).toBeLessThan(0.015);
-      }
+    const weights = reference.draws[0]?.weights ?? [];
+    expect(weights.length).toBeGreaterThan(2);
+    const total = weights.reduce((sum, w) => sum + w.weight, 0);
+    const counts = new Map<string, number>();
+    for (let seed = 0; seed < N; seed++) {
+      const c = drawOffer({ ...ctx, seed }).draws[0]?.card.card ?? '';
+      counts.set(c, (counts.get(c) ?? 0) + 1);
+    }
+    for (const w of weights) {
+      expect(Math.abs((counts.get(w.card) ?? 0) / N - w.weight / total)).toBeLessThan(0.015);
     }
   });
 
-  it('gives the natural card its boosted weight in its slot', () => {
-    const ctx = ctxAt(8, {
-      maxExtraction: 4,
-      unlockedBuildings: [...START_BUILDINGS, 'adder', 'bridge'],
+  it('weights are the curve times the tuned scale, then guards', () => {
+    const ctx = ctxAt(9);
+    const legendary = drawOffer(ctx).draws[0]?.weights.find((w) => w.card === 'edition-legendaire');
+    expect(legendary).toEqual({
+      card: 'edition-legendaire',
+      curve: curveAt(card('edition-legendaire').weight, 9),
+      guard: 1,
+      weight: curveAt(card('edition-legendaire').weight, 9),
     });
-    expect(naturalAt(ctx).card).toBe('mult');
-    const mult = drawOffer(ctx).slots[0]?.weights.find((w) => w.card === 'mult');
-    expect(mult?.curve).toBe(curveAt(card('mult').weight, 8));
-    expect(mult?.natural).toBeCloseTo(curveAt(OFFERS.natural, 8));
-    expect(mult?.weight).toBe(mult?.natural);
+    const guarded = {
+      ...DEFAULT_CATALOGUE,
+      guards: [{ id: 'test', when: () => true, cards: ['edition-legendaire'], factor: 3 }],
+    };
+    expect(cardWeight(card('edition-legendaire'), ctx, guarded)).toBe(
+      3 * curveAt(card('edition-legendaire').weight, 9),
+    );
   });
 
-  it('applies guards (placeholder rule: level 12+ without ×)', () => {
-    const at12 = drawOffer(ctxAt(12)).slots[0]?.weights.find((w) => w.card === 'mult');
-    expect(at12?.guard).toBe(3);
-    expect(at12?.weight).toBe(3 * curveAt(card('mult').weight, 12));
-    const at11 = drawOffer(ctxAt(11)).slots[0]?.weights.find((w) => w.card === 'mult');
-    expect(at11?.guard).toBe(1);
-    const noGuard = { ...DEFAULT_CATALOGUE, guards: [] };
-    expect(cardWeight(card('mult'), ctxAt(12), noGuard)).toBe(curveAt(card('mult').weight, 12));
-  });
-
-  it('an empty slot draws from the other one', () => {
-    const noAtelier = tweak((c) => (c.slot === 'atelier' ? { ...c, minLevel: 999 } : c));
-    const ctx = ctxAt(9, { unlockedBuildings: [...START_BUILDINGS, 'adder', 'multiplier'] });
-    const a = drawOffer(ctx, noAtelier);
-    expect(a.cards).toHaveLength(2);
-    expect(a.slots[1]?.pool).toBe('nombres');
-    expect(a.cards.every((c) => card(c.card).slot === 'nombres')).toBe(true);
-
-    const noNombres = tweak((c) => (c.slot === 'nombres' ? { ...c, minLevel: 999 } : c));
-    const b = drawOffer(ctx, noNombres);
-    expect(b.slots[0]?.pool).toBe('atelier');
-    expect(b.cards).toHaveLength(2);
-
-    const onlyValue = tweak((c) => (c.id === 'value' ? c : { ...c, minLevel: 999 }));
-    const c = drawOffer(ctx, onlyValue);
-    expect(c.cards.map((x) => x.card)).toEqual(['value']);
-    expect(c.slots[1]).toMatchObject({ slot: 'atelier', pool: null, card: null });
-  });
-
-  it('the real Atelier slot is never empty and Nombres always has the value card', () => {
-    for (let level = 3; level <= 80; level++) {
-      const offer = drawOffer(ctxAt(level, { seed: level }));
-      expect(offer.slots.map((s) => s.pool)).toEqual(['nombres', 'atelier']);
-    }
+  it('fewer cards when the pile runs out, none when it is empty', () => {
+    const onlyFan = tweak((c) => (c.id === 'eventail' ? c : { ...c, minLevel: 999 }));
+    expect(drawOffer(ctxAt(9), onlyFan).cards.map((c) => c.card)).toEqual(['eventail']);
+    const nothing = tweak((c) => ({ ...c, minLevel: 999 }));
+    expect(drawOffer(ctxAt(9), nothing).cards).toEqual([]);
   });
 
   it('special cards draw their native edition about 85 / 10 / 5', () => {
@@ -335,5 +316,45 @@ describe('drawOffer', () => {
     expect(Math.abs(inOffers.base / M - 0.85)).toBeLessThan(0.02);
     expect(Math.abs(inOffers.brillante / M - 0.1)).toBeLessThan(0.02);
     expect(Math.abs(inOffers.legendaire / M - 0.05)).toBeLessThan(0.02);
+  });
+});
+
+describe('safety net (PLAN-paliers §3.5)', () => {
+  it('forces Éventail after 4 offers without it, as the first card', () => {
+    const fan = card('eventail');
+    expect(fan.pity).toBe(4);
+    for (let seed = 0; seed < 200; seed++) {
+      const due = drawOffer(ctxAt(9, { seed, pity: { eventail: 4 } }));
+      expect(due.cards[0]?.card).toBe('eventail');
+      expect(due.draws[0]?.forced).toBe(true);
+      const early = drawOffer(ctxAt(9, { seed, pity: { eventail: 3 } }));
+      expect(early.draws.every((d) => !d.forced)).toBe(true);
+    }
+  });
+
+  it('counts offers where the card was available but not offered, back to 0 when offered', () => {
+    const ctx = ctxAt(9, { pity: { eventail: 2 } });
+    expect(nextPity(ctx, [{ card: 'edition-brillante', edition: 'brillante' }])).toEqual({
+      eventail: 3,
+    });
+    expect(nextPity(ctx, [{ card: 'eventail', edition: 'base' }])).toEqual({ eventail: 0 });
+    // Not available (Éventail II before Éventail I, or Éventail before level 6): unchanged.
+    expect(nextPity(ctxAt(5, { pity: { eventail: 2 } }), [])).toEqual({ eventail: 2 });
+    expect(nextPity(ctxAt(14), [])).toEqual({ eventail: 1 });
+    expect(nextPity(ctxAt(14, { picks: { eventail: 1 } }), [])).toEqual({ 'eventail-2': 1 });
+  });
+
+  it('a whole run of offers never goes 5 offers without Éventail while it is available', () => {
+    for (let seed = 0; seed < 100; seed++) {
+      const ctx = ctxAt(9, { seed });
+      let wait = 0;
+      for (let palier = 1; palier <= 40; palier++) {
+        ctx.palier = palier;
+        const offer = drawOffer(ctx);
+        wait = offer.cards.some((c) => c.card === 'eventail') ? 0 : wait + 1;
+        expect(wait).toBeLessThanOrEqual(4);
+        ctx.pity = nextPity(ctx, offer.cards);
+      }
+    }
   });
 });

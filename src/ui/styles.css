@@ -2254,7 +2254,7 @@ body::after {
   overflow-wrap: anywhere;
 }
 
-.offer-slot-name {
+.offer-genre {
   color: var(--chalk-pink);
   font: 700 12px var(--font-ui);
   letter-spacing: 0.1em;
@@ -2301,10 +2301,6 @@ body::after {
 
 .offer-tag-unique {
   color: var(--chalk-pink);
-}
-
-.offer-tag-natural {
-  color: var(--chalk-green);
 }
 
 .offer-flip-mark {
@@ -2520,7 +2516,7 @@ body::after {
     font-size: 14px;
   }
 
-  .ui-compact .offer-slot-name,
+  .ui-compact .offer-genre,
   .ui-compact .offer-tag {
     font-size: 11px;
   }

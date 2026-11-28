@@ -1,7 +1,8 @@
 /**
- * Reward offers (PLAN-recompenses §3.1 to §3.3, §3.6): availability, weights, natural card
- * ("fil rouge") and the seeded draw. Pure functions, decoupled from `GameState` through
- * `OfferContext`, so the draw simulator (phase 2) can run them alone.
+ * Reward offers (PLAN-recompenses §3.2, §3.6; PLAN-paliers §3.4, §3.5): the fil rouge
+ * ("natural" sequence) each level gives, and the palier offers: availability, weights, the
+ * diversity rule, the safety net and the seeded draw. Pure functions, decoupled from
+ * `GameState` through `OfferContext`, so the simulator can run them alone.
  */
 import {
   LEVEL_TABLE,
@@ -21,7 +22,6 @@ import {
   type GuardView,
   META_EFFECTS,
   OFFERS,
-  type OfferSlot,
   type Prereq,
   SPECIAL_EDITION_ODDS,
 } from '../config/cards';
@@ -37,6 +37,8 @@ export interface OfferContext extends GuardView {
   palier: number;
   /** Times each card id was picked. */
   picks: Readonly<Record<string, number>>;
+  /** Safety net counters by card id (PLAN-paliers §3.5): offers since it was last offered. */
+  pity: Readonly<Record<string, number>>;
 }
 
 /** Cards, guards and tuned values a draw uses (tests and the simulator can pass their own). */
@@ -67,27 +69,26 @@ export interface WeightEntry {
   card: string;
   /** Weight from the card's own curve, times its tuned scale (PLAN-objets §5). */
   curve: number;
-  /** Boosted weight if it is the natural card, else null. */
-  natural: number | null;
   /** Product of the guard factors that apply. */
   guard: number;
   /** Final weight used by the draw. */
   weight: number;
 }
 
-/** How one slot of an offer was drawn. */
-export interface SlotDraw {
-  slot: OfferSlot;
-  /** Pool actually drawn from: the slot itself, the other slot (fallback) or null (empty). */
-  pool: OfferSlot | null;
+/** How one card of an offer was drawn. */
+export interface CardDraw {
+  /** Cards it was drawn among, after the diversity rule, with their weights. */
   weights: WeightEntry[];
-  card: OfferCard | null;
+  /** Forced by the safety net (PLAN-paliers §3.5) rather than drawn. */
+  forced: boolean;
+  card: OfferCard;
 }
 
 export interface Offer {
   level: number;
+  palier: number;
   cards: OfferCard[];
-  slots: SlotDraw[];
+  draws: CardDraw[];
 }
 
 /** Salt separating the offer stream from the level and upgrade streams. */
@@ -218,11 +219,12 @@ function isPrereqMet(p: Prereq, ctx: OfferContext): boolean {
 }
 
 /**
- * Can `card` appear in an offer? It must have a slot, meet its prerequisites and `minLevel`,
- * stay under `maxPicks`, and, for an unlock or a feature, not be obtained already.
+ * Can `card` appear in a palier offer? It must be drawable (never the socle), meet its
+ * prerequisites and `minLevel`, stay under `maxPicks`, and, for an unlock or a feature, not
+ * be obtained already.
  */
 export function isAvailable(card: CardDef, ctx: OfferContext): boolean {
-  if (card.slot === null) return false;
+  if (!card.drawable) return false;
   if (card.minLevel !== undefined && ctx.level < card.minLevel) return false;
   if (card.maxPicks !== undefined && (ctx.picks[card.id] ?? 0) >= card.maxPicks) return false;
   const e = card.effect;
@@ -230,46 +232,72 @@ export function isAvailable(card: CardDef, ctx: OfferContext): boolean {
   return (card.requires ?? []).every((p) => isPrereqMet(p, ctx));
 }
 
-/** Weight breakdown of `card`, given the id of the natural card. Ignores availability. */
-function weigh(card: CardDef, ctx: OfferContext, naturalId: string, cat: Catalogue): WeightEntry {
+/** Weight breakdown of `card`: its curve times its tuned scale, then guards. */
+function weigh(card: CardDef, ctx: OfferContext, cat: Catalogue): WeightEntry {
   const curve = curveAt(card.weight, ctx.level) * weightScale(card.id, cat.tuning);
-  let natural: number | null = null;
-  let weight = curve;
-  if (card.id === naturalId) {
-    natural = Math.max(curve, curveAt(OFFERS.natural, ctx.level));
-    weight = natural;
-  }
   let guard = 1;
   for (const g of cat.guards) if (g.cards.includes(card.id) && g.when(ctx)) guard *= g.factor;
-  weight *= guard;
-  return { card: card.id, curve, natural, guard, weight };
+  return { card: card.id, curve, guard, weight: curve * guard };
 }
 
 /**
- * Weight of `card` at this offer (§3.3): its curve times its tuned scale (PLAN-objets §5),
- * raised to the natural weight `max(curve, natural)` if it is the natural card, then guards. Ignores availability (see `isAvailable`).
+ * Weight of `card` at this offer (PLAN-paliers §3.4): its curve times its tuned scale
+ * (PLAN-objets §5), then guards. Ignores availability (see `isAvailable`).
  */
 export function cardWeight(
   card: CardDef,
   ctx: OfferContext,
   cat: Catalogue = DEFAULT_CATALOGUE,
 ): number {
-  return weigh(card, ctx, naturalAt(ctx, cat).card, cat).weight;
+  return weigh(card, ctx, cat).weight;
 }
 
-/** Extra offer slots given by the meta cards already picked. */
-function metaSlots(ctx: OfferContext, cat: Catalogue): OfferSlot[] {
-  const extra: OfferSlot[] = [];
+/** Cards of an offer: the base count plus those of the meta cards picked, capped. */
+export function offerSize(ctx: OfferContext, cat: Catalogue = DEFAULT_CATALOGUE): number {
+  let n: number = OFFERS.baseCards;
   for (const c of cat.cards) {
-    if (c.effect.kind !== 'meta' || (ctx.picks[c.id] ?? 0) <= 0) continue;
-    extra.push(...META_EFFECTS[c.effect.id].extraSlots);
+    if (c.effect.kind !== 'meta') continue;
+    n += (ctx.picks[c.id] ?? 0) * META_EFFECTS[c.effect.id].extraCards;
   }
-  return extra;
+  return Math.min(OFFERS.maxCards, n);
 }
 
-/** Slots of the offer, in draw order: Nombres, Atelier, then those added by meta cards. */
-export function offerSlots(ctx: OfferContext, cat: Catalogue = DEFAULT_CATALOGUE): OfferSlot[] {
-  return [...OFFERS.slots, ...metaSlots(ctx, cat)];
+/** Genre of a card, for the diversity rule: the kind of its effect. */
+export function genreOf(card: CardDef): CardDef['effect']['kind'] {
+  return card.effect.kind;
+}
+
+/** The card the safety net forces among `cards`: the longest overdue, or undefined. */
+function overdue(cards: readonly CardDef[], ctx: OfferContext): CardDef | undefined {
+  let best: CardDef | undefined;
+  let bestWait = -1;
+  for (const c of cards) {
+    if (c.pity === undefined) continue;
+    const wait = ctx.pity[c.id] ?? 0;
+    if (wait >= c.pity && wait > bestWait) {
+      best = c;
+      bestWait = wait;
+    }
+  }
+  return best;
+}
+
+/**
+ * Safety net counters after an offer of `cards` drawn with `ctx` (PLAN-paliers §3.5): every
+ * available card with a `pity` counts one more offer, back to 0 when it was offered. Cards
+ * not available keep their counter.
+ */
+export function nextPity(
+  ctx: OfferContext,
+  cards: readonly OfferCard[],
+  cat: Catalogue = DEFAULT_CATALOGUE,
+): Record<string, number> {
+  const out: Record<string, number> = { ...ctx.pity };
+  for (const c of cat.cards) {
+    if (c.pity === undefined || !isAvailable(c, ctx)) continue;
+    out[c.id] = cards.some((o) => o.card === c.id) ? 0 : (out[c.id] ?? 0) + 1;
+  }
+  return out;
 }
 
 /** Native edition of a special building, drawn with SPECIAL_EDITION_ODDS. */
@@ -308,44 +336,39 @@ function toOfferCard(card: CardDef, ctx: OfferContext, rng: Rng): OfferCard {
 }
 
 /**
- * Draw the offer of `ctx.level` (§3.3). Each slot draws among the available cards of its
- * slot (Joker: all), without repeating a card of this offer; an empty Nombres or Atelier slot
- * draws from the other one. RNG per slot: `mulberry32(hash2(seed ^ OFFER_SALT, level,
- * palier × 8 + i))`, so every palier of a level draws its own cards.
+ * Draw the palier offer of `ctx` (PLAN-paliers §3.4): `offerSize` cards from one pile of
+ * available cards, without repeating one. Each card is drawn in proportion to the weights;
+ * the diversity rule keeps only the genres not yet at `maxPerGenre` in this offer, as long as
+ * one is left. The first card is the one the safety net forces, if any. Fewer cards when the
+ * pile runs out. RNG per card: `mulberry32(hash2(seed ^ OFFER_SALT, level, palier × 8 + i))`.
  */
 export function drawOffer(ctx: OfferContext, cat: Catalogue = DEFAULT_CATALOGUE): Offer {
-  const naturalId = naturalAt(ctx, cat).card;
   const available = cat.cards.filter((c) => isAvailable(c, ctx));
-  const taken = new Set<string>();
+  const size = offerSize(ctx, cat);
+  const taken: CardDef[] = [];
   const cards: OfferCard[] = [];
-  const slots: SlotDraw[] = [];
+  const draws: CardDraw[] = [];
+  const positive = (pile: readonly CardDef[]): WeightEntry[] =>
+    pile.map((c) => weigh(c, ctx, cat)).filter((w) => w.weight > 0);
 
-  const pool = (slot: OfferSlot): WeightEntry[] =>
-    available
-      .filter((c) => (slot === 'joker' || c.slot === slot) && !taken.has(c.id))
-      .map((c) => weigh(c, ctx, naturalId, cat))
-      .filter((w) => w.weight > 0);
-
-  offerSlots(ctx, cat).forEach((slot, i) => {
+  for (let i = 0; i < size; i++) {
     const rng = mulberry32(hash2(ctx.seed ^ OFFER_SALT, ctx.level, ctx.palier * 8 + i));
-    let used: OfferSlot | null = slot;
-    let weights = pool(slot);
-    if (weights.length === 0 && slot !== 'joker') {
-      used = slot === 'nombres' ? 'atelier' : 'nombres';
-      weights = pool(used);
-    }
-    const picked = weights.length > 0 ? pickWeighted(rng, weights) : undefined;
-    const def = picked && available.find((c) => c.id === picked.card);
-    if (!def) {
-      slots.push({ slot, pool: null, weights, card: null });
-      return;
-    }
+    const left = available.filter((c) => !taken.includes(c));
+    const perGenre = new Map<string, number>();
+    for (const c of taken) perGenre.set(genreOf(c), (perGenre.get(genreOf(c)) ?? 0) + 1);
+    const fresh = left.filter((c) => (perGenre.get(genreOf(c)) ?? 0) < OFFERS.maxPerGenre);
+    let weights = positive(fresh);
+    if (weights.length === 0) weights = positive(left);
+    const forcedDef = i === 0 ? overdue(left, ctx) : undefined;
+    const picked = forcedDef ? undefined : weights.length > 0 && pickWeighted(rng, weights);
+    const def = forcedDef ?? (picked ? left.find((c) => c.id === picked.card) : undefined);
+    if (!def) break;
     const card = toOfferCard(def, ctx, rng);
-    taken.add(def.id);
+    taken.push(def);
     cards.push(card);
-    slots.push({ slot, pool: used, weights, card });
-  });
-  return { level: ctx.level, cards, slots };
+    draws.push({ weights, forced: forcedDef !== undefined, card });
+  }
+  return { level: ctx.level, palier: ctx.palier, cards, draws };
 }
 
 /** Buildings a card can stand on (start buildings and those unlocked by a card). */
@@ -357,8 +380,9 @@ function ordinaryBuildings(cards: readonly CardDef[]): Set<string> {
 
 /**
  * Check a catalogue (§5.5): unique ids, known prerequisites, no dependency cycle, sound weight
- * curves, special cards only for limited buildings, edition cards with a real edition, and a
- * card for every LEVEL_TABLE reward. Returns the list of errors (empty = valid).
+ * curves and safety nets, special cards only for limited buildings, edition cards with a real
+ * edition, and a card, never drawn, for every LEVEL_TABLE reward. Returns the list of errors
+ * (empty = valid).
  */
 export function validateCatalogue(cards: readonly CardDef[]): string[] {
   const errors: string[] = [];
@@ -381,7 +405,9 @@ export function validateCatalogue(cards: readonly CardDef[]): string[] {
       if ('value' in p && !(p.value >= 1)) errors.push(`${c.id}: bad value prerequisite`);
       if ('level' in p && !(p.level >= 1)) errors.push(`${c.id}: bad level prerequisite`);
     }
-    if (c.slot !== null && c.weight.length === 0) errors.push(`${c.id}: drawable without weight`);
+    if (c.drawable && c.weight.length === 0) errors.push(`${c.id}: drawable without weight`);
+    if (c.pity !== undefined && !(Number.isInteger(c.pity) && c.pity >= 1))
+      errors.push(`${c.id}: bad pity`);
     c.weight.forEach((pt, i) => {
       if (!Number.isFinite(pt.w) || pt.w < 0) errors.push(`${c.id}: negative weight`);
       const prev = c.weight[i - 1];
@@ -399,9 +425,11 @@ export function validateCatalogue(cards: readonly CardDef[]): string[] {
       errors.push(`${c.id}: edition card without edition`);
   }
 
-  for (const def of LEVEL_TABLE)
-    if (!cardForReward(def.reward, cards))
-      errors.push(`no card for level reward ${JSON.stringify(def.reward)}`);
+  for (const def of LEVEL_TABLE) {
+    const card = cardForReward(def.reward, cards);
+    if (!card) errors.push(`no card for level reward ${JSON.stringify(def.reward)}`);
+    else if (card.drawable) errors.push(`${card.id}: fil rouge card must not be drawable`);
+  }
 
   errors.push(...findCycles(cards));
   return errors;

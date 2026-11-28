@@ -1,6 +1,6 @@
 # PLAN-paliers.md : des récompenses plus fréquentes, des choix sur les objets
 
-> **État : jalons P1 et P2 faits (réglages ; fil rouge d’office, paliers, file des offres, sauvegarde v3).** Branche `ccr-ef7ff23f-njv12p`. Ce plan **remplace une partie** de [`PLAN-recompenses.md`](PLAN-recompenses.md) (fil rouge dans les offres, emplacements Nombres / Atelier / Joker, refus) et complète [`PLAN-objets.md`](PLAN-objets.md) (simulateur, critères). Les choix faits en cours de route iront dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> **État : jalons P1 à P3 faits (réglages ; fil rouge d’office et paliers ; tirage en un seul tas, Éventail I et II, filet de sécurité).** Branche `ccr-ef7ff23f-njv12p`. Ce plan **remplace une partie** de [`PLAN-recompenses.md`](PLAN-recompenses.md) (fil rouge dans les offres, emplacements Nombres / Atelier / Joker, refus) et complète [`PLAN-objets.md`](PLAN-objets.md) (simulateur, critères). Les choix faits en cours de route iront dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ---
 

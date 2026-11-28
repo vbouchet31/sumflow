@@ -183,7 +183,7 @@ export class OfferScreen {
     const back = el(
       'span',
       'offer-face offer-back',
-      el('span', 'offer-slot-name', view.slot),
+      el('span', 'offer-genre', view.genre),
       el('span', 'offer-full-name', view.fullName),
       el('span', 'offer-gives', view.gives),
       ...view.effects.map((line) => el('span', 'offer-effect', line)),

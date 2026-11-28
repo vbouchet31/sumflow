@@ -108,6 +108,8 @@ export interface GameState {
   /** Special buildings obtained, by `"type:edition"`. Free ones are computed. */
   specials: Record<string, number>;
   passives: PassiveId[];
+  /** Safety net counters by card id (PLAN-paliers §3.5): palier offers since last offered. */
+  pity: Record<string, number>;
 }
 
 export const HUB_ID = 0;
@@ -160,6 +162,7 @@ export function createInitialState(seed: number): GameState {
     editionsLost: { brillante: 0, legendaire: 0 },
     specials: {},
     passives: [],
+    pity: {},
   };
   state.levelRequirement = requirementFor(state, 1);
   return state;

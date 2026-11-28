@@ -3,11 +3,11 @@
  * the game state without touching the DOM: card names, the back of each card, its tags, the
  * "1 / 3" position, and when the screen may open by itself.
  */
-import { EDITION_EFFECTS, type EditionEffect, type OfferSlot } from '../config/cards';
+import { EDITION_EFFECTS, type EditionEffect } from '../config/cards';
 import { getLocale, type MessageKey, t } from '../i18n';
 import { paliersFor } from '../sim/levels';
-import { naturalAt, type OfferCard, offerSlots } from '../sim/offers';
-import { cardDef, offerContext } from '../sim/rewards';
+import type { OfferCard } from '../sim/offers';
+import { cardDef } from '../sim/rewards';
 import type { GameState, StoredOffer } from '../sim/state';
 import { cardLabel, cardParams } from './labels';
 
@@ -15,7 +15,7 @@ import { cardLabel, cardParams } from './labels';
 export const OFFER_INTRO_ID = 'offer-intro';
 
 /** Tags on the back of a card. */
-export type OfferTag = 'new' | 'unique' | 'natural';
+export type OfferTag = 'new' | 'unique';
 
 export interface OfferCardView {
   card: OfferCard;
@@ -25,7 +25,8 @@ export interface OfferCardView {
   name: string;
   /** Name with its edition, on the back. */
   fullName: string;
-  slot: string;
+  /** Genre of the card (special building, edition, passive…), first line of the back. */
+  genre: string;
   /** What the card gives: unlocked without limit, copies × N, a card to apply… */
   gives: string;
   /** Edition effects, one line each (empty for a base object). */
@@ -118,11 +119,10 @@ export function givesLabel(card: OfferCard): string {
 }
 
 /**
- * Tags of `card` in an offer whose natural card is `natural`: new (never obtained in this
- * game; a special building counts by edition), unique (`maxPicks: 1`), classic path (the
- * natural card).
+ * Tags of `card`: new (never obtained in this game; a special building counts by edition) and
+ * unique (`maxPicks: 1`).
  */
-export function offerTags(state: GameState, card: OfferCard, natural: string): OfferTag[] {
+export function offerTags(state: GameState, card: OfferCard): OfferTag[] {
   const def = cardDef(card.card);
   const special = def?.effect.kind === 'special';
   const tags: OfferTag[] = [];
@@ -131,15 +131,13 @@ export function offerTags(state: GameState, card: OfferCard, natural: string): O
   );
   if (!owned) tags.push('new');
   if (def?.maxPicks === 1) tags.push('unique');
-  if (card.card === natural) tags.push('natural');
   return tags;
 }
 
-/** Slot name on the back: the Joker slot, else the card's own slot in the catalogue. */
-export function slotLabel(offerSlot: OfferSlot | undefined, card: OfferCard): string {
-  const own = cardDef(card.card)?.slot ?? null;
-  const slot = offerSlot === 'joker' ? 'joker' : (own ?? offerSlot ?? 'nombres');
-  return t(`offer.slot.${slot}`);
+/** Genre name on the back of a card: the kind of its effect. */
+export function genreLabel(card: OfferCard): string {
+  const kind = cardDef(card.card)?.effect.kind;
+  return kind ? t(`offer.genre.${kind}`) : '';
 }
 
 /** Everything the screen shows for `offer`, the first pending one. */
@@ -148,10 +146,7 @@ export function offerView(
   offer: StoredOffer,
   position: { index: number; total: number },
 ): OfferView {
-  const ctx = offerContext(state, offer.level, offer.palier);
-  const natural = naturalAt(ctx).card;
-  const slots = offerSlots(ctx);
-  const cards = offer.cards.map((card, i): OfferCardView => {
+  const cards = offer.cards.map((card): OfferCardView => {
     const def = cardDef(card.card);
     const params = def ? cardParams(def, card.value) : {};
     return {
@@ -159,11 +154,11 @@ export function offerView(
       icon: def?.icon ?? '',
       name: def ? t(def.title, params) : card.card,
       fullName: cardLabel(card),
-      slot: slotLabel(slots[i], card),
+      genre: genreLabel(card),
       gives: givesLabel(card),
       effects: editionEffectLines(card),
       text: def ? t(def.text, params) : '',
-      tags: offerTags(state, card, natural),
+      tags: offerTags(state, card),
     };
   });
   return {

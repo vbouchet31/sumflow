@@ -1,9 +1,9 @@
 import { SPECIAL_TYPES } from '../config/buildings';
 import { CARDS, SPECIAL_EDITIONS } from '../config/cards';
-import { getLocale, type MessageKey, t } from '../i18n';
+import { getLocale, t } from '../i18n';
 import { appliedEditions, freeEditions, specialStock } from '../sim/inventory';
 import { firstPalierLevel } from '../sim/levels';
-import { drawOffer, type SlotDraw } from '../sim/offers';
+import { type CardDraw, drawOffer } from '../sim/offers';
 import { offerContext } from '../sim/rewards';
 import type { GameState } from '../sim/state';
 import { el } from './dom';
@@ -26,24 +26,21 @@ export function nextOfferLevel(state: GameState): number {
   return state.pendingOffers[0]?.level ?? Math.max(state.level, firstPalierLevel());
 }
 
-/** One row of the weights table: a card of a slot and how its weight was computed. */
+/** One row of the weights table: a card it could draw and how its weight was computed. */
 export interface WeightRow {
   card: string;
   curve: number;
-  /** Natural ("fil rouge") weight when it is the natural card, else null. */
-  natural: number | null;
   guard: number;
-  /** Share of the slot's total weight (0..1). */
+  /** Share of the total weight of that draw (0..1). */
   probability: number;
 }
 
-/** The weight rows of a slot as drawn (PLAN-recompenses §5.4): every card it could give. */
-export function weightRows(slot: SlotDraw): WeightRow[] {
-  const total = slot.weights.reduce((n, w) => n + w.weight, 0);
-  return slot.weights.map((w) => ({
+/** The weight rows of one card of an offer as drawn (PLAN-recompenses §5.4). */
+export function weightRows(draw: CardDraw): WeightRow[] {
+  const total = draw.weights.reduce((n, w) => n + w.weight, 0);
+  return draw.weights.map((w) => ({
     card: w.card,
     curve: w.curve,
-    natural: w.natural,
     guard: w.guard,
     probability: total > 0 ? w.weight / total : 0,
   }));
@@ -51,7 +48,7 @@ export function weightRows(slot: SlotDraw): WeightRow[] {
 
 /**
  * Small read-only debug box (seed, ticks, cursor tile, zoom), with `?debug=1` or in dev. Its
- * button opens the card weights of the next offer, slot by slot, and the inventory (§5.4):
+ * button opens the card weights of the next offer, card by card, and the inventory (§5.4):
  * computed only while that table is open.
  */
 export class DebugPanel {
@@ -106,8 +103,9 @@ export class DebugPanel {
   /** Rebuild the weights table and the inventory, only when what they show changed. */
   private renderWeights(): void {
     const state = this.state();
-    const level = nextOfferLevel(state);
-    const slots = drawOffer(offerContext(state, level)).slots;
+    const next = state.pendingOffers[0] ?? { level: nextOfferLevel(state), palier: 1 };
+    const level = next.level;
+    const draws = drawOffer(offerContext(state, level, next.palier)).draws;
     const free = freeEditions(state);
     const applied = appliedEditions(state);
     const inventory = [
@@ -131,7 +129,7 @@ export class DebugPanel {
         ),
       ),
     ];
-    const key = JSON.stringify([level, slots, inventory, getLocale()]);
+    const key = JSON.stringify([next, draws, inventory, getLocale()]);
     if (key === this.lastWeights) return;
     this.lastWeights = key;
     const num = (x: number): string => x.toLocaleString(getLocale(), { maximumFractionDigits: 2 });
@@ -140,38 +138,22 @@ export class DebugPanel {
     const parts: HTMLElement[] = [
       el('h3', 'debug-weights-title', t('debug.weights', { n: level })),
     ];
-    for (const slot of slots) {
-      const name = t(`offer.slot.${slot.slot}` as MessageKey);
-      const pool = slot.pool;
-      const caption =
-        pool === null
-          ? `${t('debug.slot', { slot: name })} · ${t('debug.slotEmpty')}`
-          : pool === slot.slot
-            ? t('debug.slot', { slot: name })
-            : t('debug.slotFallback', {
-                slot: t('debug.slot', { slot: name }),
-                from: t(`offer.slot.${pool}` as MessageKey),
-              });
+    draws.forEach((draw, i) => {
+      const name = t('debug.draw', { n: i + 1 });
+      const caption = draw.forced ? `${name} · ${t('debug.forced')}` : name;
       const head = el(
         'tr',
         undefined,
-        ...(
-          [
-            'debug.colCard',
-            'debug.colCurve',
-            'debug.colNatural',
-            'debug.colGuard',
-            'debug.colProb',
-          ] as const
-        ).map((k) => el('th', undefined, t(k))),
+        ...(['debug.colCard', 'debug.colCurve', 'debug.colGuard', 'debug.colProb'] as const).map(
+          (k) => el('th', undefined, t(k)),
+        ),
       );
-      const rows = weightRows(slot).map((r) => {
+      const rows = weightRows(draw).map((r) => {
         const tr = el(
           'tr',
-          slot.card?.card === r.card ? 'debug-drawn' : undefined,
+          draw.card.card === r.card ? 'debug-drawn' : undefined,
           el('td', undefined, cardLabel({ card: r.card })),
           el('td', undefined, num(r.curve)),
-          el('td', undefined, r.natural === null ? '·' : num(r.natural)),
           el('td', undefined, `×${num(r.guard)}`),
           el('td', undefined, pct(r.probability)),
         );
@@ -185,9 +167,9 @@ export class DebugPanel {
         el('thead', undefined, head),
         el('tbody', undefined, ...rows),
       );
-      table.dataset['slot'] = slot.slot;
+      table.dataset['draw'] = String(i + 1);
       parts.push(table);
-    }
+    });
     parts.push(el('h3', 'debug-weights-title', t('debug.inventory')));
     parts.push(el('ul', 'debug-inventory', ...inventory.map((line) => el('li', undefined, line))));
     this.weights.replaceChildren(...parts);

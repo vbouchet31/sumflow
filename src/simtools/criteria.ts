@@ -264,7 +264,7 @@ export interface SocleInfo {
 export function socleInfo(result: RunResult, cards: readonly CardDef[] = CARDS): SocleInfo[] {
   return cards.flatMap((c) => {
     const level = naturalLevelOf(c.id);
-    if (level === null || c.slot === null || roleOf(c) !== 'socle') return [];
+    if (level === null || roleOf(c) !== 'socle') return [];
     const exposure: Record<string, Exposure> = {};
     for (const [name, r] of result.runs) exposure[name] = exposureOf(r, c.id);
     return [{ card: c.id, naturalLevel: level, exposure }];

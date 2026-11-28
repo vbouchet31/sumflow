@@ -33,7 +33,7 @@ export function unmodeledReason(card: string): string | null {
 
 /** Drawable cards (they can have `object:<id>` and `once:<id>` strategies). */
 export function drawableCards(cards: readonly CardDef[] = CARDS): CardDef[] {
-  return cards.filter((c) => c.slot !== null);
+  return cards.filter((c) => c.drawable);
 }
 
 /** Drawable cards judged by the criteria (objects and placeholders, not the socle). */
