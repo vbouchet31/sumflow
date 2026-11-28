@@ -1,6 +1,6 @@
 # PLAN-paliers.md : des récompenses plus fréquentes, des choix sur les objets
 
-> **État : plan validé en discussion, rien n'est codé.** Branche `ccr-ef7ff23f-njv12p`. Ce plan **remplace une partie** de [`PLAN-recompenses.md`](PLAN-recompenses.md) (fil rouge dans les offres, emplacements Nombres / Atelier / Joker, refus) et complète [`PLAN-objets.md`](PLAN-objets.md) (simulateur, critères). Les choix faits en cours de route iront dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> **État : jalon P1 fait (réglages des paliers et des quantités).** Branche `ccr-ef7ff23f-njv12p`. Ce plan **remplace une partie** de [`PLAN-recompenses.md`](PLAN-recompenses.md) (fil rouge dans les offres, emplacements Nombres / Atelier / Joker, refus) et complète [`PLAN-objets.md`](PLAN-objets.md) (simulateur, critères). Les choix faits en cours de route iront dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ---
 

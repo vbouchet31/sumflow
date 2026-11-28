@@ -85,6 +85,28 @@ export const LEVELS = {
   preview: 12,
 } as const;
 
+/**
+ * Paliers of a level (PLAN-paliers §3.2): from level `from` on (the last entry reached
+ * applies), an offer of objects is drawn each time the delivered count reaches
+ * `ceil(fraction × quantity)`. No entry reached = no palier. Fractions are in (0, 1), increasing.
+ */
+export const PALIERS: readonly { from: number; at: readonly number[] }[] = [
+  { from: 6, at: [1 / 2] },
+  { from: 12, at: [1 / 3, 2 / 3] },
+  { from: 16, at: [1 / 4, 1 / 2, 3 / 4] },
+];
+
+/**
+ * Quantity factor by level range (PLAN-paliers §3.3): the last entry whose `from` is reached
+ * applies, to the table and to the infinite levels alike. No entry reached = × 1.
+ */
+export const QUANTITY_FACTOR: readonly { from: number; factor: number }[] = [
+  { from: 16, factor: 0.75 },
+];
+
+/** Scaled quantities are rounded to this step (never below 1). */
+export const QUANTITY_ROUNDING = 10;
+
 /** Hub footprint (PLAN §4.2): tiles x, y ∈ [-3, 2]. */
 export const HUB = { x: -3, y: -3, size: 6 } as const;
 
