@@ -2,6 +2,8 @@
 
 > **État : phase 2a terminée (outillage) ; 2b, pilote Concaténateur, codé et simulé (fiche [`docs/objets/concat.md`](docs/objets/concat.md)), partie de test à faire.** Suite de [`PLAN-recompenses.md`](PLAN-recompenses.md) (phase 1 terminée). Les choix faits en cours de route vont dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
+> **Mise à jour : [`PLAN-paliers.md`](PLAN-paliers.md) §5** adapte le simulateur aux paliers : référence `none` (le fil rouge seul) au lieu de `natural`, stratégies `object` et `once` qui ne prennent rien d'autre que l'objet, niveaux coupés à leurs paliers, rythme des récompenses dans le rapport, et un 4e critère, « pas envahissant ».
+
 ---
 
 ## 0. Résumé

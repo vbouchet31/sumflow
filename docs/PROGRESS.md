@@ -43,6 +43,20 @@ Branche `claude/hub-objectives-reward-choices-kdavx9`. **Phase 1 terminée** (mo
 | Phase 2 Premiers objets, simulateur de tirage | ⏳ à faire |
 | Phase 3 Simulateur de rythme, équilibrage     | ⏳ à faire |
 
+## Paliers (PLAN-paliers.md)
+
+Récompenses plus fréquentes : le fil rouge est donné d'office, les choix viennent des paliers.
+
+| Jalon                                                    | État                                |
+| -------------------------------------------------------- | ----------------------------------- |
+| P1 Réglages des paliers et des quantités                 | ✅ terminé                          |
+| P2 Fil rouge d'office, paliers, file des offres, sauv. 3 | ✅ terminé                          |
+| P3 Tirage en un seul tas, Éventail I et II, filet        | ✅ terminé                          |
+| P4 Interface                                             | ✅ terminé                          |
+| P5 Simulateur à paliers                                  | ✅ terminé                          |
+| P6 Réglage                                               | 🚧 rapport livré, décisions à venir |
+| P7 Documentation                                         | ✅ terminé                          |
+
 ## Objets répétables (PLAN-objets.md)
 
 | Étape                                 | État                            |

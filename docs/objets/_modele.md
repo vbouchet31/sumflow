@@ -13,8 +13,8 @@
 
 | Champ                     | Valeur                                                                        |
 | ------------------------- | ----------------------------------------------------------------------------- |
-| Genre                     | `special` / `unlock` / `edition` / `passive` / `meta`                         |
-| Emplacement               | Nombres / Atelier                                                             |
+| Genre                     | `special` / `edition` / `passive` / `meta` (le fil rouge garde le reste)      |
+| Filet de sécurité         | `pity` : forcé après N offres sans lui, ou aucun                              |
 | Exemplaires par carte     | (genre `special`)                                                             |
 | Carte unique (`maxPicks`) | oui / non                                                                     |
 | Prérequis                 | ex. : `+` débloqué, niveau 8                                                  |
@@ -50,7 +50,7 @@ Seuls ces paramètres peuvent être changés par `npm run tune`. Ils vivent dans
 
 ## 6. Critères particuliers
 
-Les 3 critères de `PLAN-objets.md` §4 s'appliquent. Noter ici un seuil différent et sa justification, sinon « aucun ».
+Les 4 critères de `PLAN-objets.md` §4 et `PLAN-paliers.md` §5.3 s'appliquent. Noter ici un seuil différent et sa justification, sinon « aucun ».
 
 ## 7. Historique des simulations
 

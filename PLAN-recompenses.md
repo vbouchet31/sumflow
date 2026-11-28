@@ -2,6 +2,8 @@
 
 > **État : phase 1 terminée (jalons R1 à R6), phase 2 à venir.** Branche `claude/hub-objectives-reward-choices-kdavx9`. Ce document décrit le travail ; il ne modifie aucun code. Les choix faits en cours de route iront dans [`docs/DECISIONS.md`](docs/DECISIONS.md), l'avancement dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
+> **Mise à jour : [`PLAN-paliers.md`](PLAN-paliers.md) remplace** le fil rouge dans les offres (§3.1), les emplacements Nombres / Atelier / Joker et le tirage par emplacement (§3.2, §3.3), les niveaux à offre (§4.1) et la décision « Niveaux 1 et 2 fixes » : chaque niveau donne désormais son fil rouge d'office, et les choix viennent des offres de palier. Le reste (éditions, inventaire, écran de choix, fiches) reste valable.
+
 ---
 
 ## 0. Résumé
